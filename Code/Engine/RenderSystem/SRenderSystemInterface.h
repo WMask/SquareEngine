@@ -20,7 +20,7 @@
 /***************************************************************************
 * Render system interface
 */
-class S_RENDERSYSTEM_API IRenderSystem
+class IRenderSystem
 {
 public:
 	/**

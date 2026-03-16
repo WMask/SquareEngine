@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Application/SApplicationTypes.h"
+#include "RenderSystem/SRenderSystemInterface.h"
 #include "Core/SMathTypes.h"
 #include "Core/STypes.h"
 
@@ -49,6 +49,9 @@ public:
 	/**
 	* Set update handler */
 	virtual void SetUpdateHandler(SUpdateHandler handler) noexcept = 0;
+	/**
+	* Set render system */
+	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept = 0;
 	/**
 	* Set application feature */
 	virtual void SetFeature(SAppFeature feature, const SAny& value) noexcept = 0;

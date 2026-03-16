@@ -52,10 +52,10 @@ public:
 	virtual bool CanRender() const = 0;
 	/**
 	* Request resize */
-	virtual void RequestResize(int width, int height) = 0;
+	virtual void RequestResize(std::int32_t width, std::int32_t height) = 0;
 	/**
 	* Resize render system */
-	virtual void Resize(int width, int height, const SAppContext& context) = 0;
+	virtual void Resize(std::int32_t width, std::int32_t height, const SAppContext& context) = 0;
 	/**
 	* Set window mode */
 	virtual void SetMode(SAppMode mode) = 0;
@@ -70,6 +70,8 @@ public:
 	virtual SRSType GetType() const = 0;
 
 };
+
+using TRenderSystemPtr = std::unique_ptr<IRenderSystem>;
 
 
 /***************************************************************************

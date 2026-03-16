@@ -40,6 +40,12 @@ SWindowsApplication::SWindowsApplication()
 
 SWindowsApplication::~SWindowsApplication()
 {
+    if (renderSystem)
+    {
+        renderSystem->Shutdown();
+        renderSystem.reset();
+    }
+
     if (hWnd)
     {
         DestroyWindow(hWnd);
@@ -119,6 +125,12 @@ void SWindowsApplication::Run()
         context, *this
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
+
+    if (renderSystem)
+    {
+        renderSystem->Create(hWnd, features, appMode, context);
+        context.render = renderSystem.get();
+    }
 
     // call app init handler
     if (initHandler)

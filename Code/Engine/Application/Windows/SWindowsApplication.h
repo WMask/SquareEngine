@@ -37,6 +37,8 @@ public: // IApplication interface implementation
 	//
 	virtual void SetUpdateHandler(IApplication::SUpdateHandler handler) noexcept override { updateHandler = handler; }
 	//
+	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept override { renderSystem = std::move(render); }
+	//
 	virtual void SetFeature(SAppFeature feature, const SAny& value) noexcept override { features[feature] = value; }
 	//
 	virtual SAny GetFeature(SAppFeature feature) const noexcept override { return features[feature]; }
@@ -87,5 +89,7 @@ protected:
 	IApplication::SInitHandler initHandler;
 	//
 	IApplication::SUpdateHandler updateHandler;
+	//
+	TRenderSystemPtr renderSystem;
 
 };

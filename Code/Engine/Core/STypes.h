@@ -23,13 +23,13 @@ struct SAny
 	SAny() : fValue(0.0f), iValue(0) {}
 	SAny(const std::string& value) : type(SAnyType::StringAny), sValue(value), fValue(0.0f), iValue(0) {}
 	SAny(float value) : type(SAnyType::FloatAny), fValue(value), iValue(0) {}
-	SAny(int value) : type(SAnyType::IntAny), fValue(0.0f), iValue(value) {}
+	SAny(std::int32_t value) : type(SAnyType::IntAny), fValue(0.0f), iValue(value) {}
 	SAny(bool value) : type(SAnyType::BoolAny), fValue(0.0f), iValue(value ? 1 : 0) {}
 	//
 	inline bool bValue() const { return (iValue == 1); }
 	//
 	std::string             sValue;
-	float                   fValue{};
-	std::int32_t            iValue{};
+	float                   fValue;
+	std::int32_t            iValue;
 	std::optional<SAnyType> type;
 };

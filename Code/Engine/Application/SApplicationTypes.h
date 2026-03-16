@@ -35,6 +35,8 @@ struct SAppContext
 {
 	class IApplication* app{};
 	//
+	class IRenderSystem* render{};
+	//
 	void* windowHandle{};
 	//
 	float gameTime{};

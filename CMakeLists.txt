@@ -84,6 +84,9 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemTypes.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemInterface.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SWindowsUtils.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SWindowsUtils.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 )

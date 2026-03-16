@@ -1,0 +1,17 @@
+/***************************************************************************
+* SApplicationModule.cpp
+*/
+
+#include "Application/SApplicationModule.h"
+
+
+#if defined(WIN32)
+
+#include "Application/Windows/SWindowsApplication.h"
+
+std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
+{
+    return std::make_unique<SWindowsApplication>();
+}
+
+#endif

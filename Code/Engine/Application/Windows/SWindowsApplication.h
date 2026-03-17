@@ -6,6 +6,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <chrono>
 
 #include "Application/SApplicationInterface.h"
 
@@ -21,13 +22,19 @@ public:
 	/**
 	* Default constructor */
 	SWindowsApplication();
+	//
+	using SClock = std::chrono::high_resolution_clock;
+	//
+	using SDuration = std::chrono::duration<float>;
+	//
+	using STimePoint = std::chrono::steady_clock::time_point;
 
 
 public: // IApplication interface implementation
 	//
 	virtual ~SWindowsApplication() override;
 	//
-	virtual void Init(void* handle, const std::string& cmds, int cmdsCount) noexcept override;
+	virtual void Init(void* handle, const std::string& cmds, std::int32_t cmdsCount) noexcept override;
 	//
 	virtual void Init(void* handle, const std::string& cmds) noexcept override;
 	//
@@ -39,9 +46,9 @@ public: // IApplication interface implementation
 	//
 	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept override { renderSystem = std::move(render); }
 	//
-	virtual void SetFeature(SAppFeature feature, const SAny& value) noexcept override { features[feature] = value; }
+	virtual void SetFeature(SAppFeature feature, const std::any& value) noexcept override { features[feature] = value; }
 	//
-	virtual SAny GetFeature(SAppFeature feature) const noexcept override { return features[feature]; }
+	virtual std::any GetFeature(SAppFeature feature) const noexcept override;
 	//
 	virtual void SetWindowMode(SAppMode mode) override;
 	//
@@ -67,7 +74,7 @@ protected:
 	//
 	std::string cmds;
 	//
-	int cmdsCount;
+	std::int32_t cmdsCount;
 	//
 	bool quit{};
 	//
@@ -75,11 +82,17 @@ protected:
 	//
 	SAppMode appMode;
 	//
-	LARGE_INTEGER prevTime;
+	SAppFeaturesMap features;
 	//
-	LARGE_INTEGER frequency;
+	STimePoint startFrameTime;
 	//
-	mutable SAppFeaturesMap features;
+	STimePoint prevFrameTime;
+	//
+	std::uint32_t currentGameFrame;
+	//
+	std::int32_t accumulatedFrames;
+	//
+	float accumulatedTime;
 
 
 protected:

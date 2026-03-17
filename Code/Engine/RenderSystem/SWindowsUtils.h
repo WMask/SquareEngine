@@ -9,7 +9,7 @@
 
 
 /** Find display mode */
-bool SFindDisplayMode(std::int32_t width, std::int32_t height, DXGI_MODE_DESC* outMode);
+bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxRefreshRate, DXGI_MODE_DESC* outMode);
 
 /** Make window association to enable fullscreen mode on Alt + Enter */
 void SMakeWindowAssociation(HWND hWnd);

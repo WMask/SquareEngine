@@ -3,6 +3,7 @@
 */
 
 #include "RenderSystem/SRenderSystemModule.h"
+#include "Application/SApplicationModule.h"
 
 
 #if defined(WIN32)
@@ -18,6 +19,14 @@ std::unique_ptr<IRenderSystem> CreateRenderSystem(SRSType RenderSystemType)
     }
 
     return nullptr;
+}
+
+std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
+{
+    auto app = SApplication::CreateApplication(RenderSystemType);
+    auto render = CreateRenderSystem(RenderSystemType);
+    app->SetRenderSystem(std::move(render));
+    return app;
 }
 
 #endif

@@ -63,7 +63,7 @@ protected:
 	//
 	ComPtr<IDXGISwapChain> swapChain;
 	//
-	ComPtr<ID3D11Device> device;
+	ComPtr<ID3D11Device> d3dDevice;
 	//
 	ComPtr<ID3D11DeviceContext> deviceContext;
 	//

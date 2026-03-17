@@ -95,8 +95,8 @@ target_include_directories(SRenderSystem
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(SRenderSystem PUBLIC cxx_std_20)
-target_link_libraries(SRenderSystem SCore)
-add_dependencies(SRenderSystem SCore)
+target_link_libraries(SRenderSystem SCore SApplication)
+add_dependencies(SRenderSystem SCore SApplication)
 
 ## Add Sample projects ##
 

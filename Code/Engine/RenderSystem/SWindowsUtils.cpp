@@ -33,7 +33,7 @@ std::vector<ComPtr<IDXGIAdapter>> SEnumerateAdapters()
     return adapters;
 }
 
-bool SFindDisplayMode(std::int32_t width, std::int32_t height, DXGI_MODE_DESC* outMode)
+bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxRefreshRate, DXGI_MODE_DESC* outMode)
 {
     if (!outMode) return false;
 
@@ -57,9 +57,11 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, DXGI_MODE_DESC* o
             output->GetDisplayModeList(format, 0, &numModes, &displayModes[0]);
             for (auto& mode : displayModes)
             {
+                UINT RefreshRate = mode.RefreshRate.Numerator / mode.RefreshRate.Denominator;
                 if (mode.Width == width &&
                     mode.Height == height &&
-                    mode.RefreshRate.Numerator >= 60 &&
+                    RefreshRate >= 60 &&
+                    RefreshRate <= maxRefreshRate &&
                     mode.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
                 {
                     float prevRate = (float)outMode->RefreshRate.Numerator / (float)outMode->RefreshRate.Denominator;

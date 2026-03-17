@@ -7,9 +7,10 @@
 #include "Application/Windows/SWindowsApplication.h"
 #include "Application/SApplicationModule.h"
 #include "Core/SException.h"
+#include "Core/SUtils.h"
 
-#include <timeapi.h>
 #include <windowsx.h>
+#include <thread>
 
 #pragma comment (lib, "Winmm.lib")
 
@@ -33,9 +34,15 @@ SWindowsApplication::SWindowsApplication()
     cmdsCount = 0;
     windowSize = SSize2{ 800, 600 };
     appMode = SAppMode::Windowed;
-    prevTime.QuadPart = 0;
-    frequency.QuadPart = 0;
+    currentGameFrame = 0u;
+    accumulatedFrames = 0;
+    accumulatedTime = 0.0f;
+
     features[SAppFeature::VSync] = true;
+    features[SAppFeature::NoDelay] = false;
+    features[SAppFeature::HighFrequencyTimer] = false;
+    features[SAppFeature::AllowFullscreen] = false;
+    features[SAppFeature::ClearScreenColor] = SColor3(0, 0, 255);
 }
 
 SWindowsApplication::~SWindowsApplication()
@@ -71,6 +78,7 @@ void SWindowsApplication::Init(void* handle) noexcept
     Init(handle, "", 1);
 }
 
+#include <timeapi.h>
 void SWindowsApplication::Run()
 {
     S_TRY
@@ -116,16 +124,18 @@ void SWindowsApplication::Run()
 
     context.windowHandle = hWnd;
 
+    // set random
     SYSTEMTIME time;
     GetSystemTime(&time);
-    srand(time.wMilliseconds);
+    srand(time.wMilliseconds + time.wSecond + time.wHour + time.wDay);
 
-    // set handles
+    // set WndProc handles
     SWin32Handles handles {
         context, *this
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
 
+    // create game systems
     if (renderSystem)
     {
         renderSystem->Create(hWnd, features, appMode, context);
@@ -142,11 +152,21 @@ void SWindowsApplication::Run()
         S_CATCH{ S_THROW("SWindowsApplication::Run(onInitHandler)") }
     }
 
-    // run game loop
-    QueryPerformanceFrequency(&frequency);
-    QueryPerformanceCounter(&prevTime);
+    // set loop variables
+    using namespace std::chrono_literals;
+    startFrameTime = SClock::now();
+    prevFrameTime = startFrameTime;
+    currentGameFrame = 0u;
+    accumulatedFrames = 0;
+    accumulatedTime = 0.0f;
 
-    const bool noDelay = features[SAppFeature::NoDelay].bValue();
+    const bool bNoDelay = GetFeatureFlag(features, SAppFeature::NoDelay);
+    const bool bHighFrequencyTimer = GetFeatureFlag(features, SAppFeature::HighFrequencyTimer);
+
+    // run game loop
+    DebugMsg("SWindowsApplication::Run(): Start game loop\n");
+    if (bHighFrequencyTimer) timeBeginPeriod(1);
+
     MSG msg;
 	while (!quit)
 	{
@@ -158,17 +178,18 @@ void SWindowsApplication::Run()
         }
         else
         {
-            if (!noDelay)
+            if (!bNoDelay)
             {
-                timeBeginPeriod(1);
-                Sleep(1);
-                timeEndPeriod(1);
+                std::this_thread::sleep_for(1ms);
             }
 
             // update and render
             OnUpdate();
         }
 	}
+
+    DebugMsg("SWindowsApplication::Run(): End game loop\n");
+    if (bHighFrequencyTimer) timeEndPeriod(1);
 
     // set NULL to skip crash in WndProc
     SetWindowLongPtr(hWnd, GWLP_USERDATA, NULL);
@@ -183,24 +204,34 @@ void SWindowsApplication::OnUpdate()
 {
     S_TRY
 
-    LARGE_INTEGER curTime, deltaTime;
-    QueryPerformanceCounter(&curTime);
-    deltaTime.QuadPart = (curTime.QuadPart - prevTime.QuadPart);
+    auto curTime = SClock::now();
+    SDuration deltaSeconds = curTime - prevFrameTime;
+    SDuration timeSeconds = curTime - startFrameTime;
+    prevFrameTime = curTime;
 
-    if (curTime.QuadPart != prevTime.QuadPart)
+    context.gameFrame = currentGameFrame;
+    context.gameTime = timeSeconds.count();
+    float deltaFloat = deltaSeconds.count();
+
+    if (updateHandler)
     {
-        prevTime.QuadPart = curTime.QuadPart;
+        updateHandler(deltaFloat, context);
+    }
 
-        double deltaSeconds = static_cast<double>(deltaTime.QuadPart) / static_cast<double>(frequency.QuadPart);
-        float deltaFloat = static_cast<float>(deltaSeconds);
+    if (renderSystem)
+    {
+        renderSystem->Update(deltaFloat, context);
+        renderSystem->Render(context);
+    }
 
-        double timeSeconds = static_cast<double>(curTime.QuadPart) / static_cast<double>(frequency.QuadPart);
-        context.gameTime = static_cast<float>(timeSeconds);
-
-        if (updateHandler)
-        {
-            updateHandler(deltaFloat, context);
-        }
+    currentGameFrame++;
+    accumulatedFrames++;
+    accumulatedTime += deltaFloat;
+    if (accumulatedTime >= 1.0f)
+    {
+        context.fps = accumulatedFrames;
+        accumulatedFrames = 0;
+        accumulatedTime = 0.0f;
     }
 
     S_CATCH{ S_THROW("SWindowsApplication::OnUpdate()") }
@@ -212,6 +243,12 @@ void SWindowsApplication::SetWindowSize(std::int32_t width, std::int32_t height)
     if (windowSize == newSize) return;
 
     windowSize = newSize;
+}
+
+std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
+{
+    auto featureIt = features.find(feature);
+    return (featureIt != features.end()) ? featureIt->second : std::any();
 }
 
 void SWindowsApplication::SetWindowMode(SAppMode mode)

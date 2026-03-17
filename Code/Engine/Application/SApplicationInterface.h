@@ -54,10 +54,10 @@ public:
 	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept = 0;
 	/**
 	* Set application feature */
-	virtual void SetFeature(SAppFeature feature, const SAny& value) noexcept = 0;
+	virtual void SetFeature(SAppFeature feature, const std::any& value) noexcept = 0;
 	/**
 	* Get application feature value */
-	virtual SAny GetFeature(SAppFeature feature) const noexcept = 0;
+	virtual std::any GetFeature(SAppFeature feature) const noexcept = 0;
 	/**
 	* Set window mode and update render system */
 	virtual void SetWindowMode(SAppMode mode) = 0;

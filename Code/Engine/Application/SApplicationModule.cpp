@@ -9,9 +9,12 @@
 
 #include "Application/Windows/SWindowsApplication.h"
 
-std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
+namespace SApplication
 {
-    return std::make_unique<SWindowsApplication>();
+    std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
+    {
+        return std::make_unique<SWindowsApplication>();
+    }
 }
 
 #endif

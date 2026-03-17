@@ -33,6 +33,7 @@ struct SVector4 : public SVector3
 	float w;
 
 	bool operator==(const SVector4&) const = default;
+	inline operator const float*() const { return &x; }
 };
 
 namespace SConst

@@ -1,0 +1,95 @@
+/***************************************************************************
+* SWindowsUtils.h
+*/
+
+#ifdef WIN32
+
+#include "RenderSystem/SWindowsUtils.h"
+
+#include <wrl.h>
+#include <vector>
+
+#pragma comment(lib, "dxgi.lib")
+
+using namespace Microsoft::WRL;
+
+
+std::vector<ComPtr<IDXGIAdapter>> SEnumerateAdapters()
+{
+    std::vector<ComPtr<IDXGIAdapter>> adapters;
+    ComPtr<IDXGIFactory> factory;
+
+    if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(factory.GetAddressOf()))))
+    {
+        return adapters;
+    }
+
+    IDXGIAdapter* adapter;
+    for (UINT i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
+    {
+        adapters.push_back(adapter);
+    }
+
+    return adapters;
+}
+
+bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxRefreshRate, DXGI_MODE_DESC* outMode)
+{
+    if (!outMode) return false;
+
+    outMode->RefreshRate.Numerator = 1;
+    outMode->RefreshRate.Denominator = 1;
+    outMode->Format = DXGI_FORMAT_UNKNOWN;
+
+    auto adapters = SEnumerateAdapters();
+    for (auto adapter : adapters)
+    {
+        ComPtr<IDXGIOutput> output;
+        if (SUCCEEDED(adapter->EnumOutputs(0, output.GetAddressOf())))
+        {
+            UINT numModes = 0;
+            std::vector<DXGI_MODE_DESC> displayModes;
+            DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+            output->GetDisplayModeList(format, 0, &numModes, NULL);
+            displayModes.resize(numModes);
+
+            output->GetDisplayModeList(format, 0, &numModes, &displayModes[0]);
+            for (auto& mode : displayModes)
+            {
+                UINT RefreshRate = mode.RefreshRate.Numerator / mode.RefreshRate.Denominator;
+                if (mode.Width == width &&
+                    mode.Height == height &&
+                    RefreshRate >= 60 &&
+                    RefreshRate <= maxRefreshRate &&
+                    mode.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
+                {
+                    float prevRate = (float)outMode->RefreshRate.Numerator / (float)outMode->RefreshRate.Denominator;
+                    float curRate = (float)mode.RefreshRate.Numerator / (float)mode.RefreshRate.Denominator;
+                    if (curRate > prevRate)
+                    {
+                        *outMode = mode;
+                    }
+                }
+            }
+        }
+    }
+
+    return (outMode->Format != DXGI_FORMAT_UNKNOWN);
+}
+
+void SMakeWindowAssociation(HWND hWnd)
+{
+    ComPtr<IDXGIFactory> factory;
+    if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(factory.GetAddressOf()))))
+    {
+        throw std::exception("SMakeWindowAssociation(): Cannot create factory");
+    }
+
+    if (FAILED(factory->MakeWindowAssociation(hWnd, 0)))
+    {
+        throw std::exception("SMakeWindowAssociation(): Cannot make window association");
+    }
+}
+
+#endif // WIN32

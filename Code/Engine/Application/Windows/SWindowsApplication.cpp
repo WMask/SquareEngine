@@ -10,6 +10,7 @@
 #include "Core/SUtils.h"
 
 #include <windowsx.h>
+#include <timeapi.h>
 #include <thread>
 
 #pragma comment (lib, "Winmm.lib")
@@ -78,7 +79,6 @@ void SWindowsApplication::Init(void* handle) noexcept
     Init(handle, "", 1);
 }
 
-#include <timeapi.h>
 void SWindowsApplication::Run()
 {
     S_TRY

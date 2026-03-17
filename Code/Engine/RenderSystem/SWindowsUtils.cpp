@@ -64,8 +64,8 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxR
                     RefreshRate <= maxRefreshRate &&
                     mode.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
                 {
-                    float prevRate = (float)outMode->RefreshRate.Numerator / (float)outMode->RefreshRate.Denominator;
-                    float curRate = (float)mode.RefreshRate.Numerator / (float)mode.RefreshRate.Denominator;
+                    float prevRate = static_cast<float>(outMode->RefreshRate.Numerator) / static_cast<float>(outMode->RefreshRate.Denominator);
+                    float curRate = static_cast<float>(mode.RefreshRate.Numerator) / static_cast<float>(mode.RefreshRate.Denominator);
                     if (curRate > prevRate)
                     {
                         *outMode = mode;

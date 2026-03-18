@@ -21,12 +21,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		auto app = CreateApplication(SRSType::DX11);
 		app->SetWindowSize(800, 600);
 		app->SetUpdateHandler(updateHandler);
+		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
 		app->Init(hInstance);
 		app->Run();
 	}
 	catch (const std::exception& ex)
 	{
-		DebugMsg("\nHelloApplication error:\n%s\n\n", ex.what());
+		DebugMsg("\nHelloApplication error: %s\n\n", ex.what());
 	}
 
 	return 0;

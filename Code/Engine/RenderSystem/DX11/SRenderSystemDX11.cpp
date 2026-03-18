@@ -43,7 +43,7 @@ void SRenderSystemDX11::Create(void* windowHandle, const SAppFeaturesMap& inFeat
 	DXGI_MODE_DESC displayModeDesc{};
 	if (!SFindDisplayMode(width, height, maxRefreshRate, &displayModeDesc))
 	{
-		throw std::exception("SRenderSystemDX11::Create(): Cannot find display mode");
+		throw std::exception("Cannot find display mode");
 	}
 
 	// Create device and swap chain
@@ -66,19 +66,19 @@ void SRenderSystemDX11::Create(void* windowHandle, const SAppFeaturesMap& inFeat
 	if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
 		D3D11_SDK_VERSION, &swapChainDesc, swapChain.GetAddressOf(), d3dDevice.GetAddressOf(), NULL, deviceContext.GetAddressOf())))
 	{
-		throw std::exception("SRenderSystemDX11::Create(): Cannot create device");
+		throw std::exception("Cannot create device");
 	}
 
 	// Create back buffer and render target
 	ComPtr<ID3D11Texture2D> backBuffer;
 	if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
 	{
-		throw std::exception("SRenderSystemDX11::Create(): Cannot get back buffer");
+		throw std::exception("Cannot get back buffer");
 	}
 
 	if (FAILED(d3dDevice->CreateRenderTargetView(backBuffer.Get(), NULL, renderTargetView.GetAddressOf())))
 	{
-		throw std::exception("SRenderSystemDX11::Create(): Cannot create render target");
+		throw std::exception("Cannot create render target");
 	}
 
 	backBuffer.Reset();
@@ -106,14 +106,14 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	if (!deviceContext || !swapChain)
 	{
-		throw std::exception("SRenderSystemDX11::Render(): Invalid render device");
+		throw std::exception("Invalid render device");
 	}
 
 	auto ClearColorIt = features.find(SAppFeature::ClearScreenColor);
 	if (ClearColorIt->second.has_value())
 	{
 		SColor3 color3 = std::any_cast<SColor3>(ClearColorIt->second);
-		SColor4F color4 = FromSColor3(color3);
+		SColor4F color4 = SConvert::FromSColor3(color3);
 		deviceContext->ClearRenderTargetView(renderTargetView.Get(), color4);
 	}
 

@@ -22,12 +22,16 @@ FetchContent_Declare(
 	GIT_TAG        1.0.3
 )
 
-##	GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-
 FetchContent_Declare(
 	eigen
 	GIT_REPOSITORY https://github.com/eigen-mirror/eigen.git
 	GIT_TAG        5.0.1
+)
+
+FetchContent_Declare(
+	entt
+	GIT_REPOSITORY https://github.com/skypjack/entt.git
+	GIT_TAG        v3.16.0
 )
 
 message("--\n-- Downloading GL Math 1.0.3 ...\n--")
@@ -40,13 +44,20 @@ message("--\n-- Downloading Eigen Math 5.0.1 ...\n--")
 FetchContent_MakeAvailable(eigen)
 FetchContent_GetProperties(eigen)
 
+message("--\n-- Downloading Entt 3.16.0 ...\n--")
+
+FetchContent_MakeAvailable(entt)
+FetchContent_GetProperties(entt)
+
 ## Add Engine libs ##
 
 add_library(SCore SHARED
     ${ENGINE_SOURCE_DIR}/SConfig.h
-    ${ENGINE_SOURCE_DIR}/Core/SCore.h
+    ${ENGINE_SOURCE_DIR}/Core/CoreModule.h
     ${ENGINE_SOURCE_DIR}/Core/SCoreModule.h
     ${ENGINE_SOURCE_DIR}/Core/SMacros.h
+    ${ENGINE_SOURCE_DIR}/Core/SCamera.h
+    ${ENGINE_SOURCE_DIR}/Core/SDelegate.h
     ${ENGINE_SOURCE_DIR}/Core/SException.h
     ${ENGINE_SOURCE_DIR}/Core/STypes.h
     ${ENGINE_SOURCE_DIR}/Core/SMathTypes.h
@@ -62,12 +73,30 @@ target_include_directories(SCore
 )
 target_compile_features(SCore PUBLIC cxx_std_20)
 
+
+add_library(SWorld SHARED
+    ${ENGINE_SOURCE_DIR}/World/WorldModule.h
+    ${ENGINE_SOURCE_DIR}/World/SWorldModule.h
+    ${ENGINE_SOURCE_DIR}/World/SWorldInterface.h
+    ${ENGINE_SOURCE_DIR}/World/SWorld.h
+    ${ENGINE_SOURCE_DIR}/World/SWorld.cpp
+)
+target_include_directories(SWorld
+	PUBLIC
+		${ENGINE_SOURCE_DIR}
+		${entt_SOURCE_DIR}/src
+)
+target_compile_features(SWorld PUBLIC cxx_std_20)
+target_link_libraries(SWorld SCore)
+add_dependencies(SWorld SCore)
+
+
 add_library(SApplication SHARED
-    ${ENGINE_SOURCE_DIR}/Application/SApplication.h
-    ${ENGINE_SOURCE_DIR}/Application/SApplicationTypes.h
-    ${ENGINE_SOURCE_DIR}/Application/SApplicationInterface.h
+    ${ENGINE_SOURCE_DIR}/Application/ApplicationModule.h
     ${ENGINE_SOURCE_DIR}/Application/SApplicationModule.h
     ${ENGINE_SOURCE_DIR}/Application/SApplicationModule.cpp
+    ${ENGINE_SOURCE_DIR}/Application/SApplicationTypes.h
+    ${ENGINE_SOURCE_DIR}/Application/SApplicationInterface.h
     ${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.cpp
     ${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.h
 )
@@ -76,15 +105,16 @@ target_include_directories(SApplication
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(SApplication PUBLIC cxx_std_20)
-target_link_libraries(SApplication SCore)
-add_dependencies(SApplication SCore)
+target_link_libraries(SApplication SCore SWorld)
+add_dependencies(SApplication SCore SWorld)
+
 
 add_library(SRenderSystem SHARED
-    ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystem.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemTypes.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemInterface.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/RenderSystemModule.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemTypes.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemInterface.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SWindowsUtils.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SWindowsUtils.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
@@ -93,10 +123,11 @@ add_library(SRenderSystem SHARED
 target_include_directories(SRenderSystem
 	PUBLIC
 		${ENGINE_SOURCE_DIR}
+		${entt_SOURCE_DIR}/src
 )
 target_compile_features(SRenderSystem PUBLIC cxx_std_20)
-target_link_libraries(SRenderSystem SCore SApplication)
-add_dependencies(SRenderSystem SCore SApplication)
+target_link_libraries(SRenderSystem SCore SApplication SWorld)
+add_dependencies(SRenderSystem SCore SApplication SWorld)
 
 ## Add Sample projects ##
 
@@ -111,6 +142,7 @@ target_compile_features(HelloWorld PUBLIC cxx_std_20)
 target_link_libraries(HelloWorld SCore)
 add_dependencies(HelloWorld SCore)
 
+
 add_executable(HelloApplication
 	${SAMPLES_SOURCE_DIR}/HelloApplication/HelloApplication.cpp
 )
@@ -121,6 +153,19 @@ target_include_directories(HelloApplication
 target_compile_features(HelloApplication PUBLIC cxx_std_20)
 target_link_libraries(HelloApplication SCore SApplication SRenderSystem)
 add_dependencies(HelloApplication SCore SApplication SRenderSystem)
+
+
+add_executable(SpritesSample
+	${SAMPLES_SOURCE_DIR}/SpritesSample/SpritesSample.cpp
+)
+target_include_directories(SpritesSample
+	PUBLIC
+		${ENGINE_SOURCE_DIR}
+)
+target_compile_features(SpritesSample PUBLIC cxx_std_20)
+target_link_libraries(SpritesSample SCore SApplication SRenderSystem SWorld)
+add_dependencies(SpritesSample SCore SApplication SRenderSystem SWorld)
+
 
 if (WIN32)
 	target_compile_definitions(SCore PRIVATE
@@ -143,11 +188,19 @@ if (WIN32)
         UNICODE
         _UNICODE
 	)
+	target_compile_definitions(SpritesSample PRIVATE
+        UNICODE
+        _UNICODE
+	)
 	set_target_properties(HelloWorld PROPERTIES
 		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
         LINK_FLAGS "/SUBSYSTEM:CONSOLE"
 	)
 	set_target_properties(HelloApplication PROPERTIES
+		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
+        LINK_FLAGS "/SUBSYSTEM:WINDOWS"
+	)
+	set_target_properties(SpritesSample PROPERTIES
 		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
         LINK_FLAGS "/SUBSYSTEM:WINDOWS"
 	)

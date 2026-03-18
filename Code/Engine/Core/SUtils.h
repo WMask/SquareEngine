@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Core/SCore.h"
+#include "Core/CoreModule.h"
 #include <string_view>
 
 

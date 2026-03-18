@@ -84,3 +84,5 @@ protected:
 	IApplication& operator=(const IApplication&) = delete;
 
 };
+
+using TApplicationPtr = std::unique_ptr<IApplication>;

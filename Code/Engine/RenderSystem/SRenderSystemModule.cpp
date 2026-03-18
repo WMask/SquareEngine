@@ -6,7 +6,7 @@
 #include "Application/SApplicationModule.h"
 
 
-std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
+TApplicationPtr CreateApplication(SRSType RenderSystemType)
 {
     auto app = SApplication::CreateApplication(RenderSystemType);
     auto render = CreateRenderSystem(RenderSystemType);
@@ -18,7 +18,7 @@ std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
 
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 
-std::unique_ptr<IRenderSystem> CreateRenderSystem(SRSType RenderSystemType)
+TRenderSystemPtr CreateRenderSystem(SRSType RenderSystemType)
 {
     switch (RenderSystemType)
     {

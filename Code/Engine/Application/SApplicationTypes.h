@@ -50,6 +50,8 @@ struct SAppContext
 {
 	class IApplication* app{};
 	//
+	class IWorld* world{};
+	//
 	class IRenderSystem* render{};
 	//
 	void* windowHandle{};

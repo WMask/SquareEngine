@@ -41,6 +41,7 @@ namespace SConst
 	static const SVector2 ZeroSVector2 = SVector2{};
 	static const SVector3 ZeroSVector3 = SVector3{};
 	static const SVector4 ZeroSVector4 = SVector4{};
+	static const SVector2 OneSVector2 = SVector2{1, 1};
 }
 
 #if USING_GLMATH

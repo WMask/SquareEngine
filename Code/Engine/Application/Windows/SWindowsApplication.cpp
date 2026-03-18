@@ -6,6 +6,7 @@
 
 #include "Application/Windows/SWindowsApplication.h"
 #include "Application/SApplicationModule.h"
+#include "World/SWorldModule.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
@@ -62,7 +63,7 @@ SWindowsApplication::~SWindowsApplication()
     }
 }
 
-void SWindowsApplication::Init(void* handle, const std::string& inCmds, int inCmdsCount) noexcept
+void SWindowsApplication::Init(void* handle, const std::string& inCmds, std::int32_t inCmdsCount) noexcept
 {
 	hInstance = static_cast<HINSTANCE>(handle);
     cmds = inCmds;
@@ -83,10 +84,13 @@ void SWindowsApplication::Run()
 {
     S_TRY
 
-	if (!hInstance) throw std::exception("SWindowsApplication::Run(): Invalid platform handle");
+	if (!hInstance) throw std::exception("Invalid platform handle");
 
     // set context
     context.app = this;
+    context.render = renderSystem.get();
+    world = CreateWorld(context);
+    context.world = world.get();
 
     // get window size
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -109,14 +113,14 @@ void SWindowsApplication::Run()
     wcex.lpszClassName = SWindowClassName;
     if (0 == RegisterClassExW(&wcex))
     {
-        throw std::exception("SWindowsApplication::Run(): Cannot register window class");
+        throw std::exception("Cannot register window class");
     }
 
     hWnd = CreateWindowW(SWindowClassName, L"Game Window", style, CW_USEDEFAULT, CW_USEDEFAULT,
         winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
     if (!hWnd)
     {
-        throw std::exception("SWindowsApplication::Run(): Cannot create window");
+        throw std::exception("Cannot create window");
     }
 
     ShowWindow(hWnd, SW_SHOW);

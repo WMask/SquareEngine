@@ -9,6 +9,8 @@
 #include <chrono>
 
 #include "Application/SApplicationInterface.h"
+#include "RenderSystem/SRenderSystemInterface.h"
+#include "World/SWorldInterface.h"
 
 #pragma warning(disable : 4275)
 
@@ -104,5 +106,7 @@ protected:
 	IApplication::SUpdateHandler updateHandler;
 	//
 	TRenderSystemPtr renderSystem;
+	//
+	TWorldPtr world;
 
 };

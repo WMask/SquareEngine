@@ -1,5 +1,5 @@
 /***************************************************************************
-* SRenderSystem.h
+* RenderSystemModule.h
 */
 
 #pragma once

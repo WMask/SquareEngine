@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Application/SApplication.h"
+#include "Application/ApplicationModule.h"
 #include "Application/SApplicationInterface.h"
 
 #include <memory>

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Core/SMathTypes.h"
-#include "RenderSystem/SRenderSystem.h"
+#include "RenderSystem/RenderSystemModule.h"
 #include "RenderSystem/SRenderSystemTypes.h"
 #include "Application/SApplicationTypes.h"
 

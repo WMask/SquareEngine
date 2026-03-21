@@ -18,33 +18,27 @@ enum class SRSType
 	Metal
 };
 
-/** Clamp float value */
-inline float SClamp(float value, float minValue, float maxValue)
-{
-	return std::clamp(value, minValue, maxValue);
-}
 
-/** Clamp int value */
-inline std::int32_t SClamp(std::int32_t value, std::int32_t minValue, std::int32_t maxValue)
-{
-	return std::clamp(value, minValue, maxValue);
-}
-
-/** Range struct */
+/***************************************************************************
+* Range class. Clamps value to specified range.
+*/
 template<typename T, const T& minValue, const T& maxValue>
-struct SRange
+class TRange
 {
-	SRange() : value(static_cast<T>(0)) {}
+public:
+	TRange() : value{} {}
 	//
-	SRange(const SRange& ref) : value(ref.value) {}
+	TRange(const TRange& ref) : value(ref.value) {}
 	//
-	SRange(T inValue) : value(SClamp(inValue, minValue, maxValue)) {}
+	TRange(T inValue) : value(std::clamp(inValue, minValue, maxValue)) {}
 	//
-	inline SRange& operator = (const SRange& ref) { value = ref.value; return *this; }
+	inline TRange& operator = (const TRange& ref) { value = ref.value; return *this; }
 	//
 	inline operator T () const { return value; }
 	//
 	inline T* get() const { return const_cast<T*>(&value); }
+
+private:
 	//
 	T value;
 };

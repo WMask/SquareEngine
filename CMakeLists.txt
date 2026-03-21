@@ -59,11 +59,16 @@ add_library(SCore SHARED
     ${ENGINE_SOURCE_DIR}/Core/SCamera.h
     ${ENGINE_SOURCE_DIR}/Core/SDelegate.h
     ${ENGINE_SOURCE_DIR}/Core/SException.h
+    ${ENGINE_SOURCE_DIR}/Core/SLogger.h
     ${ENGINE_SOURCE_DIR}/Core/STypes.h
     ${ENGINE_SOURCE_DIR}/Core/SMathTypes.h
     ${ENGINE_SOURCE_DIR}/Core/SMath.h
     ${ENGINE_SOURCE_DIR}/Core/SUtils.h
     ${ENGINE_SOURCE_DIR}/Core/SUtils.cpp
+    ${ENGINE_SOURCE_DIR}/Core/ThreadPool/Fifo4.h
+    ${ENGINE_SOURCE_DIR}/Core/ThreadPool/SThreadPoolInterface.h
+    ${ENGINE_SOURCE_DIR}/Core/ThreadPool/SThreadPool.h
+    ${ENGINE_SOURCE_DIR}/Core/ThreadPool/SThreadPool.cpp
 )
 target_include_directories(SCore
 	PUBLIC
@@ -203,5 +208,31 @@ if (WIN32)
 	set_target_properties(SpritesSample PROPERTIES
 		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
         LINK_FLAGS "/SUBSYSTEM:WINDOWS"
+	)
+	source_group("Header Files\\ThreadPool" FILES
+		${ENGINE_SOURCE_DIR}/Core/ThreadPool/Fifo4.h
+		${ENGINE_SOURCE_DIR}/Core/ThreadPool/SThreadPool.h
+		${ENGINE_SOURCE_DIR}/Core/ThreadPool/SThreadPoolInterface.h
+	)
+	source_group("Source Files\\ThreadPool" FILES
+		${ENGINE_SOURCE_DIR}/Core/ThreadPool/SThreadPool.cpp
+	)
+	source_group("Header Files\\Windows" FILES
+		${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.h
+	)
+	source_group("Source Files\\Windows" FILES
+		${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.cpp
+	)
+	source_group("Header Files\\Windows" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/SWindowsUtils.h
+	)
+	source_group("Source Files\\Windows" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/SWindowsUtils.cpp
+	)
+	source_group("Header Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
+	)
+	source_group("Source Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)
 endif()

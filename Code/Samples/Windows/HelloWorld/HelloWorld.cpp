@@ -2,8 +2,7 @@
 * HelloWorld.cpp
 */
 
-#include "Core/SMath.h"
-#include "Core/SUtils.h"
+#include "Core/SCoreModule.h"
 #include <iostream>
 
 

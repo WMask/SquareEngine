@@ -24,7 +24,7 @@ namespace SWorldInternal
 }
 
 /** Ranged float (-0.9f, 0.0f) */
-using SLayersRange = SRange<float, SWorldInternal::SMinLayer, SWorldInternal::SMaxLayer>;
+using SLayersRange = TRange<float, SWorldInternal::SMinLayer, SWorldInternal::SMaxLayer>;
 
 /** 2D object layers. Z0 - front, Z9 - back. */
 namespace SLayers

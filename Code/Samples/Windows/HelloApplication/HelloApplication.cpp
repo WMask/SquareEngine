@@ -3,8 +3,8 @@
 */
 
 #include <windows.h>
+#include "Core/SCoreModule.h"
 #include "RenderSystem/SRenderSystemModule.h"
-#include "Core/SUtils.h"
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
@@ -13,14 +13,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
-		auto updateHandler = [](float deltaSeconds, SAppContext& context)->void
+		auto onUpdateHandler = [](float deltaSeconds, SAppContext& context)->void
 		{
 			DebugMsg("HelloApplication: Frame=%d, Time=%.1fs FPS=%d\n", context.gameFrame, context.gameTime, context.fps);
 		};
 
 		auto app = CreateApplication(SRSType::DX11);
 		app->SetWindowSize(800, 600);
-		app->SetUpdateHandler(updateHandler);
+		app->SetUpdateHandler(onUpdateHandler);
 		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
 		app->Init(hInstance);
 		app->Run();

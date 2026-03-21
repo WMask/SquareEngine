@@ -14,14 +14,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
-		auto OnInitHandler = [](SAppContext& context)->void
+		auto onInitHandler = [](SAppContext& context)->void
 		{
 			auto& entities = context.world->GetEntities();
 			auto sprite = entities.create();
 			entities.emplace<SColor3>(sprite, SColor3{10, 20, 30});
 		};
 
-		auto OnUpdateHandler = [](float deltaSeconds, SAppContext& context)->void
+		auto onUpdateHandler = [](float deltaSeconds, SAppContext& context)->void
 		{
 			auto& entities = context.world->GetEntities();
 			auto view = entities.view<SColor3>();
@@ -36,8 +36,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		auto app = CreateApplication(SRSType::DX11);
 		app->SetWindowSize(800, 600);
-		app->SetInitHandler(OnInitHandler);
-		app->SetUpdateHandler(OnUpdateHandler);
+		app->SetInitHandler(onInitHandler);
+		app->SetUpdateHandler(onUpdateHandler);
 		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
 		app->Init(hInstance);
 		app->Run();

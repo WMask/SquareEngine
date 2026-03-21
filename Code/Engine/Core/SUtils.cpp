@@ -11,7 +11,8 @@ std::string_view SGetEngineVersion()
 	static const char Version[] = {
 		'0' + LC_ENGINE_MAJOR_VERSION,
 		'.',
-		'0' + LC_ENGINE_MINOR_VERSION
+		'0' + LC_ENGINE_MINOR_VERSION,
+		'\0'
 	};
 	return Version;
 }

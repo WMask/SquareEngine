@@ -38,6 +38,9 @@ public:
 	/**
 	* Add task to thread pool */
 	virtual bool AddTask(const SThreadPoolTask& task, const std::string_view& name = SConst::DefaultTaskName) = 0;
+	/**
+	* Enamle debug logging */
+	virtual void EnableDebugLogs(bool bEnable) = 0;
 
 };
 

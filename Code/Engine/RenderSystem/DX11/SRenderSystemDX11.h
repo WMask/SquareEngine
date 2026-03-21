@@ -29,7 +29,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual ~SRenderSystemDX11() override;
 	//
-	virtual void Create(void* windowHandle, const SAppFeaturesMap& features, SAppMode mode, const SAppContext& context) override;
+	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override;
 	//
 	virtual void Shutdown() override;
 	//

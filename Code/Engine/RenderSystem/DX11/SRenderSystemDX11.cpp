@@ -6,6 +6,7 @@
 
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/SWindowsUtils.h"
+#include "Application/SApplicationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
@@ -20,11 +21,11 @@ SRenderSystemDX11::~SRenderSystemDX11()
 {
 }
 
-void SRenderSystemDX11::Create(void* windowHandle, const SAppFeaturesMap& inFeatures, SAppMode mode, const SAppContext& context)
+void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppContext& context)
 {
 	S_TRY
 
-	features = inFeatures;
+	auto& features = context.app->GetFeatures();
 	HWND hWnd = static_cast<HWND>(windowHandle);
 	HDC hDC = GetDC(hWnd);
 	int maxRefreshRate = GetDeviceCaps(hDC, VREFRESH);
@@ -109,12 +110,12 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 		throw std::exception("Invalid render device");
 	}
 
+	auto& features = context.app->GetFeatures();
 	auto ClearColorIt = features.find(SAppFeature::ClearScreenColor);
 	if (ClearColorIt->second.has_value())
 	{
 		SColor3 color3 = std::any_cast<SColor3>(ClearColorIt->second);
-		SColor4F color4 = SConvert::FromSColor3(color3);
-		deviceContext->ClearRenderTargetView(renderTargetView.Get(), color4);
+		deviceContext->ClearRenderTargetView(renderTargetView.Get(), SConvert::FromSColor3(color3));
 	}
 
 	bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);

@@ -17,6 +17,17 @@ std::string_view SGetEngineVersion()
 	return Version;
 }
 
+std::string GetTimeStamp(const std::chrono::system_clock::time_point& currentTime)
+{
+	const std::time_t startTime = std::chrono::system_clock::to_time_t(currentTime);
+	std::tm* tm = std::localtime(&startTime);
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime.time_since_epoch()) % 1000;
+	std::uint32_t msValue = static_cast<std::uint32_t>(ms.count());
+	std::ostringstream oss;
+	oss << std::put_time(tm, "%H:%M:%S") << "." << std::setfill('0') << std::setw(3) << msValue;
+	return oss.str().c_str();
+}
+
 #ifdef _WINDOWS
 
 #include <windows.h>

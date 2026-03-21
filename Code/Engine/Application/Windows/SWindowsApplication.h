@@ -52,6 +52,8 @@ public: // IApplication interface implementation
 	//
 	virtual std::any GetFeature(SAppFeature feature) const noexcept override;
 	//
+	virtual const SAppFeaturesMap& GetFeatures() const noexcept override { return features; }
+	//
 	virtual void SetWindowMode(SAppMode mode) override;
 	//
 	virtual void SetWindowSize(std::int32_t width, std::int32_t height) override;
@@ -98,6 +100,8 @@ protected:
 
 
 protected:
+	//
+	TThreadPoolPtr threadPool;
 	//
 	SAppContext context;
 	//

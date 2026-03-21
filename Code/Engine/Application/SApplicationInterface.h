@@ -59,6 +59,9 @@ public:
 	* Get application feature value */
 	virtual std::any GetFeature(SAppFeature feature) const noexcept = 0;
 	/**
+	* Get application features */
+	virtual const SAppFeaturesMap& GetFeatures() const noexcept = 0;
+	/**
 	* Set window mode and update render system */
 	virtual void SetWindowMode(SAppMode mode) = 0;
 	/**

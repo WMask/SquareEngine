@@ -31,7 +31,7 @@ public:
 	virtual void LoadShaders(const std::string_view& folderPath) = 0;
 	/**
 	* Create render system */
-	virtual void Create(void* windowHandle, const SAppFeaturesMap& features, SAppMode mode, const SAppContext& context) = 0;
+	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) = 0;
 	/**
 	* Shutdown render system */
 	virtual void Shutdown() = 0;
@@ -89,7 +89,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void LoadShaders(const std::string_view& folderPath) override {}
 	//
-	virtual void Create(void* windowHandle, const SAppFeaturesMap& inFeatures, SAppMode mode, const SAppContext& context) override {}
+	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override {}
 	//
 	virtual void Shutdown() override {}
 	//
@@ -118,7 +118,5 @@ protected:
 	SVector3 cameraPos;
 	//
 	SVector3 cameraTarget;
-	//
-	SAppFeaturesMap features;
 
 };

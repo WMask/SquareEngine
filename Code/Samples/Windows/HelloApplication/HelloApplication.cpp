@@ -22,6 +22,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		app->SetWindowSize(800, 600);
 		app->SetUpdateHandler(onUpdateHandler);
 		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
+		app->SetFeature(SAppFeature::ThreadPoolEnableLogs, true);
 		app->Init(hInstance);
 		app->Run();
 	}

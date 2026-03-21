@@ -38,6 +38,7 @@ public:
 	SThreadPool(TasksPerThreadLimit maxTasksPerThread, TasksPerThreadLimit maxThreads)
 		: tasksPerThread(maxTasksPerThread)
 		, numThreads(maxThreads)
+		, bEnableDebugLogs(false)
 	{}
 
 
@@ -48,13 +49,15 @@ public: // IThreadPool interface implementation
 	virtual void Start() override;
 	//
 	virtual bool AddTask(const SThreadPoolTask& task, const std::string_view& name = SConst::DefaultTaskName) override;
+	//
+	virtual void EnableDebugLogs(bool bEnable) override { bEnableDebugLogs = bEnable; }
 
 
 protected:
 	//
 	struct SThreadEntry
 	{
-		SThreadEntry(std::uint32_t tasksPerThread);
+		SThreadEntry(std::uint32_t tasksPerThread, std::uint32_t threadId, bool bEnableDebugLogs);
 		//
 		std::shared_ptr<SCircularFIFOTaskPool> tasks;
 		//
@@ -66,5 +69,7 @@ protected:
 	std::uint32_t tasksPerThread;
 	//
 	std::uint32_t numThreads;
+	//
+	bool bEnableDebugLogs;
 
 };

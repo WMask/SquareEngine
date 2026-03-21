@@ -45,6 +45,9 @@ SWindowsApplication::SWindowsApplication()
     features[SAppFeature::HighFrequencyTimer] = false;
     features[SAppFeature::AllowFullscreen] = false;
     features[SAppFeature::ClearScreenColor] = SColor3(0, 0, 255);
+    features[SAppFeature::ThreadPoolTasksPerThread] = static_cast<std::int32_t>(SConst::DefaultTasksPerThread);
+    features[SAppFeature::ThreadPoolThreadsCount] = static_cast<std::int32_t>(SConst::DefaultThreadsInPool);
+    features[SAppFeature::ThreadPoolEnableLogs] = false;
 }
 
 SWindowsApplication::~SWindowsApplication()
@@ -85,9 +88,19 @@ void SWindowsApplication::Run()
     S_TRY
 
 	if (!hInstance) throw std::exception("Invalid platform handle");
+    using namespace std::chrono_literals;
+
+    // create thread pool
+    const std::int32_t tasksPerThread = GetFeatureValue(features, SAppFeature::ThreadPoolTasksPerThread);
+    const std::int32_t threadsCount = GetFeatureValue(features, SAppFeature::ThreadPoolThreadsCount);
+    const bool bEnableLogs = GetFeatureFlag(features, SAppFeature::ThreadPoolEnableLogs);
+    threadPool = CreateThreadPool(tasksPerThread, threadsCount);
+    threadPool->EnableDebugLogs(bEnableLogs);
+    threadPool->Start();
 
     // set context
     context.app = this;
+    context.pool = threadPool.get();
     context.render = renderSystem.get();
     world = CreateWorld(context);
     context.world = world.get();
@@ -142,7 +155,7 @@ void SWindowsApplication::Run()
     // create game systems
     if (renderSystem)
     {
-        renderSystem->Create(hWnd, features, appMode, context);
+        renderSystem->Create(hWnd, appMode, context);
         context.render = renderSystem.get();
     }
 
@@ -157,7 +170,6 @@ void SWindowsApplication::Run()
     }
 
     // set loop variables
-    using namespace std::chrono_literals;
     startFrameTime = SClock::now();
     prevFrameTime = startFrameTime;
     currentGameFrame = 0u;

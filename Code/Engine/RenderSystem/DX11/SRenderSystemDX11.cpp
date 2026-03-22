@@ -5,7 +5,7 @@
 #ifdef WIN32
 
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
-#include "RenderSystem/SWindowsUtils.h"
+#include "RenderSystem/Windows/SWindowsUtils.h"
 #include "Application/SApplicationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -19,6 +19,7 @@ SRenderSystemDX11::SRenderSystemDX11()
 
 SRenderSystemDX11::~SRenderSystemDX11()
 {
+	Shutdown();
 }
 
 void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppContext& context)
@@ -84,6 +85,8 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	backBuffer.Reset();
 
+	shaderManager.Init(context.pool);
+
 	DebugMsg("SRenderSystemDX11::Create(): Render system created\n");
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Create()") }
@@ -97,8 +100,57 @@ void SRenderSystemDX11::Shutdown()
 	swapChain.Reset();
 }
 
+void SRenderSystemDX11::Subscribe(const SAppContext& context)
+{
+}
+
+void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
+{
+	S_TRY
+
+	if (!d3dDevice)
+	{
+		throw std::exception("Invalid render device");
+	}
+
+	// collect shader paths
+	std::vector<std::filesystem::path> paths;
+	for (auto& entry : std::filesystem::directory_iterator(folderPath))
+	{
+		if (entry.is_regular_file())
+		{
+			paths.push_back(entry.path());
+		}
+	}
+
+	// request load & compile
+	shaderManager.LoadShaders(paths, [this](const SDXShaderManager::SCompiledShader& shaderData)
+	{
+		SShaderData shader;
+
+		if (FAILED(d3dDevice->CreateVertexShader(shaderData.vsCode->GetBufferPointer(), shaderData.vsCode->GetBufferSize(), NULL, &shader.vs)))
+		{
+			throw std::exception("Cannot create vertex shader");
+		}
+
+		if (FAILED(d3dDevice->CreatePixelShader(shaderData.psCode->GetBufferPointer(), shaderData.psCode->GetBufferSize(), NULL, &shader.ps)))
+		{
+			throw std::exception("Cannot create vertex shader");
+		}
+
+		shaders.emplace(shaderData.name, shader);
+	});
+
+	S_CATCH{ S_THROW("SRenderSystemDX11::LoadShaders()") }
+}
+
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
 {
+	S_TRY
+
+	shaderManager.Update();
+
+	S_CATCH{ S_THROW("SRenderSystemDX11::Update()") }
 }
 
 void SRenderSystemDX11::Render(const SAppContext& context)
@@ -124,8 +176,10 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	S_CATCH{ S_THROW("SRenderSystemDX11::Render()") }
 }
 
-void SRenderSystemDX11::Render(const class IVisual* visual, const SAppContext& context)
+bool SRenderSystemDX11::CanRender() const
 {
+	const bool bRenderSystemReady = (renderTargetView.Get() != nullptr) && (swapChain.Get() != nullptr);
+	return bRenderSystemReady && !shaders.empty();
 }
 
 #endif // WIN32

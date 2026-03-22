@@ -4,7 +4,7 @@
 
 #ifdef WIN32
 
-#include "RenderSystem/SWindowsUtils.h"
+#include "RenderSystem/Windows/SWindowsUtils.h"
 
 #include <wrl.h>
 #include <vector>

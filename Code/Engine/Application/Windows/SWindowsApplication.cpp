@@ -52,6 +52,11 @@ SWindowsApplication::SWindowsApplication()
 
 SWindowsApplication::~SWindowsApplication()
 {
+    if (threadPool)
+    {
+        threadPool.reset();
+    }
+
     if (renderSystem)
     {
         renderSystem->Shutdown();
@@ -156,6 +161,7 @@ void SWindowsApplication::Run()
     if (renderSystem)
     {
         renderSystem->Create(hWnd, appMode, context);
+        renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
         context.render = renderSystem.get();
     }
 

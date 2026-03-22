@@ -7,6 +7,7 @@
 #include <string>
 #include <optional>
 #include <algorithm>
+#include <vector>
 
 
 /** Render system type */
@@ -17,6 +18,9 @@ enum class SRSType
 	Vulkan,
 	Metal
 };
+
+/** Bytes array */
+using SBytes = std::vector<std::uint8_t>;
 
 
 /***************************************************************************

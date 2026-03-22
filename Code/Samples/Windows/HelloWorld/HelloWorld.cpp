@@ -9,7 +9,7 @@
 int main()
 {
 	std::cout << "Hello World!\n";
-	std::cout << "Squre Engine Version: " << SGetEngineVersion();
+	std::cout << "Squre Engine Version: " << GetEngineVersion();
 
 	SMatrix4 m4 = SConst::IdentitySMatrix4;
 	m4.m[1] = 2.5f;

@@ -9,12 +9,9 @@
 #include "RenderSystem/SRenderSystemTypes.h"
 #include "Application/SApplicationTypes.h"
 
+#include <filesystem>
 #include <string>
 #include <map>
-
-#if defined(_MSC_VER)
-#pragma warning(disable : 4251)
-#endif
 
 
 /***************************************************************************
@@ -28,7 +25,7 @@ public:
 	virtual ~IRenderSystem() {}
 	/**
 	* Load shaders */
-	virtual void LoadShaders(const std::string_view& folderPath) = 0;
+	virtual void LoadShaders(const std::filesystem::path& folderPath) = 0;
 	/**
 	* Create render system */
 	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) = 0;
@@ -72,51 +69,3 @@ public:
 };
 
 using TRenderSystemPtr = std::unique_ptr<IRenderSystem>;
-
-
-/***************************************************************************
-* Render system interface
-*/
-class S_RENDERSYSTEM_API SRenderSystemBase : public IRenderSystem
-{
-public:
-	typedef std::map<std::string, std::string> SHADERS_MAP;
-	//
-	SRenderSystemBase() : cameraPos{}, cameraTarget{} {}
-
-
-public:// IRenderSystem interface implementation
-	//
-	virtual void LoadShaders(const std::string_view& folderPath) override {}
-	//
-	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override {}
-	//
-	virtual void Shutdown() override {}
-	//
-	virtual void Subscribe(const SAppContext& context) {}
-	//
-	virtual void Update(float deltaSeconds, const SAppContext& context) override {}
-	//
-	virtual void Render(const SAppContext& context) override {}
-	//
-	virtual void RequestResize(int width, int height) override {}
-	//
-	virtual void Resize(int width, int height, const SAppContext& context) override {}
-	//
-	virtual void SetMode(SAppMode mode) override {}
-
-
-protected:
-	/**
-	* Render visual */
-	virtual void Render(const class IVisual* visual, const SAppContext& context) = 0;
-
-
-protected:
-	SHADERS_MAP shaders;
-	//
-	SVector3 cameraPos;
-	//
-	SVector3 cameraTarget;
-
-};

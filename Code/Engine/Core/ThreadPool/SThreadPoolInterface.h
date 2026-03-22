@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "Core/ThreadPool/Fifo4.h"
 #include "Core/STypes.h"
 #include <functional>
 #include <thread>
@@ -39,8 +38,11 @@ public:
 	* Add task to thread pool */
 	virtual bool AddTask(const SThreadPoolTask& task, const std::string_view& name = SConst::DefaultTaskName) = 0;
 	/**
-	* Enamle debug logging */
-	virtual void EnableDebugLogs(bool bEnable) = 0;
+	* Enable debug logging */
+	virtual void EnableDebugLogs(bool bEnable) noexcept = 0;
+	/**
+	* Check debug logging */
+	virtual bool IsDebugLogsEnabled() const noexcept = 0;
 
 };
 

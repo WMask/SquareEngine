@@ -30,7 +30,7 @@ public:
 	};
 	using TasksPerThreadLimit = TRange<std::uint32_t, SConst::MinThreads, SConst::MaxTasksPerThread>;
 	using ThreadsLimit = TRange<std::uint32_t, SConst::MinThreads, SConst::MaxThreadsInPool>;
-	using SCircularFIFOTaskPool = Fifo4<SThreadPoolTaskEntry>;
+	using TCircularFIFOTaskPool = Fifo4<SThreadPoolTaskEntry>;
 
 
 public:
@@ -50,7 +50,9 @@ public: // IThreadPool interface implementation
 	//
 	virtual bool AddTask(const SThreadPoolTask& task, const std::string_view& name = SConst::DefaultTaskName) override;
 	//
-	virtual void EnableDebugLogs(bool bEnable) override { bEnableDebugLogs = bEnable; }
+	virtual void EnableDebugLogs(bool bEnable) noexcept override { bEnableDebugLogs = bEnable; }
+	//
+	virtual bool IsDebugLogsEnabled() const noexcept override { return bEnableDebugLogs; }
 
 
 protected:
@@ -59,7 +61,7 @@ protected:
 	{
 		SThreadEntry(std::uint32_t tasksPerThread, std::uint32_t threadId, bool bEnableDebugLogs);
 		//
-		std::shared_ptr<SCircularFIFOTaskPool> tasks;
+		std::shared_ptr<TCircularFIFOTaskPool> tasks;
 		//
 		std::jthread workerThread;
 	};

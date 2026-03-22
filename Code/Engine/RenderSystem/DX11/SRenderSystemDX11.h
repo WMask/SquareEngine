@@ -5,6 +5,7 @@
 #pragma once
 
 #include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/Windows/SDXShaderManager.h"
 
 #include <d3d11.h>
 #include <directxmath.h>
@@ -18,7 +19,7 @@ using namespace Microsoft::WRL;
 /***************************************************************************
 * DirectX 11 render system
 */
-class S_RENDERSYSTEM_API SRenderSystemDX11 : public SRenderSystemBase
+class S_RENDERSYSTEM_API SRenderSystemDX11 : public IRenderSystem
 {
 public:
 	//
@@ -33,13 +34,17 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void Shutdown() override;
 	//
+	virtual void Subscribe(const SAppContext& context) override;
+	//
+	virtual void LoadShaders(const std::filesystem::path& folderPath) override;
+	//
 	virtual void Update(float deltaSeconds, const SAppContext& context) override;
 	//
 	virtual void Render(const SAppContext& context) override;
 	//
 	virtual void Clear(class IWorld* world, bool removeRooted = false) override {}
 	//
-	virtual bool CanRender() const override { return (renderTargetView.Get() != nullptr); }
+	virtual bool CanRender() const override;
 	//
 	virtual void RequestResize(std::int32_t width, std::int32_t height) override {}
 	//
@@ -54,12 +59,18 @@ public:// IRenderSystem interface implementation
 	virtual SRSType GetType() const override { return SRSType::DX11; }
 
 
-protected:// SRenderSystemBase interface implementation
-	//
-	virtual void Render(const class IVisual* visual, const SAppContext& context) override;
-
-
 protected:
+	//
+	SDXShaderManager shaderManager;
+	//
+	struct SShaderData
+	{
+		ComPtr<ID3D11VertexShader> vs;
+		//
+		ComPtr<ID3D11PixelShader> ps;
+	};
+	//
+	std::unordered_map<std::string, SShaderData> shaders;
 	//
 	ComPtr<IDXGISwapChain> swapChain;
 	//

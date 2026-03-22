@@ -7,7 +7,7 @@
 #include <chrono>
 
 
-void TaskThreadBody(std::stop_token stopToken, std::shared_ptr<SThreadPool::SCircularFIFOTaskPool> pool, std::uint32_t threadId, bool bEnableDebugLogs)
+void TaskThreadBody(std::stop_token stopToken, std::shared_ptr<SThreadPool::TCircularFIFOTaskPool> pool, std::uint32_t threadId, bool bEnableDebugLogs)
 {
 	using namespace std::chrono_literals;
 
@@ -38,7 +38,8 @@ void TaskThreadBody(std::stop_token stopToken, std::shared_ptr<SThreadPool::SCir
 			{
 				auto endTime = std::chrono::system_clock::now();
 				std::chrono::duration<float> timeSeconds = endTime - startTime;
-				DebugMsg("[%s] SThreadPoolWorker[#%d] end task: '%s', duration: %.3f sec\n", GetTimeStamp(std::chrono::system_clock::now()).c_str(), threadId, entry.name.data(), timeSeconds.count());
+				DebugMsg("[%s] SThreadPoolWorker[#%d] end task: '%s', duration: %.3f sec\n",
+					GetTimeStamp(std::chrono::system_clock::now()).c_str(), threadId, entry.name.data(), timeSeconds.count());
 			}
 		}
 		else
@@ -54,20 +55,15 @@ void TaskThreadBody(std::stop_token stopToken, std::shared_ptr<SThreadPool::SCir
 }
 
 SThreadPool::SThreadEntry::SThreadEntry(std::uint32_t tasksPerThread, std::uint32_t threadId, bool bEnableDebugLogs)
-	: tasks{ std::make_shared<SCircularFIFOTaskPool>(tasksPerThread) }
+	: tasks{ std::make_shared<TCircularFIFOTaskPool>(tasksPerThread) }
 	, workerThread(TaskThreadBody, tasks, threadId, bEnableDebugLogs)
 {
 }
 
 SThreadPool::~SThreadPool()
 {
-	for (auto& entry : pool)
-	{
-		if (entry.workerThread.joinable())
-		{
-			entry.workerThread.request_stop();
-		}
-	}
+	pool.clear();
+	// joins all threads here
 }
 
 void SThreadPool::Start()
@@ -91,6 +87,14 @@ bool SThreadPool::AddTask(const SThreadPoolTask& task, const std::string_view& n
 		{
 			return true;
 		}
+		else
+		{
+			DebugMsg("SThreadPool::AddTask(): Cannot add '%s' - task queue is full\n", name.data());
+		}
+	}
+	else
+	{
+		DebugMsg("SThreadPool::AddTask(): Cannot add '%s' - thread pull is empty\n", name.data());
 	}
 
 	return false;

@@ -243,7 +243,11 @@ void SWindowsApplication::OnUpdate()
     if (renderSystem)
     {
         renderSystem->Update(deltaFloat, context);
-        renderSystem->Render(context);
+
+        if (renderSystem->CanRender())
+        {
+            renderSystem->Render(context);
+        }
     }
 
     currentGameFrame++;

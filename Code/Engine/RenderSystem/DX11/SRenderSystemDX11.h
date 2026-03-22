@@ -61,6 +61,11 @@ public:// IRenderSystem interface implementation
 
 protected:
 	//
+	bool GetClearColor(const SAppFeaturesMap& features, SColor3& outColor);
+
+
+protected:
+	//
 	SDXShaderManager shaderManager;
 	//
 	struct SShaderData
@@ -68,6 +73,8 @@ protected:
 		ComPtr<ID3D11VertexShader> vs;
 		//
 		ComPtr<ID3D11PixelShader> ps;
+		//
+		ComPtr<ID3D11InputLayout> layout;
 	};
 	//
 	std::unordered_map<std::string, SShaderData> shaders;
@@ -79,5 +86,15 @@ protected:
 	ComPtr<ID3D11DeviceContext> deviceContext;
 	//
 	ComPtr<ID3D11RenderTargetView> renderTargetView;
+	//
+	ComPtr<ID3D11Texture2D> depthStencilBuffer;
+	//
+	ComPtr<ID3D11DepthStencilState> depthStencilState;
+	//
+	ComPtr<ID3D11DepthStencilView> depthStencilView;
+	//
+	ComPtr<ID3D11BlendState> blendState;
+	//
+	ComPtr<ID3D11RasterizerState> rasterizerState;
 
 };

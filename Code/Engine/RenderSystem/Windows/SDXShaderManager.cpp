@@ -57,10 +57,10 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 		for (auto path : paths)
 		{
 			std::string name = ToUtf8(path.c_str());
-			size_t pos = name.rfind("..");
+			size_t pos = name.find("Shaders");
 			if (pos != std::string::npos)
 			{
-				name = name.substr(pos + 2);
+				name = name.substr(pos);
 			}
 
 			ComPtr<ID3DBlob> vsCode;

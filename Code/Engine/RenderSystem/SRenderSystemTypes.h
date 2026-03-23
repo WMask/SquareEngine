@@ -7,6 +7,9 @@
 #include <cstdint>
 
 
+/** Max sprites count in one batch */
+static const std::uint32_t MaxInstancedSpritesCount = 512u;
+
 /** Render system stats */
 struct SRSStats
 {

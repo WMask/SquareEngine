@@ -27,6 +27,8 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	S_TRY
 
 	auto& features = context.app->GetFeatures();
+	world = context.world;
+
 	HWND hWnd = static_cast<HWND>(windowHandle);
 	HDC hDC = GetDC(hWnd);
 	int maxRefreshRate = GetDeviceCaps(hDC, VREFRESH);
@@ -60,12 +62,26 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	swapChainDesc.Windowed = (mode == SAppMode::Windowed);
 	swapChainDesc.Flags = bAllowFullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
 
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
+	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_1;
 
 	if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
-		D3D11_SDK_VERSION, &swapChainDesc, swapChain.GetAddressOf(), d3dDevice.GetAddressOf(), NULL, deviceContext.GetAddressOf())))
+		D3D11_SDK_VERSION, &swapChainDesc, swapChain.GetAddressOf(), d3dDevice.GetAddressOf(),
+		NULL, deviceContext.GetAddressOf())))
 	{
-		throw std::exception("Cannot create device");
+		featureLevel = D3D_FEATURE_LEVEL_11_0;
+
+		if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
+			D3D11_SDK_VERSION, &swapChainDesc, swapChain.GetAddressOf(), d3dDevice.GetAddressOf(),
+			NULL, deviceContext.GetAddressOf())))
+		{
+			throw std::exception("Cannot create device");
+		}
+
+		DebugMsg("SRenderSystemDX11::Create(): Created D3D_11.0 device\n");
+	}
+	else
+	{
+		DebugMsg("SRenderSystemDX11::Create(): Created D3D_11.1 device\n");
 	}
 
 	// create back buffer and render target
@@ -188,6 +204,10 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	// init managers
 	shaderManager.Init(context.pool);
 
+	auto cameraPos = SVector3{ width / 2.0f, height / 2.0f, 0.0f };
+	auto cameraTarget = SVector3{ cameraPos.x, cameraPos.y, 1.0f };
+	constantBuffers.Init(d3dDevice.Get(), deviceContext.Get(), cameraPos, cameraTarget, width, height);
+
 	DebugMsg("SRenderSystemDX11::Create(): Render system created\n");
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Create()") }
@@ -232,7 +252,12 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 	// request load & compile
 	shaderManager.LoadShaders(paths, [this](const SDXShaderManager::SCompiledShader& shaderData)
 	{
-		SShaderData shader;
+		if (!d3dDevice)
+		{
+			throw std::exception("Invalid render device");
+		}
+
+		SShaderDataDX11 shader;
 
 		if (FAILED(d3dDevice->CreateVertexShader(shaderData.vsCode->GetBufferPointer(), shaderData.vsCode->GetBufferSize(), NULL, shader.vs.GetAddressOf())))
 		{
@@ -244,10 +269,23 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 			throw std::exception("Cannot create vertex shader");
 		}
 
+		if (coloredSpriteRendererDX11.CheckShaderName(shaderData.name))
+		{
+			shader.vsCode = shaderData.vsCode.Get();
+			coloredSpriteRendererDX11.Setup(*this, shader);
+			shader.vsCode = nullptr;
+		}
+
 		shaders.emplace(shaderData.name, shader);
 	});
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::LoadShaders()") }
+}
+
+SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name)
+{
+	auto shaderIt = shaders.find(name);
+	return (shaderIt == shaders.end()) ? nullptr : &shaderIt->second;
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -280,6 +318,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// render frame
+	coloredSpriteRendererDX11.Render(*this);
+
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	swapChain->Present(bVSync ? DXGI_SWAP_EFFECT_SEQUENTIAL : DXGI_SWAP_EFFECT_DISCARD, 0);
 
@@ -290,6 +330,10 @@ bool SRenderSystemDX11::CanRender() const
 {
 	const bool bRenderSystemReady = (deviceContext && swapChain && renderTargetView);
 	return bRenderSystemReady && !shaders.empty();
+}
+
+void SRenderSystemDX11::Clear(IWorld* world, bool removeRooted)
+{
 }
 
 bool SRenderSystemDX11::GetClearColor(const SAppFeaturesMap& features, SColor3& outColor)

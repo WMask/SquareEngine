@@ -6,6 +6,7 @@
 
 #include "RenderSystem/RenderSystemModule.h"
 #include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/SECSComponents.h"
 #include "Application/SApplicationInterface.h"
 
 #include <memory>

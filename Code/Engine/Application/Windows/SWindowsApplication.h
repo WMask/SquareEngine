@@ -11,6 +11,7 @@
 #include "Application/SApplicationInterface.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "World/SWorldInterface.h"
+#include "Core/SCoreModule.h"
 
 #pragma warning(disable : 4275)
 
@@ -56,7 +57,7 @@ public: // IApplication interface implementation
 	//
 	virtual void SetWindowMode(SAppMode mode) override;
 	//
-	virtual void SetWindowSize(std::int32_t width, std::int32_t height) override;
+	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height) override;
 	//
 	virtual SSize2 GetWindowSize() const noexcept override { return windowSize; }
 	//

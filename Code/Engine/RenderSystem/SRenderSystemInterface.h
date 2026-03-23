@@ -8,10 +8,27 @@
 #include "RenderSystem/RenderSystemModule.h"
 #include "RenderSystem/SRenderSystemTypes.h"
 #include "Application/SApplicationTypes.h"
+#include "World/SWorldInterface.h"
 
 #include <filesystem>
 #include <string>
 #include <map>
+
+
+/** Render settings */
+struct SSettingsBuffer
+{
+	SVector4 worldTint;
+};
+
+/** Sprite flags */
+struct SSpriteFlagsBuffer
+{
+	std::int32_t bHasAnimation;
+	std::int32_t bHasColor;
+	std::int32_t bHasCustomUV;
+	std::int32_t bHasTexture;
+};
 
 
 /***************************************************************************
@@ -43,7 +60,7 @@ public:
 	virtual void Render(const SAppContext& context) = 0;
 	/**
 	* Remove all graphics objects: textures, fonts etc. */
-	virtual void Clear(class IWorld* world, bool removeRooted = false) = 0;
+	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;
 	/**
 	* Return render system state */
 	virtual bool CanRender() const = 0;
@@ -69,3 +86,23 @@ public:
 };
 
 using TRenderSystemPtr = std::unique_ptr<IRenderSystem>;
+
+
+/***************************************************************************
+* Visual renderer
+*/
+class IVisualRenderer
+{
+public:
+	//
+	struct SShaderData {};
+
+public:
+	//
+	virtual ~IVisualRenderer() {}
+	//
+	virtual void Setup(IRenderSystem& renderSystem, SShaderData& shaderData) = 0;
+	//
+	virtual void Render(IRenderSystem& renderSystem) = 0;
+
+};

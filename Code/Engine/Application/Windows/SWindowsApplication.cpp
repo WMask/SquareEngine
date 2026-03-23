@@ -44,7 +44,7 @@ SWindowsApplication::SWindowsApplication()
     features[SAppFeature::NoDelay] = false;
     features[SAppFeature::HighFrequencyTimer] = false;
     features[SAppFeature::AllowFullscreen] = false;
-    features[SAppFeature::ClearScreenColor] = SColor3(0, 0, 255);
+    features[SAppFeature::ClearScreenColor] = SColor3(50, 50, 70);
     features[SAppFeature::ThreadPoolTasksPerThread] = static_cast<std::int32_t>(SConst::DefaultTasksPerThread);
     features[SAppFeature::ThreadPoolThreadsCount] = static_cast<std::int32_t>(SConst::DefaultThreadsInPool);
     features[SAppFeature::ThreadPoolEnableLogs] = false;
@@ -115,7 +115,7 @@ void SWindowsApplication::Run()
     BOOL windowedStyle = (windowSize.height < screenHeight) ? TRUE : FALSE;
     int style = windowedStyle ? WS_SQUARE_WINDOW_MENU : WS_SQUARE_WINDOW;
 
-    RECT clientRect{ 0, 0, windowSize.width, windowSize.height };
+    RECT clientRect{ 0, 0, static_cast<LONG>(windowSize.width), static_cast<LONG>(windowSize.height) };
     AdjustWindowRect(&clientRect, style, FALSE);
     int winWidth = clientRect.right - clientRect.left;
     int winHeight = clientRect.bottom - clientRect.top;
@@ -263,7 +263,7 @@ void SWindowsApplication::OnUpdate()
     S_CATCH{ S_THROW("SWindowsApplication::OnUpdate()") }
 }
 
-void SWindowsApplication::SetWindowSize(std::int32_t width, std::int32_t height)
+void SWindowsApplication::SetWindowSize(std::uint32_t width, std::uint32_t height)
 {
     auto newSize = SSize2{ width, height };
     if (windowSize == newSize) return;

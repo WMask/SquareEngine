@@ -5,6 +5,9 @@
 #pragma once
 
 #include "SConfig.h"
+#include <cstdint>
+#include <cstring>
+
 
 /***************************************************************************
 * Vectors
@@ -41,7 +44,21 @@ namespace SConst
 	static const SVector2 ZeroSVector2 = SVector2{};
 	static const SVector3 ZeroSVector3 = SVector3{};
 	static const SVector4 ZeroSVector4 = SVector4{};
+	static const SVector4 OneSVector4 = SVector4{ 1.0f, 1.0f, 1.0f, 1.0f };
 	static const SVector2 OneSVector2 = SVector2{1, 1};
+}
+
+namespace SConvert
+{
+	inline SVector4 ToVector4(const SVector2& v, bool bOneW = true)
+	{
+		return SVector4{ v.x, v.y, 0.0f, bOneW ? 1.0f : 0.0f };
+	}
+
+	inline SVector4 ToVector4(const SVector3& v, bool bOneW = true)
+	{
+		return SVector4{ v.x, v.y, v.z, bOneW ? 1.0f : 0.0f };
+	}
 }
 
 #if USING_GLMATH
@@ -90,6 +107,35 @@ namespace SConvert
 
 #endif // USING_EIGEN
 
+#if USING_DXMATH
+#include <directxmath.h>
+
+namespace SConvert
+{
+	inline SVector2 ToVector2(DirectX::XMVECTOR v)
+	{
+		return SVector2{ DirectX::XMVectorGetX(v), DirectX::XMVectorGetY(v) };
+	}
+
+	inline SVector3 ToVector3(DirectX::XMVECTOR v)
+	{
+		return SVector3{ DirectX::XMVectorGetX(v), DirectX::XMVectorGetY(v), DirectX::XMVectorGetZ(v) };
+	}
+
+	inline SVector4 ToVector4(DirectX::XMVECTOR v)
+	{
+		return SVector4{ DirectX::XMVectorGetX(v), DirectX::XMVectorGetY(v), DirectX::XMVectorGetZ(v), DirectX::XMVectorGetW(v) };
+	}
+}
+
+namespace SConst
+{
+	static const DirectX::XMVECTOR ZeroXVec4 = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+	static const DirectX::XMVECTOR OneXVec4 = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+#endif // USING_DXMATH
+
 
 /***************************************************************************
 * Point & Size
@@ -112,16 +158,35 @@ struct SPoint3 : public SPoint2
 	bool operator==(const SPoint3&) const = default;
 };
 
-using SSize3 = SPoint3;
-
 // Size 2D
 struct SSize2
 {
-	std::int32_t width;
-	std::int32_t height;
+	std::uint32_t width;
+	std::uint32_t height;
 
 	bool operator==(const SSize2&) const = default;
 };
+
+// Size 2D
+struct SSize2F
+{
+	float width;
+	float height;
+
+	bool operator==(const SSize2F&) const = default;
+};
+
+// Size 3D
+struct SSize3
+{
+	std::uint32_t x;
+	std::uint32_t y;
+	std::uint32_t z;
+
+	bool operator==(const SSize3&) const = default;
+};
+
+using SSize3F = SVector3;
 
 namespace SConst
 {
@@ -219,3 +284,28 @@ namespace SConvert
 }
 
 #endif // USING_EIGEN
+
+#if USING_DXMATH
+
+namespace SConvert
+{
+	inline SMatrix3 ToMatrix3(const DirectX::XMMATRIX& m)
+	{
+		SMatrix3 result;
+		DirectX::XMFLOAT3X3 m3;
+		XMStoreFloat3x3(&m3, m);
+		std::memcpy(&result, &m3._11, sizeof(float) * 9);
+		return result;
+	}
+
+	inline SMatrix4 ToMatrix4(const DirectX::XMMATRIX& m)
+	{
+		SMatrix4 result;
+		DirectX::XMFLOAT4X4 m4;
+		XMStoreFloat4x4(&m4, m);
+		std::memcpy(&result,  &m4._11, sizeof(float) * 16);
+		return result;
+	}
+}
+
+#endif // USING_DXMATH

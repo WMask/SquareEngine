@@ -3,6 +3,7 @@
 */
 
 #include "Core/SCoreModule.h"
+#include "Eigen/Dense"
 #include <iostream>
 
 

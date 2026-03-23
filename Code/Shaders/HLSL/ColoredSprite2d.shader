@@ -14,36 +14,41 @@ cbuffer VS_TRANS_BUFFER : register(b2)
 	float4x4 mTrans;
 };
 
-cbuffer VS_COLORS_BUFFER : register(b3)
-{
-	float4 vColors[4];
-};
-
 cbuffer VS_SETTINGS_BUFFER : register(b6)
 {
-    float4 vGlobalTint;
+	float4 vGlobalTint;
 };
 
-struct VOut
+struct VS_INPUT
+{
+	float3 vPosition : POSITION;
+	uint   vIndex    : INSTANCEID;
+	float3 iPosition : INSTANCEPOS;
+	float4 iColor[4] : COLOR;
+};
+
+struct VS_OUT
 {
 	float4 vPosition : SV_POSITION;
-    float4 vColor : COLOR0;
-    float4 vTint : COLOR1;
+	float4 vColor : COLOR0;
+	float4 vTint : COLOR1;
 };
 
-VOut VShader(float4 vPosition : POSITION, uint iIndex : INDEX)
+VS_OUT VShader(VS_INPUT input)
 {
-	VOut output;
-	float4x4 mWVP = mul(mTrans, mul(mView, mProj));
+	VS_OUT output;
 
-	output.vPosition = mul(vPosition, mWVP);
-    output.vColor = vColors[iIndex];
-    output.vTint = vGlobalTint;
+	float4x4 mWVP = mul(mTrans, mul(mView, mProj));
+	float4 vWorldPos = float4(input.vPosition + input.iPosition, 1.0);
+
+	output.vPosition = mul(vWorldPos, mWVP);
+	output.vColor = input.iColor[input.vIndex];
+	output.vTint = vGlobalTint;
 
 	return output;
 }
 
 float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0, float4 vTint : COLOR1) : SV_TARGET
 {
-    return vColor * vTint;
+	return vColor * vTint;
 }

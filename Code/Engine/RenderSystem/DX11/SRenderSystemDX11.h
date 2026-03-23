@@ -6,12 +6,14 @@
 
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "RenderSystem/Windows/SDXShaderManager.h"
+#include "RenderSystem/DX11/SConstantBuffersDX11.h"
+#include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
 
 #include <d3d11.h>
 #include <directxmath.h>
 #include <wrl.h>
 
-using namespace Microsoft::WRL;
+using Microsoft::WRL::ComPtr;
 
 #pragma warning(disable : 4251)
 
@@ -19,11 +21,21 @@ using namespace Microsoft::WRL;
 /***************************************************************************
 * DirectX 11 render system
 */
-class S_RENDERSYSTEM_API SRenderSystemDX11 : public IRenderSystem
+class SRenderSystemDX11 : public IRenderSystem
 {
 public:
 	//
 	SRenderSystemDX11();
+	//
+	SConstantBuffersDX11& GetConstantBuffers() { return constantBuffers; }
+	//
+	ID3D11DeviceContext* GetD3D11DeviceContext() const noexcept { return deviceContext.Get(); }
+	//
+	ID3D11Device* GetD3D11Device() const noexcept { return d3dDevice.Get(); }
+	//
+	SShaderDataDX11* FindShader(const std::string& name);
+	//
+	IWorld* GetWorld() const { return world; }
 
 
 public:// IRenderSystem interface implementation
@@ -42,9 +54,9 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void Render(const SAppContext& context) override;
 	//
-	virtual void Clear(class IWorld* world, bool removeRooted = false) override {}
-	//
 	virtual bool CanRender() const override;
+	//
+	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
 	virtual void RequestResize(std::int32_t width, std::int32_t height) override {}
 	//
@@ -66,18 +78,18 @@ protected:
 
 protected:
 	//
+	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
+
+
+protected:
+	//
+	IWorld* world{};
+	//
 	SDXShaderManager shaderManager;
 	//
-	struct SShaderData
-	{
-		ComPtr<ID3D11VertexShader> vs;
-		//
-		ComPtr<ID3D11PixelShader> ps;
-		//
-		ComPtr<ID3D11InputLayout> layout;
-	};
+	SConstantBuffersDX11 constantBuffers;
 	//
-	std::unordered_map<std::string, SShaderData> shaders;
+	std::unordered_map<std::string, SShaderDataDX11> shaders;
 	//
 	ComPtr<IDXGISwapChain> swapChain;
 	//

@@ -115,6 +115,7 @@ add_dependencies(SApplication SCore SWorld)
 
 
 add_library(SRenderSystem SHARED
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SECSComponents.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/RenderSystemModule.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.cpp
@@ -124,6 +125,10 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 )
@@ -234,9 +239,13 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
 	)
 	source_group("Header Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)
 endif()

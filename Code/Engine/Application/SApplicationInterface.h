@@ -66,7 +66,7 @@ public:
 	virtual void SetWindowMode(SAppMode mode) = 0;
 	/**
 	* Set client window size in pixels and update render system */
-	virtual void SetWindowSize(std::int32_t width, std::int32_t height) = 0;
+	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height) = 0;
 	/**
 	* Get client window size pixels */
 	virtual SSize2 GetWindowSize() const noexcept = 0;

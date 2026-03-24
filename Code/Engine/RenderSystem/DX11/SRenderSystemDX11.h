@@ -5,12 +5,15 @@
 #pragma once
 
 #include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/Windows/SDXShaderManager.h"
+#include "RenderSystem/DX11/SConstantBuffersDX11.h"
+#include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
 
 #include <d3d11.h>
 #include <directxmath.h>
 #include <wrl.h>
 
-using namespace Microsoft::WRL;
+using Microsoft::WRL::ComPtr;
 
 #pragma warning(disable : 4251)
 
@@ -18,28 +21,44 @@ using namespace Microsoft::WRL;
 /***************************************************************************
 * DirectX 11 render system
 */
-class S_RENDERSYSTEM_API SRenderSystemDX11 : public SRenderSystemBase
+class SRenderSystemDX11 : public IRenderSystem
 {
 public:
 	//
 	SRenderSystemDX11();
+	//
+	SShaderDataDX11* FindShader(const std::string& name);
+	//
+	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
+	//
+	ID3D11DeviceContext* GetD3D11DeviceContext() const noexcept { return deviceContext.Get(); }
+	//
+	ID3D11Device* GetD3D11Device() const noexcept { return d3dDevice.Get(); }
+	//
+	IWorld* GetWorld() const noexcept { return world; }
+	//
+	bool IsNeedDebugTrace() const noexcept { return bNeedDebugTrace; }
 
 
 public:// IRenderSystem interface implementation
 	//
 	virtual ~SRenderSystemDX11() override;
 	//
-	virtual void Create(void* windowHandle, const SAppFeaturesMap& features, SAppMode mode, const SAppContext& context) override;
+	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override;
 	//
 	virtual void Shutdown() override;
+	//
+	virtual void Subscribe(const SAppContext& context) override;
+	//
+	virtual void LoadShaders(const std::filesystem::path& folderPath) override;
 	//
 	virtual void Update(float deltaSeconds, const SAppContext& context) override;
 	//
 	virtual void Render(const SAppContext& context) override;
 	//
-	virtual void Clear(class IWorld* world, bool removeRooted = false) override {}
+	virtual bool CanRender() const override;
 	//
-	virtual bool CanRender() const override { return (renderTargetView.Get() != nullptr); }
+	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
 	virtual void RequestResize(std::int32_t width, std::int32_t height) override {}
 	//
@@ -54,12 +73,25 @@ public:// IRenderSystem interface implementation
 	virtual SRSType GetType() const override { return SRSType::DX11; }
 
 
-protected:// SRenderSystemBase interface implementation
+protected:
 	//
-	virtual void Render(const class IVisual* visual, const SAppContext& context) override;
+	std::pair<SColor3, bool> GetClearColor(const SAppFeaturesMap& features);
 
 
 protected:
+	//
+	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
+
+
+protected:
+	//
+	IWorld* world{};
+	//
+	SDXShaderManager shaderManager;
+	//
+	SConstantBuffersDX11 constantBuffers;
+	//
+	std::unordered_map<std::string, SShaderDataDX11> shaders;
 	//
 	ComPtr<IDXGISwapChain> swapChain;
 	//
@@ -68,5 +100,17 @@ protected:
 	ComPtr<ID3D11DeviceContext> deviceContext;
 	//
 	ComPtr<ID3D11RenderTargetView> renderTargetView;
+	//
+	ComPtr<ID3D11Texture2D> depthStencilBuffer;
+	//
+	ComPtr<ID3D11DepthStencilState> depthStencilState;
+	//
+	ComPtr<ID3D11DepthStencilView> depthStencilView;
+	//
+	ComPtr<ID3D11BlendState> blendState;
+	//
+	ComPtr<ID3D11RasterizerState> rasterizerState;
+	//
+	bool bNeedDebugTrace = false;
 
 };

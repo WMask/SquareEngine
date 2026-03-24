@@ -2,15 +2,15 @@
 * HelloWorld.cpp
 */
 
-#include "Core/SMath.h"
-#include "Core/SUtils.h"
+#include "Core/SCoreModule.h"
+#include "Eigen/Dense"
 #include <iostream>
 
 
 int main()
 {
 	std::cout << "Hello World!\n";
-	std::cout << "Squre Engine Version: " << SGetEngineVersion();
+	std::cout << "Squre Engine Version: " << GetEngineVersion();
 
 	SMatrix4 m4 = SConst::IdentitySMatrix4;
 	m4.m[1] = 2.5f;

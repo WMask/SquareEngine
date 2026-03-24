@@ -33,7 +33,19 @@ enum class SAppFeature {
 	AllowFullscreen,
 	/**
 	* [SColor3] Render target clear color. Default is blue. Set to empty std::any to skip clear render target color. */
-	ClearScreenColor
+	ClearScreenColor,
+	/**
+	* [int] Tasks per thread. Default: SConst::DefaultTasksPerThread. */
+	ThreadPoolTasksPerThread,
+	/**
+	* [int] Threads count. Default: SConst::DefaultThreadsInPool. */
+	ThreadPoolThreadsCount,
+	/**
+	* [bool] Enable thread pool tasks logs. */
+	ThreadPoolDebugTrace,
+	/**
+	* [bool] Enable render system logs. */
+	RenderSystemDebugTrace
 };
 
 using SAppFeaturesMap = std::unordered_map<SAppFeature, std::any>;
@@ -45,14 +57,23 @@ inline bool GetFeatureFlag(const SAppFeaturesMap& features, SAppFeature type)
 	return (featureIt != features.end() && featureIt->second.has_value() && std::any_cast<bool>(featureIt->second));
 }
 
+/** Get int feature value */
+inline std::int32_t GetFeatureValue(const SAppFeaturesMap& features, SAppFeature type)
+{
+	auto featureIt = features.find(type);
+	return (featureIt != features.end() && featureIt->second.has_value()) ? std::any_cast<std::int32_t>(featureIt->second) : -1;
+}
+
 /** Application context */
 struct SAppContext
 {
 	class IApplication* app{};
 	//
-	class IRenderSystem* render{};
+	class IThreadPool* pool{};
 	//
-	void* windowHandle{};
+	class IWorld* world{};
+	//
+	class IRenderSystem* render{};
 	//
 	float gameTime{};
 	//

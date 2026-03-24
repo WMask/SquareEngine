@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include "RenderSystem/SRenderSystem.h"
+#include "RenderSystem/RenderSystemModule.h"
 #include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/SECSComponents.h"
 #include "Application/SApplicationInterface.h"
 
 #include <memory>
@@ -13,8 +14,8 @@
 
 /** Create render system */
 S_RENDERSYSTEM_API
-std::unique_ptr<IRenderSystem> CreateRenderSystem(SRSType RenderSystemType);
+TRenderSystemPtr CreateRenderSystem(SRSType RenderSystemType);
 
 /** Create application with render system */
 S_RENDERSYSTEM_API
-std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType);
+TApplicationPtr CreateApplication(SRSType RenderSystemType);

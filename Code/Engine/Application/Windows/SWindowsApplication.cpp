@@ -6,10 +6,12 @@
 
 #include "Application/Windows/SWindowsApplication.h"
 #include "Application/SApplicationModule.h"
+#include "World/SWorldModule.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
 #include <windowsx.h>
+#include <timeapi.h>
 #include <thread>
 
 #pragma comment (lib, "Winmm.lib")
@@ -42,11 +44,20 @@ SWindowsApplication::SWindowsApplication()
     features[SAppFeature::NoDelay] = false;
     features[SAppFeature::HighFrequencyTimer] = false;
     features[SAppFeature::AllowFullscreen] = false;
-    features[SAppFeature::ClearScreenColor] = SColor3(0, 0, 255);
+    features[SAppFeature::ClearScreenColor] = SColor3(50, 50, 70);
+    features[SAppFeature::ThreadPoolTasksPerThread] = static_cast<std::int32_t>(SConst::DefaultTasksPerThread);
+    features[SAppFeature::ThreadPoolThreadsCount] = static_cast<std::int32_t>(SConst::DefaultThreadsInPool);
+    features[SAppFeature::ThreadPoolDebugTrace] = false;
+    features[SAppFeature::RenderSystemDebugTrace] = false;
 }
 
 SWindowsApplication::~SWindowsApplication()
 {
+    if (threadPool)
+    {
+        threadPool.reset();
+    }
+
     if (renderSystem)
     {
         renderSystem->Shutdown();
@@ -61,7 +72,7 @@ SWindowsApplication::~SWindowsApplication()
     }
 }
 
-void SWindowsApplication::Init(void* handle, const std::string& inCmds, int inCmdsCount) noexcept
+void SWindowsApplication::Init(void* handle, const std::string& inCmds, std::int32_t inCmdsCount) noexcept
 {
 	hInstance = static_cast<HINSTANCE>(handle);
     cmds = inCmds;
@@ -78,22 +89,34 @@ void SWindowsApplication::Init(void* handle) noexcept
     Init(handle, "", 1);
 }
 
-#include <timeapi.h>
 void SWindowsApplication::Run()
 {
     S_TRY
 
-	if (!hInstance) throw std::exception("SWindowsApplication::Run(): Invalid platform handle");
+	if (!hInstance) throw std::exception("Invalid platform handle");
+    using namespace std::chrono_literals;
+
+    // create thread pool
+    const std::int32_t tasksPerThread = GetFeatureValue(features, SAppFeature::ThreadPoolTasksPerThread);
+    const std::int32_t threadsCount = GetFeatureValue(features, SAppFeature::ThreadPoolThreadsCount);
+    const bool bEnableLogs = GetFeatureFlag(features, SAppFeature::ThreadPoolDebugTrace);
+    threadPool = CreateThreadPool(tasksPerThread, threadsCount);
+    threadPool->EnableDebugLogs(bEnableLogs);
+    threadPool->Start();
 
     // set context
     context.app = this;
+    context.pool = threadPool.get();
+    context.render = renderSystem.get();
+    world = CreateWorld(context);
+    context.world = world.get();
 
     // get window size
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
     BOOL windowedStyle = (windowSize.height < screenHeight) ? TRUE : FALSE;
     int style = windowedStyle ? WS_SQUARE_WINDOW_MENU : WS_SQUARE_WINDOW;
 
-    RECT clientRect{ 0, 0, windowSize.width, windowSize.height };
+    RECT clientRect{ 0, 0, static_cast<LONG>(windowSize.width), static_cast<LONG>(windowSize.height) };
     AdjustWindowRect(&clientRect, style, FALSE);
     int winWidth = clientRect.right - clientRect.left;
     int winHeight = clientRect.bottom - clientRect.top;
@@ -109,20 +132,18 @@ void SWindowsApplication::Run()
     wcex.lpszClassName = SWindowClassName;
     if (0 == RegisterClassExW(&wcex))
     {
-        throw std::exception("SWindowsApplication::Run(): Cannot register window class");
+        throw std::exception("Cannot register window class");
     }
 
     hWnd = CreateWindowW(SWindowClassName, L"Game Window", style, CW_USEDEFAULT, CW_USEDEFAULT,
         winWidth, winHeight, nullptr, nullptr, hInstance, nullptr);
     if (!hWnd)
     {
-        throw std::exception("SWindowsApplication::Run(): Cannot create window");
+        throw std::exception("Cannot create window");
     }
 
     ShowWindow(hWnd, SW_SHOW);
     UpdateWindow(hWnd);
-
-    context.windowHandle = hWnd;
 
     // set random
     SYSTEMTIME time;
@@ -138,7 +159,8 @@ void SWindowsApplication::Run()
     // create game systems
     if (renderSystem)
     {
-        renderSystem->Create(hWnd, features, appMode, context);
+        renderSystem->Create(hWnd, appMode, context);
+        renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
         context.render = renderSystem.get();
     }
 
@@ -153,7 +175,6 @@ void SWindowsApplication::Run()
     }
 
     // set loop variables
-    using namespace std::chrono_literals;
     startFrameTime = SClock::now();
     prevFrameTime = startFrameTime;
     currentGameFrame = 0u;
@@ -221,7 +242,11 @@ void SWindowsApplication::OnUpdate()
     if (renderSystem)
     {
         renderSystem->Update(deltaFloat, context);
-        renderSystem->Render(context);
+
+        if (renderSystem->CanRender())
+        {
+            renderSystem->Render(context);
+        }
     }
 
     currentGameFrame++;
@@ -237,7 +262,7 @@ void SWindowsApplication::OnUpdate()
     S_CATCH{ S_THROW("SWindowsApplication::OnUpdate()") }
 }
 
-void SWindowsApplication::SetWindowSize(std::int32_t width, std::int32_t height)
+void SWindowsApplication::SetWindowSize(std::uint32_t width, std::uint32_t height)
 {
     auto newSize = SSize2{ width, height };
     if (windowSize == newSize) return;

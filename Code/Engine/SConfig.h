@@ -15,15 +15,14 @@
 /***************************************************************************
 * Math libs
 */
-#define USING_EIGEN   1
+#define USING_EIGEN   0
 #define USING_GLMATH  0
+#define USING_DXMATH  1
 
 
 /***************************************************************************
 * Config verification
 */
-#if \
-	(USING_GLMATH && USING_EIGEN) || \
-	(!USING_GLMATH && !USING_EIGEN)
+#if ((USING_GLMATH + USING_EIGEN + USING_DXMATH) != 1)
 # error "Square engine: Wrong Math lib configuration"
 #endif

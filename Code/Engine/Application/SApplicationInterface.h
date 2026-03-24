@@ -24,10 +24,10 @@ class IApplication
 public:
 	/**
 	Init handler */
-	typedef std::function<void(SAppContext&)> SInitHandler;
+	typedef std::function<void(SAppContext)> SInitHandler;
 	/**
 	Update handler with delta seconds */
-	typedef std::function<void(float, SAppContext&)> SUpdateHandler;
+	typedef std::function<void(float, SAppContext)> SUpdateHandler;
 
 
 public:
@@ -59,11 +59,14 @@ public:
 	* Get application feature value */
 	virtual std::any GetFeature(SAppFeature feature) const noexcept = 0;
 	/**
+	* Get application features */
+	virtual const SAppFeaturesMap& GetFeatures() const noexcept = 0;
+	/**
 	* Set window mode and update render system */
 	virtual void SetWindowMode(SAppMode mode) = 0;
 	/**
 	* Set client window size in pixels and update render system */
-	virtual void SetWindowSize(std::int32_t width, std::int32_t height) = 0;
+	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height) = 0;
 	/**
 	* Get client window size pixels */
 	virtual SSize2 GetWindowSize() const noexcept = 0;
@@ -84,3 +87,5 @@ protected:
 	IApplication& operator=(const IApplication&) = delete;
 
 };
+
+using TApplicationPtr = std::unique_ptr<IApplication>;

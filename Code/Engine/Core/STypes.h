@@ -6,6 +6,8 @@
 
 #include <string>
 #include <optional>
+#include <algorithm>
+#include <vector>
 
 
 /** Render system type */
@@ -15,6 +17,34 @@ enum class SRSType
 	DX12,
 	Vulkan,
 	Metal
+};
+
+/** Bytes array */
+using SBytes = std::vector<std::uint8_t>;
+
+
+/***************************************************************************
+* Range class. Clamps value to specified range.
+*/
+template<typename T, const T& minValue, const T& maxValue>
+class TRange
+{
+public:
+	TRange() : value{} {}
+	//
+	TRange(const TRange& ref) : value(ref.value) {}
+	//
+	TRange(T inValue) : value(std::clamp(inValue, minValue, maxValue)) {}
+	//
+	inline TRange& operator = (const TRange& ref) { value = ref.value; return *this; }
+	//
+	inline operator T () const { return value; }
+	//
+	inline T* get() const { return const_cast<T*>(&value); }
+
+private:
+	//
+	T value;
 };
 
 
@@ -51,12 +81,22 @@ struct SColor4F : public SColor3F
 	inline operator const float*() const { return &r; }
 };
 
-inline SColor4F FromSColor3(const SColor3& color)
+namespace SConst
 {
-	return SColor4F {
-		static_cast<float>(color.r) / 255.0f,
-		static_cast<float>(color.g) / 255.0f,
-		static_cast<float>(color.b) / 255.0f,
-		1.0f
-	};
+	static const SColor3 OneSColor3 = SColor3{ 255, 255, 255 };
+	static const SColor3F OneSColor3F = SColor3F{ 1.0f, 1.0f, 1.0f };
+	static const SColor4F OneSColor4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+}
+
+namespace SConvert
+{
+	inline SColor4F FromSColor3(const SColor3& color)
+	{
+		return SColor4F{
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f,
+			1.0f
+		};
+	}
 }

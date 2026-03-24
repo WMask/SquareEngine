@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include "World/SCamera.h"
 #include "Core/STypes.h"
 #include "Core/SMathTypes.h"
-#include "Core/SCamera.h"
 #include "entt/entt.hpp"
 
 #include <set>
@@ -49,7 +49,7 @@ class SWorldScale
 {
 public:
 	//
-	entt::delegate<void(const SVector2&)> onScaleChanged;
+	entt::delegate<void(SVector2)> onScaleChanged;
 	//
 	struct ScalePair
 	{
@@ -101,7 +101,7 @@ class IWorld
 public:
 	/**
 	* Subscribe to get changes of sprites global tint. */
-	entt::delegate<void(const SColor3&)> onTintChanged;
+	entt::delegate<void(SColor3)> onTintChanged;
 
 public:
 	/**

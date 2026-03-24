@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "Core/SMathTypes.h"
+
 #include <string>
 #include <optional>
 #include <algorithm>
@@ -92,7 +94,17 @@ namespace SConvert
 {
 	inline SColor4F FromSColor3(const SColor3& color)
 	{
-		return SColor4F{
+		return SColor4F {
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f,
+			1.0f
+		};
+	}
+
+	inline SVector4 ToVector4(const SColor3& color)
+	{
+		return SVector4 {
 			static_cast<float>(color.r) / 255.0f,
 			static_cast<float>(color.g) / 255.0f,
 			static_cast<float>(color.b) / 255.0f,

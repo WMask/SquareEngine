@@ -60,13 +60,13 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
-	virtual void RequestResize(std::int32_t width, std::int32_t height) override {}
+	virtual void RequestResize(std::uint32_t width, std::uint32_t height) override;
 	//
-	virtual void Resize(std::int32_t width, std::int32_t height, const SAppContext& context) override {}
+	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) override;
 	//
-	virtual void SetMode(SAppMode mode) override {}
+	virtual void SetMode(SAppMode mode) override;
 	//
-	virtual void UpdateCamera(float deltaSeconds, SVector3 newPos, SVector3 newTarget) override {}
+	virtual void UpdateCamera(float deltaSeconds, SVector3 newPos, SVector3 newTarget) override;
 	//
 	virtual SRSStats GetStats() const override { return SRSStats{}; }
 	//
@@ -76,6 +76,12 @@ public:// IRenderSystem interface implementation
 protected:
 	//
 	std::pair<SColor3, bool> GetClearColor(const SAppFeaturesMap& features);
+	//
+	void OnTintChanged(SColor3 globalTint);
+	//
+	void OnWorldScaleChanged(SVector2 worldScale);
+	//
+	void OnCameraViewChanged(const SCamera& camera);
 
 
 protected:
@@ -111,6 +117,10 @@ protected:
 	//
 	ComPtr<ID3D11RasterizerState> rasterizerState;
 	//
+	SSize2 renderSystemSize{};
+	//
 	bool bNeedDebugTrace = false;
+	//
+	int maxRefreshRate = 0;
 
 };

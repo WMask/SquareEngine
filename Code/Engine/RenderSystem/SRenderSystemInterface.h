@@ -66,10 +66,10 @@ public:
 	virtual bool CanRender() const = 0;
 	/**
 	* Request resize */
-	virtual void RequestResize(std::int32_t width, std::int32_t height) = 0;
+	virtual void RequestResize(std::uint32_t width, std::uint32_t height) = 0;
 	/**
 	* Resize render system */
-	virtual void Resize(std::int32_t width, std::int32_t height, const SAppContext& context) = 0;
+	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) = 0;
 	/**
 	* Set window mode */
 	virtual void SetMode(SAppMode mode) = 0;

@@ -160,6 +160,7 @@ void SWindowsApplication::Run()
     if (renderSystem)
     {
         renderSystem->Create(hWnd, appMode, context);
+        renderSystem->Subscribe(context);
         renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
         context.render = renderSystem.get();
     }
@@ -268,6 +269,12 @@ void SWindowsApplication::SetWindowSize(std::uint32_t width, std::uint32_t heigh
     if (windowSize == newSize) return;
 
     windowSize = newSize;
+
+    if (renderSystem && renderSystem->CanRender())
+    {
+        // actual resize in WM_SIZE message handler
+        renderSystem->RequestResize(width, height);
+    }
 }
 
 std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
@@ -301,6 +308,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_MENUCHAR:
         return MNC_CLOSE << 16; // disable exit fullscreen mode sound
     case WM_SIZE:
+        if (handles && handles->appContext.render)
+        {
+            WORD width = LOWORD(lParam);
+            WORD height = HIWORD(lParam);
+            handles->appContext.render->Resize(width, height, handles->appContext);
+        }
         break;
     case WM_KEYDOWN:
         break;

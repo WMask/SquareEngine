@@ -26,7 +26,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 struct SWin32Handles
 {
     SAppContext& appContext;
-    IApplication& app;
 };
 
 
@@ -152,7 +151,7 @@ void SWindowsApplication::Run()
 
     // set WndProc handles
     SWin32Handles handles {
-        context, *this
+        context
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
 
@@ -295,41 +294,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     int x = GET_X_LPARAM(lParam);
     int y = GET_Y_LPARAM(lParam);
 
-    S_TRY
-
-    switch (message)
+    try
     {
-    case WM_CLOSE:
-        DestroyWindow(hWnd);
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    case WM_MENUCHAR:
-        return MNC_CLOSE << 16; // disable exit fullscreen mode sound
-    case WM_SIZE:
-        if (handles && handles->appContext.render)
+        switch (message)
         {
-            WORD width = LOWORD(lParam);
-            WORD height = HIWORD(lParam);
-            handles->appContext.render->Resize(width, height, handles->appContext);
+        case WM_CLOSE:
+            DestroyWindow(hWnd);
+            break;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        case WM_MENUCHAR:
+            return MNC_CLOSE << 16; // disable exit fullscreen mode sound
+        case WM_SIZE:
+            if (handles && handles->appContext.render)
+            {
+                WORD width = LOWORD(lParam);
+                WORD height = HIWORD(lParam);
+                if (width > 640 && height > 480)
+                {
+                    handles->appContext.render->Resize(width, height, handles->appContext);
+                }
+            }
+            break;
+        case WM_KEYDOWN:
+            break;
+        case WM_KEYUP:
+            break;
+        case WM_MOUSEMOVE:
+            break;
+        case WM_LBUTTONDOWN:
+            break;
+        case WM_LBUTTONUP:
+            break;
+        default:
+            return DefWindowProc(hWnd, message, wParam, lParam);
         }
-        break;
-    case WM_KEYDOWN:
-        break;
-    case WM_KEYUP:
-        break;
-    case WM_MOUSEMOVE:
-        break;
-    case WM_LBUTTONDOWN:
-        break;
-    case WM_LBUTTONUP:
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
     }
-
-    S_CATCH{ S_THROW("SWindowsApplication::WndProc()") }
+    catch (const std::exception& ex)
+    {
+        DebugMsg("SWindowsApplication::WndProc()>\n%s\n", ex.what());
+        if (hWnd) DestroyWindow(hWnd);
+    }
 
     return 0;
 }

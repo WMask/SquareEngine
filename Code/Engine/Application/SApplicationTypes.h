@@ -42,7 +42,10 @@ enum class SAppFeature {
 	ThreadPoolThreadsCount,
 	/**
 	* [bool] Enable thread pool tasks logs. */
-	ThreadPoolEnableLogs
+	ThreadPoolDebugTrace,
+	/**
+	* [bool] Enable render system logs. */
+	RenderSystemDebugTrace
 };
 
 using SAppFeaturesMap = std::unordered_map<SAppFeature, std::any>;
@@ -71,8 +74,6 @@ struct SAppContext
 	class IWorld* world{};
 	//
 	class IRenderSystem* render{};
-	//
-	void* windowHandle{};
 	//
 	float gameTime{};
 	//

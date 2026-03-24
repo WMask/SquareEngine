@@ -14,6 +14,13 @@
 using Microsoft::WRL::ComPtr;
 
 
+/** Sprite vertex data */
+struct DX11SPRITEVERTEX
+{
+	SVector3 pos;
+	std::uint32_t index;
+};
+
 /***************************************************************************
 * Constant buffers
 */
@@ -30,6 +37,8 @@ public:
 
 
 public:
+	//
+	ComPtr<ID3D11Buffer> spriteVertexBuffer;
 	//
 	ComPtr<ID3D11Buffer> projMatrixBuffer;
 	//

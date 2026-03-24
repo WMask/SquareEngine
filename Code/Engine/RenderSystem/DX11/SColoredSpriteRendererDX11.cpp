@@ -16,21 +16,16 @@
 
 static const char* ColoredSpriteShaderName = "ColoredSprite2d.shader";
 
-struct DX11COLOREDSPRITE
-{
-	SVector3 pos;
-	std::uint32_t index;
-};
-
 struct DX11COLOREDSPRITEINSTANCE
 {
 	SVector3 pos;
+	float    rotation;
+	SVector2 scale;
 	SColor4F colors[4];
 };
 
 SColoredSpriteRendererDX11::~SColoredSpriteRendererDX11()
 {
-	vertexBuffer.Reset();
 	instanceBuffer.Reset();
 }
 
@@ -61,43 +56,27 @@ void SColoredSpriteRendererDX11::Setup(IRenderSystem& renderSystem, IVisualRende
 	// create input layouts
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{ "POSITION",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
-		{ "INSTANCEID",  0, DXGI_FORMAT_R32_UINT,           0, 12, D3D11_INPUT_PER_VERTEX_DATA,   0 },
-		{ "INSTANCEPOS", 0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "COLOR",       0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "COLOR",       1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 28, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "COLOR",       2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 44, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "COLOR",       3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 60, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
+		{ "POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "INSTANCEID",    0, DXGI_FORMAT_R32_UINT,           0, 12, D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "INSTANCEPOS",   0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEROT",   0, DXGI_FORMAT_R32_FLOAT,          1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCESCALE", 0, DXGI_FORMAT_R32G32_FLOAT,       1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 40, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 56, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 72, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
 	};
 
-	if (FAILED(d3dDevice->CreateInputLayout(layout, 7, shaderDataDX11.vsCode->GetBufferPointer(), shaderDataDX11.vsCode->GetBufferSize(), shaderDataDX11.layout.GetAddressOf())))
+	if (FAILED(d3dDevice->CreateInputLayout(layout, 9,
+		shaderDataDX11.vsCode->GetBufferPointer(),
+		shaderDataDX11.vsCode->GetBufferSize(),
+		shaderDataDX11.layout.GetAddressOf())))
 	{
 		throw std::exception("Cannot create input layout");
 	}
 
-	// create vertex buffer
-	D3D11_BUFFER_DESC bufferDesc{};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(DX11COLOREDSPRITE) * 6;
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-	DX11COLOREDSPRITE data[] = {
-		DX11COLOREDSPRITE{ SVector3{ 50.5f, 50.5f, 0.0f }, 1 },
-		DX11COLOREDSPRITE{ SVector3{ 50.5f,-50.5f, 0.0f }, 2 },
-		DX11COLOREDSPRITE{ SVector3{-50.5f, 50.5f, 0.0f }, 0 },
-		DX11COLOREDSPRITE{ SVector3{-50.5f, 50.5f, 0.0f }, 0 },
-		DX11COLOREDSPRITE{ SVector3{ 50.5f,-50.5f, 0.0f }, 2 },
-		DX11COLOREDSPRITE{ SVector3{-50.5f,-50.5f, 0.0f }, 3 }
-	};
-	D3D11_SUBRESOURCE_DATA vertexData{};
-	vertexData.pSysMem = data;
-
-	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &vertexData, vertexBuffer.GetAddressOf())))
-	{
-		throw std::exception("Cannot create vertex buffer");
-	}
-
 	// create instance buffer
+	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	bufferDesc.ByteWidth = sizeof(DX11COLOREDSPRITEINSTANCE) * MaxInstancedSpritesCount;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -119,7 +98,8 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 	auto d3dDevice = renderSystemDX11.GetD3D11Device();
 	auto shader = renderSystemDX11.FindShader(shaderName);
 	auto world = renderSystemDX11.GetWorld();
-	if (!d3dDevice || !d3dDeviceContext || !shader || !world)
+	auto spriteVertexBuffer = renderSystemDX11.GetConstantBuffers().spriteVertexBuffer.Get();
+	if (!d3dDevice || !d3dDeviceContext || !shader || !world || !spriteVertexBuffer)
 	{
 		throw std::exception("Invalid render params");
 	}
@@ -130,10 +110,11 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 		return;
 	}
 
+	std::uint32_t batchesRendered = 0;
 	std::uint32_t numSprites = spritesView.size();
 	std::uint32_t spriteId = 0;
-	std::vector<DX11COLOREDSPRITEINSTANCE> instanceData;
-	instanceData.reserve(MaxInstancedSpritesCount);
+	std::vector<DX11COLOREDSPRITEINSTANCE> batchData;
+	batchData.reserve(MaxInstancedSpritesCount);
 
 	for (auto spriteEntity : spritesView)
 	{
@@ -142,12 +123,14 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 		// store instance data
 		DX11COLOREDSPRITEINSTANCE instance{};
 		instance.pos = spriteComponent.position;
+		instance.rotation = spriteComponent.rotation;
+		instance.scale = SConvert::ToVector2(spriteComponent.size);
 		memcpy(instance.colors, spriteComponent.colors, sizeof(SColor4F) * 4);
-		instanceData.push_back(instance);
+		batchData.push_back(instance);
 
 		const bool bTimeToRenderBatch = (
-			instanceData.size() == MaxInstancedSpritesCount ||
-			instanceData.size() == numSprites ||
+			batchData.size() == MaxInstancedSpritesCount ||
+			batchData.size() == numSprites ||
 			spriteId == (numSprites - 1)
 		);
 
@@ -159,13 +142,13 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 			{
 				throw std::exception("Cannot update vertex buffer");
 			}
-			memcpy(mappedResource.pData, instanceData.data(), sizeof(DX11COLOREDSPRITEINSTANCE) * instanceData.size());
+			memcpy(mappedResource.pData, batchData.data(), sizeof(DX11COLOREDSPRITEINSTANCE) * batchData.size());
 			d3dDeviceContext->Unmap(instanceBuffer.Get(), 0);
 
 			// setup context
-			ID3D11Buffer* buffers[2] = { vertexBuffer.Get(), instanceBuffer.Get() };
-			UINT strides[2] = { sizeof(DX11COLOREDSPRITE), sizeof(DX11COLOREDSPRITEINSTANCE) };
-			UINT offsets[2] = { 0, 0 };
+			ID3D11Buffer* buffers[2] = { spriteVertexBuffer, instanceBuffer.Get() };
+			static UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11COLOREDSPRITEINSTANCE) };
+			static UINT offsets[2] = { 0, 0 };
 			d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
 			d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			d3dDeviceContext->IASetInputLayout(shader->layout.Get());
@@ -173,13 +156,19 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 			d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
 			// render sprites
-			d3dDeviceContext->DrawInstanced(6, instanceData.size(), 0, 0);
+			d3dDeviceContext->DrawInstanced(6, batchData.size(), 0, 0);
 
 			// cleanup batch data
-			instanceData.clear();
+			batchData.clear();
+			batchesRendered++;
 		}
 
 		spriteId++;
+	}
+
+	if (renderSystemDX11.IsNeedDebugTrace())
+	{
+		DebugMsg("SColoredSpriteRendererDX11::Render(): %d batches, %d sprite instances\n", batchesRendered, numSprites);
 	}
 
 	S_CATCH{ S_THROW("SColoredSpriteRendererDX11::Render()") }

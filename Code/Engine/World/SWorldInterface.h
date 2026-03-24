@@ -6,7 +6,6 @@
 
 #include "Core/STypes.h"
 #include "Core/SMathTypes.h"
-#include "Core/SDelegate.h"
 #include "Core/SCamera.h"
 #include "entt/entt.hpp"
 
@@ -49,7 +48,8 @@ namespace SLayers
 class SWorldScale
 {
 public:
-	SDelegate<SVector2> onScaleChanged;
+	//
+	entt::delegate<void(const SVector2&)> onScaleChanged;
 	//
 	struct ScalePair
 	{
@@ -65,7 +65,13 @@ public:
 
 
 public:
-	SWorldScale() : scaleList{ {SSize2{ 1920, 1080 }, SConst::OneSVector2} }, scale(SConst::OneSVector2), scaleFonts(true) {}
+	//
+	SWorldScale()
+		: scaleList{ {SSize2{ 1920, 1080 }
+		, SConst::OneSVector2} }
+		, scale(SConst::OneSVector2)
+		, scaleFonts(true)
+	{}
 	//
 	void UpdateWorldScale(SSize2 newScreenSize);
 	//
@@ -79,6 +85,7 @@ public:
 
 
 protected:
+	//
 	std::set<ScalePair> scaleList;
 	//
 	SVector2 scale;
@@ -94,7 +101,7 @@ class IWorld
 public:
 	/**
 	* Subscribe to get changes of sprites global tint. */
-	SDelegate<SColor3> onTintChanged;
+	entt::delegate<void(const SColor3&)> onTintChanged;
 
 public:
 	/**

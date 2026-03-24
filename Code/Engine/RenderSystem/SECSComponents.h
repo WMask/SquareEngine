@@ -17,8 +17,6 @@ struct SColoredSpriteComponent
 	SSize2F size;
 	//
 	SColor4F colors[4];
-	//
-	bool bHasColor = false;
 
 
 public:
@@ -26,13 +24,11 @@ public:
 	inline void SetColors(const SColor4F& color)
 	{
 		colors[0] = colors[1] = colors[2] = colors[3] = color;
-		bHasColor = true;
 	}
 	//
 	inline void SetColors(const SColor3& color)
 	{
 		colors[0] = colors[1] = colors[2] = colors[3] = SConvert::FromSColor3(color);
-		bHasColor = true;
 	}
 	//
 	inline void SetColors(const SColor4F& lt, const SColor4F& rt, const SColor4F& rb, const SColor4F& lb)
@@ -41,7 +37,6 @@ public:
 		colors[1] = rt;
 		colors[2] = rb;
 		colors[3] = lb;
-		bHasColor = true;
 	}
 	//
 	inline void SetColors(const SColor3& lt, const SColor3& rt, const SColor3& rb, const SColor3& lb)
@@ -50,6 +45,5 @@ public:
 		colors[1] = SConvert::FromSColor3(rt);
 		colors[2] = SConvert::FromSColor3(rb);
 		colors[3] = SConvert::FromSColor3(lb);
-		bHasColor = true;
 	}
 };

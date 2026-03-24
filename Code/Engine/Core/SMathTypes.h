@@ -196,6 +196,14 @@ namespace SConst
 	static const SSize3 ZeroSSize3 = SSize3{};
 }
 
+namespace SConvert
+{
+	inline SVector2 ToVector2(const SSize2F& v)
+	{
+		return SVector2{ v.width, v.height };
+	}
+}
+
 
 /***************************************************************************
 * Matrix

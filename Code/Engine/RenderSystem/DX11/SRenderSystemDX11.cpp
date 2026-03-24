@@ -155,13 +155,13 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	// set up rasterizer
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
-	rasterizerDesc.AntialiasedLineEnable = false;
-	rasterizerDesc.CullMode = D3D11_CULL_BACK;
+	rasterizerDesc.AntialiasedLineEnable = true;
+	rasterizerDesc.CullMode = D3D11_CULL_NONE;
 	rasterizerDesc.DepthBias = 0;
 	rasterizerDesc.DepthBiasClamp = 0.0f;
 	rasterizerDesc.DepthClipEnable = true;
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	rasterizerDesc.FrontCounterClockwise = false;
+	rasterizerDesc.FrontCounterClockwise = true;
 	rasterizerDesc.MultisampleEnable = false;
 	rasterizerDesc.ScissorEnable = false;
 	rasterizerDesc.SlopeScaledDepthBias = 0.0f;
@@ -204,9 +204,11 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	// init managers
 	shaderManager.Init(context.pool);
 
-	auto cameraPos = SVector3{ width / 2.0f, height / 2.0f, 0.0f };
-	auto cameraTarget = SVector3{ cameraPos.x, cameraPos.y, 1.0f };
+	auto cameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
+	auto cameraTarget = SVector3{ cameraPos.x, cameraPos.y, 0.0f };
 	constantBuffers.Init(d3dDevice.Get(), deviceContext.Get(), cameraPos, cameraTarget, width, height);
+
+	bNeedDebugTrace = GetFeatureFlag(features, SAppFeature::RenderSystemDebugTrace);
 
 	DebugMsg("SRenderSystemDX11::Create(): Render system created\n");
 
@@ -308,9 +310,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// setup device
 	auto& features = context.app->GetFeatures();
-
-	SColor3 clearColor;
-	if (GetClearColor(features, clearColor))
+	auto [clearColor, bHasClearColor] = GetClearColor(features);
+	if (bHasClearColor)
 	{
 		deviceContext->ClearRenderTargetView(renderTargetView.Get(), SConvert::FromSColor3(clearColor));
 	}
@@ -322,6 +323,11 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	swapChain->Present(bVSync ? DXGI_SWAP_EFFECT_SEQUENTIAL : DXGI_SWAP_EFFECT_DISCARD, 0);
+
+	if (bNeedDebugTrace)
+	{
+		DebugMsg("SRenderSystemDX11::Render(): Frame=%d, Time=%.1fs FPS=[%d]\n", context.gameFrame, context.gameTime, context.fps);
+	}
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Render()") }
 }
@@ -336,16 +342,15 @@ void SRenderSystemDX11::Clear(IWorld* world, bool removeRooted)
 {
 }
 
-bool SRenderSystemDX11::GetClearColor(const SAppFeaturesMap& features, SColor3& outColor)
+std::pair<SColor3, bool> SRenderSystemDX11::GetClearColor(const SAppFeaturesMap& features)
 {
 	auto colorIt = features.find(SAppFeature::ClearScreenColor);
 	if (colorIt->second.has_value())
 	{
-		outColor = std::any_cast<SColor3>(colorIt->second);
-		return true;
+		return { std::any_cast<SColor3>(colorIt->second), true };
 	}
 
-	return false;
+	return { SConst::OneSColor3, false };
 }
 
 #endif // WIN32

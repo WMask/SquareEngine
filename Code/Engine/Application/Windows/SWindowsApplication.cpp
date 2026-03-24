@@ -47,7 +47,8 @@ SWindowsApplication::SWindowsApplication()
     features[SAppFeature::ClearScreenColor] = SColor3(50, 50, 70);
     features[SAppFeature::ThreadPoolTasksPerThread] = static_cast<std::int32_t>(SConst::DefaultTasksPerThread);
     features[SAppFeature::ThreadPoolThreadsCount] = static_cast<std::int32_t>(SConst::DefaultThreadsInPool);
-    features[SAppFeature::ThreadPoolEnableLogs] = false;
+    features[SAppFeature::ThreadPoolDebugTrace] = false;
+    features[SAppFeature::RenderSystemDebugTrace] = false;
 }
 
 SWindowsApplication::~SWindowsApplication()
@@ -98,7 +99,7 @@ void SWindowsApplication::Run()
     // create thread pool
     const std::int32_t tasksPerThread = GetFeatureValue(features, SAppFeature::ThreadPoolTasksPerThread);
     const std::int32_t threadsCount = GetFeatureValue(features, SAppFeature::ThreadPoolThreadsCount);
-    const bool bEnableLogs = GetFeatureFlag(features, SAppFeature::ThreadPoolEnableLogs);
+    const bool bEnableLogs = GetFeatureFlag(features, SAppFeature::ThreadPoolDebugTrace);
     threadPool = CreateThreadPool(tasksPerThread, threadsCount);
     threadPool->EnableDebugLogs(bEnableLogs);
     threadPool->Start();
@@ -143,8 +144,6 @@ void SWindowsApplication::Run()
 
     ShowWindow(hWnd, SW_SHOW);
     UpdateWindow(hWnd);
-
-    context.windowHandle = hWnd;
 
     // set random
     SYSTEMTIME time;

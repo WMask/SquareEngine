@@ -27,15 +27,17 @@ public:
 	//
 	SRenderSystemDX11();
 	//
-	SConstantBuffersDX11& GetConstantBuffers() { return constantBuffers; }
+	SShaderDataDX11* FindShader(const std::string& name);
+	//
+	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
 	//
 	ID3D11DeviceContext* GetD3D11DeviceContext() const noexcept { return deviceContext.Get(); }
 	//
 	ID3D11Device* GetD3D11Device() const noexcept { return d3dDevice.Get(); }
 	//
-	SShaderDataDX11* FindShader(const std::string& name);
+	IWorld* GetWorld() const noexcept { return world; }
 	//
-	IWorld* GetWorld() const { return world; }
+	bool IsNeedDebugTrace() const noexcept { return bNeedDebugTrace; }
 
 
 public:// IRenderSystem interface implementation
@@ -73,7 +75,7 @@ public:// IRenderSystem interface implementation
 
 protected:
 	//
-	bool GetClearColor(const SAppFeaturesMap& features, SColor3& outColor);
+	std::pair<SColor3, bool> GetClearColor(const SAppFeaturesMap& features);
 
 
 protected:
@@ -108,5 +110,7 @@ protected:
 	ComPtr<ID3D11BlendState> blendState;
 	//
 	ComPtr<ID3D11RasterizerState> rasterizerState;
+	//
+	bool bNeedDebugTrace = false;
 
 };

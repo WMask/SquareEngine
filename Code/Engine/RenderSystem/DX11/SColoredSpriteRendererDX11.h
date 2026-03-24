@@ -36,8 +36,6 @@ public: // IVisual2DRenderer interface implementation
 
 protected:
 	//
-	ComPtr<ID3D11Buffer> vertexBuffer;
-	//
 	ComPtr<ID3D11Buffer> instanceBuffer;
 	//
 	std::string shaderName;

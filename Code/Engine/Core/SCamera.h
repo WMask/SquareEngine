@@ -7,7 +7,9 @@
 #include "Core/SMath.h"
 
 
-/** Game camera */
+/***************************************************************************
+* Game camera
+*/
 class SCamera
 {
 public:
@@ -30,10 +32,10 @@ public:
 	}
 	/**
 	* Get position */
-	inline SVector3 GetPosition() const { return position; }
+	inline SVector3 GetPosition() const noexcept { return position; }
 	/**
 	* Get target */
-	inline SVector3 GetTarget() const { return target; }
+	inline SVector3 GetTarget() const noexcept { return target; }
 
 
 protected:

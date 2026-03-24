@@ -322,16 +322,15 @@ namespace SMath
 		return SConvert::ToMatrix4(DirectX::XMMatrixTranspose(matrix));
 	}
 
-	inline SMatrix4 OrthoMatrix(float widthPixels, float heightPixels, float nearPlane, float farPlane, bool flipY = true)
+	inline SMatrix4 OrthoMatrix(float widthPixels, float heightPixels, float nearPlane, float farPlane)
 	{
-		auto matrix = DirectX::XMMatrixOrthographicLH(widthPixels, heightPixels, nearPlane, farPlane);
-		if (flipY) matrix = DirectX::XMMatrixMultiply(matrix, DirectX::XMMatrixScaling(1.0f, -1.0f, 1.0f));
-		return SConvert::ToMatrix4(DirectX::XMMatrixTranspose(matrix));
+		auto matrix = DirectX::XMMatrixOrthographicLH(widthPixels, heightPixels, 1.0f, -1.0f);
+		return SConvert::ToMatrix4(matrix);
 	}
 
-	inline SMatrix4 OrthoMatrix(SSize2 viewportSize, float nearPlane, float farPlane, bool flipY = true)
+	inline SMatrix4 OrthoMatrix(SSize2 viewportSize, float nearPlane, float farPlane)
 	{
-		return OrthoMatrix(static_cast<float>(viewportSize.width), static_cast<float>(viewportSize.height), nearPlane, farPlane, flipY);
+		return OrthoMatrix(static_cast<float>(viewportSize.width), static_cast<float>(viewportSize.height), nearPlane, farPlane);
 	}
 
 	inline SMatrix4 LookAtMatrix(const SVector3& from, const SVector3& to)
@@ -339,13 +338,14 @@ namespace SMath
 		auto matrix = DirectX::XMMatrixLookAtLH(
 			DirectX::XMVectorSet(from.x, from.y, from.z, 0.0f),
 			DirectX::XMVectorSet(to.x, to.y, to.z, 0.0f),
-			DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-		return SConvert::ToMatrix4(DirectX::XMMatrixTranspose(matrix));
+			DirectX::XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f));
+		return SConvert::ToMatrix4(matrix);
 	}
 
 	inline SMatrix4 TranslationMatrix(const SVector3& pos)
 	{
-		return SConvert::ToMatrix4(DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z));
+		auto matrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		return SConvert::ToMatrix4(matrix);
 	}
 
 	inline SMatrix4 TransformMatrix(const SVector3& pos, const SVector2& scale, float rotZ = 0.0f, bool flipY = true)

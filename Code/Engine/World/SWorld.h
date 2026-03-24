@@ -12,7 +12,7 @@
 /***************************************************************************
 * Game world class
 */
-class S_WORLD_API SWorld : public IWorld
+class SWorld : public IWorld
 {
 public:
 	//

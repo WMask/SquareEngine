@@ -24,10 +24,10 @@ class IApplication
 public:
 	/**
 	Init handler */
-	typedef std::function<void(SAppContext&)> SInitHandler;
+	typedef std::function<void(SAppContext)> SInitHandler;
 	/**
 	Update handler with delta seconds */
-	typedef std::function<void(float, SAppContext&)> SUpdateHandler;
+	typedef std::function<void(float, SAppContext)> SUpdateHandler;
 
 
 public:

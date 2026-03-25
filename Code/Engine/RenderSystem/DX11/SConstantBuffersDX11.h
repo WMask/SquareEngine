@@ -30,10 +30,12 @@ public:
 	//
 	SConstantBuffersDX11() {}
 	//
+	~SConstantBuffersDX11();
+	//
 	void Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
 		SVector3 cameraPos, SVector3 cameraTarget, std::uint32_t width, std::uint32_t height);
 	//
-	void Destroy();
+	void Shutdown();
 
 
 public:

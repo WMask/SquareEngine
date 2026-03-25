@@ -9,6 +9,13 @@
 #include <any>
 
 
+/** Key state: Up, Down */
+enum class SKeyState
+{
+	Up,
+	Down
+};
+
 /** Window mode */
 enum class SAppMode { Windowed, Fullscreen };
 
@@ -69,11 +76,15 @@ struct SAppContext
 {
 	class IApplication* app{};
 	//
+	class IInputSystem* input{};
+	//
 	class IThreadPool* pool{};
 	//
 	class IWorld* world{};
 	//
 	class IRenderSystem* render{};
+	//
+	float deltaSeconds{};
 	//
 	float gameTime{};
 	//

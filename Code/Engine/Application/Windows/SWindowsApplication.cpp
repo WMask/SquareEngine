@@ -57,6 +57,12 @@ SWindowsApplication::~SWindowsApplication()
         threadPool.reset();
     }
 
+    if (inputSystem)
+    {
+        inputSystem->Shutdown();
+        inputSystem.reset();
+    }
+
     if (renderSystem)
     {
         renderSystem->Shutdown();
@@ -117,8 +123,9 @@ void SWindowsApplication::Run()
 
     RECT clientRect{ 0, 0, static_cast<LONG>(windowSize.width), static_cast<LONG>(windowSize.height) };
     AdjustWindowRect(&clientRect, style, FALSE);
-    int winWidth = clientRect.right - clientRect.left;
-    int winHeight = clientRect.bottom - clientRect.top;
+    std::uint32_t winWidth = clientRect.right - clientRect.left;
+    std::uint32_t winHeight = clientRect.bottom - clientRect.top;
+    windowSize = SSize2{ winWidth, winHeight };
 
     // create window
     WNDCLASSEXW wcex{};
@@ -144,25 +151,29 @@ void SWindowsApplication::Run()
     ShowWindow(hWnd, SW_SHOW);
     UpdateWindow(hWnd);
 
-    // set random
-    SYSTEMTIME time;
-    GetSystemTime(&time);
-    srand(time.wMilliseconds + time.wSecond + time.wHour + time.wDay);
+    // create game systems
+    if (renderSystem)
+    {
+        renderSystem->Subscribe(context);
+        renderSystem->Create(hWnd, appMode, context);
+        renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
+        context.render = renderSystem.get();
+    }
+
+    inputSystem = CreateDefaultInputSystem();
+    context.input = inputSystem.get();
+    inputSystem->Init(context);
 
     // set WndProc handles
-    SWin32Handles handles {
+    SWin32Handles handles{
         context
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
 
-    // create game systems
-    if (renderSystem)
-    {
-        renderSystem->Create(hWnd, appMode, context);
-        renderSystem->Subscribe(context);
-        renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
-        context.render = renderSystem.get();
-    }
+    // set random
+    SYSTEMTIME time;
+    GetSystemTime(&time);
+    srand(time.wMilliseconds + time.wSecond + time.wHour + time.wDay);
 
     // call app init handler
     if (initHandler)
@@ -230,13 +241,19 @@ void SWindowsApplication::OnUpdate()
     SDuration timeSeconds = curTime - startFrameTime;
     prevFrameTime = curTime;
 
+    float deltaFloat = deltaSeconds.count();
     context.gameFrame = currentGameFrame;
     context.gameTime = timeSeconds.count();
-    float deltaFloat = deltaSeconds.count();
+    context.deltaSeconds = deltaFloat;
 
     if (updateHandler)
     {
         updateHandler(deltaFloat, context);
+    }
+
+    if (inputSystem)
+    {
+        inputSystem->Update(deltaFloat, context);
     }
 
     if (renderSystem)
@@ -262,14 +279,15 @@ void SWindowsApplication::OnUpdate()
     S_CATCH{ S_THROW("SWindowsApplication::OnUpdate()") }
 }
 
-void SWindowsApplication::SetWindowSize(std::uint32_t width, std::uint32_t height)
+void SWindowsApplication::SetWindowSize(std::uint32_t width, std::uint32_t height, bool resizeRenderSystem)
 {
     auto newSize = SSize2{ width, height };
     if (windowSize == newSize) return;
 
     windowSize = newSize;
 
-    if (renderSystem && renderSystem->CanRender())
+    if (resizeRenderSystem && !windowSize.IsZero() &&
+        renderSystem && renderSystem->CanRender())
     {
         // actual resize in WM_SIZE message handler
         renderSystem->RequestResize(width, height);
@@ -282,14 +300,23 @@ std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
     return (featureIt != features.end()) ? featureIt->second : std::any();
 }
 
-void SWindowsApplication::SetWindowMode(SAppMode mode)
-{
-    appMode = mode;
-}
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     SWin32Handles* handles = reinterpret_cast<SWin32Handles*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    IInputSystem* inputSystem = handles ? handles->appContext.input : nullptr;
+    IInputDevice* activeKeyboard = nullptr;
+    IInputDevice* activeMouse = nullptr;
+
+    if (inputSystem)
+    {
+        const auto& devices = inputSystem->GetInputDevicesList();
+        for (const auto& device : devices)
+        {
+            if (!device || !device->IsActive()) continue;
+            if (device->GetType() == SInputDeviceType::Keyboard) activeKeyboard = device.get();
+            if (device->GetType() == SInputDeviceType::Mouse) activeMouse = device.get();
+        }
+    }
 
     int x = GET_X_LPARAM(lParam);
     int y = GET_Y_LPARAM(lParam);
@@ -307,19 +334,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_MENUCHAR:
             return MNC_CLOSE << 16; // disable exit fullscreen mode sound
         case WM_SIZE:
-            if (handles && handles->appContext.render)
+            if (handles)
             {
                 WORD width = LOWORD(lParam);
                 WORD height = HIWORD(lParam);
-                if (width > 640 && height > 480)
+
+                if (handles->appContext.app)
+                {
+                    handles->appContext.app->SetWindowSize(width, height, false);
+                }
+
+                if (handles->appContext.render &&
+                    width >= 640 && height >= 480)
                 {
                     handles->appContext.render->Resize(width, height, handles->appContext);
                 }
             }
             break;
         case WM_KEYDOWN:
+            if (activeKeyboard) activeKeyboard->SetState(static_cast<int>(wParam), true);
             break;
         case WM_KEYUP:
+            if (activeKeyboard) activeKeyboard->SetState(static_cast<int>(wParam), false);
             break;
         case WM_MOUSEMOVE:
             break;

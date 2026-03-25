@@ -1,0 +1,14 @@
+{
+    "Application":
+	{
+        "WinHeight": 720,
+        "WinWidth": 1280
+    },
+    "Engine":
+	{
+        "bAllowFullscreen": false,
+		"bHighFrequencyTimer": false,
+        "bNoDelay": false,
+        "bVSync": true
+    }
+}

@@ -165,6 +165,7 @@ struct SSize2
 	std::uint32_t height;
 
 	bool operator==(const SSize2&) const = default;
+	inline bool IsZero() const noexcept { return (width == 0u) && (height == 0u); }
 };
 
 // Size 2D

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "Application/SAppConfig.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "Core/SMathTypes.h"
 #include "Core/STypes.h"
@@ -62,14 +63,23 @@ public:
 	* Get application features */
 	virtual const SAppFeaturesMap& GetFeatures() const noexcept = 0;
 	/**
-	* Set window mode and update render system */
-	virtual void SetWindowMode(SAppMode mode) = 0;
+	* Set application window mode */
+	virtual void SetWindowMode(SAppMode mode) noexcept = 0;
+	/**
+	* Get application window mode */
+	virtual SAppMode GetWindowMode() const noexcept = 0;
 	/**
 	* Set client window size in pixels and update render system */
-	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height) = 0;
+	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height, bool resizeRenderSystem = false) = 0;
 	/**
 	* Get client window size pixels */
 	virtual SSize2 GetWindowSize() const noexcept = 0;
+	/**
+	* Set application config */
+	virtual void SetConfig(const SAppConfig& newConfig) noexcept = 0;
+	/**
+	* Get application config */
+	virtual const SAppConfig& GetConfig() const noexcept = 0;
 	/**
 	* Run application main loop */
 	virtual void Run() = 0;

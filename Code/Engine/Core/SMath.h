@@ -348,6 +348,18 @@ namespace SMath
 		return SConvert::ToMatrix4(matrix);
 	}
 
+	inline SMatrix4 ScaleMatrix(const SVector3& scale)
+	{
+		auto matrix = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
+		return SConvert::ToMatrix4(matrix);
+	}
+
+	inline SMatrix4 ScaleMatrix2(const SVector2& scale)
+	{
+		auto matrix = DirectX::XMMatrixScaling(scale.x, scale.y, 1.0f);
+		return SConvert::ToMatrix4(matrix);
+	}
+
 	inline SMatrix4 TransformMatrix(const SVector3& pos, const SVector2& scale, float rotZ = 0.0f, bool flipY = true)
 	{
 		auto matrix = DirectX::XMMatrixTransformation(

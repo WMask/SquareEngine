@@ -56,7 +56,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void Render(const SAppContext& context) override;
 	//
-	virtual bool CanRender() const override;
+	virtual bool CanRender() const noexcept override;
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
@@ -66,14 +66,18 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void SetMode(SAppMode mode) override;
 	//
-	virtual void UpdateCamera(float deltaSeconds, SVector3 newPos, SVector3 newTarget) override;
+	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
 	//
-	virtual SRSStats GetStats() const override { return SRSStats{}; }
+	virtual SSize2 GetRenderSize() const noexcept override { return renderSystemSize; }
 	//
-	virtual SRSType GetType() const override { return SRSType::DX11; }
+	virtual SRSStats GetStats() const noexcept override { return SRSStats{}; }
+	//
+	virtual SRSType GetType() const noexcept override { return SRSType::DX11; }
 
 
 protected:
+	//
+	void CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height);
 	//
 	std::pair<SColor3, bool> GetClearColor(const SAppFeaturesMap& features);
 	//
@@ -85,19 +89,15 @@ protected:
 
 
 protected:
-	//
-	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
 
 
 protected:
 	//
-	IWorld* world{};
-	//
-	SDXShaderManager shaderManager;
+	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
-	std::unordered_map<std::string, SShaderDataDX11> shaders;
+	SDXShaderManager shaderManager;
 	//
 	ComPtr<IDXGISwapChain> swapChain;
 	//
@@ -116,8 +116,19 @@ protected:
 	ComPtr<ID3D11BlendState> blendState;
 	//
 	ComPtr<ID3D11RasterizerState> rasterizerState;
+
+
+protected:
+	//
+	std::unordered_map<std::string, SShaderDataDX11> shaders;
+	//
+	IWorld* world{};
 	//
 	SSize2 renderSystemSize{};
+	//
+	SVector3 cameraPos{};
+	//
+	SVector3 cameraTarget{};
 	//
 	bool bNeedDebugTrace = false;
 	//

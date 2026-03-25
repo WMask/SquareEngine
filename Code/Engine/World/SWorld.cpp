@@ -49,7 +49,7 @@ void SWorldScale::UpdateWorldScale(SSize2 newScreenSize)
 		if (entry.resolution == newScreenSize)
 		{
 			scale = entry.scale;
-			if (prevScale != scale) onScaleChanged(scale);
+			if (prevScale != scale && onScaleChanged) onScaleChanged(scale);
 			return;
 		}
 	}
@@ -60,7 +60,7 @@ void SWorldScale::UpdateWorldScale(SSize2 newScreenSize)
 		if (entry.resolution.height >= newScreenSize.height)
 		{
 			scale = entry.scale;
-			if (prevScale != scale) onScaleChanged(scale);
+			if (prevScale != scale && onScaleChanged) onScaleChanged(scale);
 			return;
 		}
 	}
@@ -69,6 +69,6 @@ void SWorldScale::UpdateWorldScale(SSize2 newScreenSize)
 	{
 		// accept any
 		scale = scaleList.begin()->scale;
-		if (prevScale != scale) onScaleChanged(scale);
+		if (prevScale != scale && onScaleChanged) onScaleChanged(scale);
 	}
 }

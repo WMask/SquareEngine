@@ -28,16 +28,16 @@ using SLayersRange = TRange<float, SWorldInternal::SMinLayer, SWorldInternal::SM
 /** 2D object layers. Z0 - front, Z9 - back. */
 namespace SLayers
 {
-	static const SLayersRange Z0 = SLayersRange( 0.0f);
-	static const SLayersRange Z1 = SLayersRange(-0.1f);
-	static const SLayersRange Z2 = SLayersRange(-0.2f);
-	static const SLayersRange Z3 = SLayersRange(-0.3f);
-	static const SLayersRange Z4 = SLayersRange(-0.4f);
-	static const SLayersRange Z5 = SLayersRange(-0.5f);
-	static const SLayersRange Z6 = SLayersRange(-0.6f);
-	static const SLayersRange Z7 = SLayersRange(-0.7f);
-	static const SLayersRange Z8 = SLayersRange(-0.8f);
-	static const SLayersRange Z9 = SLayersRange(-0.9f);
+	static const SLayersRange Z0 = SLayersRange(0.9f);
+	static const SLayersRange Z1 = SLayersRange(0.8f);
+	static const SLayersRange Z2 = SLayersRange(0.7f);
+	static const SLayersRange Z3 = SLayersRange(0.6f);
+	static const SLayersRange Z4 = SLayersRange(0.5f);
+	static const SLayersRange Z5 = SLayersRange(0.4f);
+	static const SLayersRange Z6 = SLayersRange(0.3f);
+	static const SLayersRange Z7 = SLayersRange(0.2f);
+	static const SLayersRange Z8 = SLayersRange(0.1f);
+	static const SLayersRange Z9 = SLayersRange(0.0f);
 };
 
 
@@ -51,10 +51,10 @@ public:
 	//
 	entt::delegate<void(SVector2)> onScaleChanged;
 	//
-	struct ScalePair
+	struct SScalePair
 	{
-		ScalePair(SSize2 inResolution, SVector2 inScale) : resolution(inResolution), scale(inScale) {}
-		inline bool operator<(const ScalePair& s) const { return resolution.height < s.resolution.height; }
+		SScalePair(SSize2 inResolution, SVector2 inScale) : resolution(inResolution), scale(inScale) {}
+		inline bool operator<(const SScalePair& s) const { return resolution.height < s.resolution.height; }
 		SSize2 resolution;
 		SVector2 scale;
 	};
@@ -67,8 +67,13 @@ public:
 public:
 	//
 	SWorldScale()
-		: scaleList{ {SSize2{ 1920, 1080 }
-		, SConst::OneSVector2} }
+		: scaleList{
+			{ SSize2{ 3840, 2160 }, SVector2{ 1.0f / 0.5f, 1.0f / 0.5f } },
+			{ SSize2{ 2560, 1440 }, SVector2{ 1.0f / 0.75f, 1.0f / 0.75f } },
+			{ SSize2{ 1920, 1080 }, SVector2{ 1.0f, 1.0f } }, // Design x1 resolution is 1920x1080
+			{ SSize2{ 1280, 720 }, SVector2{ 1.0f / 1.5f, 1.0f / 1.5f } },
+			{ SSize2{ 800, 600 }, SVector2{ 1.0f / 1.8f, 1.0f / 1.8f } }
+		}
 		, scale(SConst::OneSVector2)
 		, scaleFonts(true)
 	{}
@@ -77,16 +82,16 @@ public:
 	//
 	inline bool GetScaleFonts() const { return scaleFonts; }
 	//
-	inline const std::set<ScalePair>& GetScaleList() const { return scaleList; }
+	inline const std::set<SScalePair>& GetScaleList() const { return scaleList; }
 	//
-	inline std::set<ScalePair>& GetScaleList() { return scaleList; }
+	inline std::set<SScalePair>& GetScaleList() { return scaleList; }
 	//
 	inline SVector2 GetScale() const { return scale; }
 
 
 protected:
 	//
-	std::set<ScalePair> scaleList;
+	std::set<SScalePair> scaleList;
 	//
 	SVector2 scale;
 	//

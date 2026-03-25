@@ -28,7 +28,7 @@ public:
 		position = newPos;
 		target = newTarget;
 
-		onViewChanged(*this);
+		if (onViewChanged) onViewChanged(*this);
 	}
 	/**
 	* Move camera */
@@ -37,7 +37,7 @@ public:
 		position = position + newPosOffset;
 		target = target + newTargetOffset;
 
-		onViewChanged(*this);
+		if (onViewChanged) onViewChanged(*this);
 	}
 	/**
 	* Get position */

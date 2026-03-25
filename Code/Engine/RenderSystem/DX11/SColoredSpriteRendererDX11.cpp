@@ -26,6 +26,11 @@ struct DX11COLOREDSPRITEINSTANCE
 
 SColoredSpriteRendererDX11::~SColoredSpriteRendererDX11()
 {
+	Shutdown();
+}
+
+void SColoredSpriteRendererDX11::Shutdown()
+{
 	instanceBuffer.Reset();
 }
 

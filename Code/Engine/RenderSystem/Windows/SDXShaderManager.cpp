@@ -9,10 +9,21 @@
 
 #pragma comment(lib, "d3dcompiler.lib")
 
-
 namespace SConst
 {
 	static const std::uint32_t MaxShaders = 64u;
+}
+
+
+SDXShaderManager::~SDXShaderManager()
+{
+	Shutdown();
+}
+
+void SDXShaderManager::Shutdown()
+{
+	compiledShaders.reset();
+	threadPool = nullptr;
 }
 
 void SDXShaderManager::Init(IThreadPool* inThreadPool)
@@ -23,7 +34,7 @@ void SDXShaderManager::Init(IThreadPool* inThreadPool)
 
 void SDXShaderManager::Update()
 {
-	if (!compiledShaders->empty())
+	if (compiledShaders && !compiledShaders->empty())
 	{
 		SCompiledShaderData data;
 		// read in game thread space

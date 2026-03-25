@@ -56,11 +56,13 @@ public:
 	//
 	SDXShaderManager() : threadPool{} {}
 	//
-	~SDXShaderManager() { threadPool = nullptr; }
+	~SDXShaderManager();
 	//
 	void Init(IThreadPool* threadPool);
 	//
 	void Update();
+	//
+	void Shutdown();
 	//
 	void LoadShader(const std::filesystem::path& path, TOnLoadedDelegate delegate);
 	//

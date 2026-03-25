@@ -32,6 +32,8 @@ public: // IVisual2DRenderer interface implementation
 	virtual void Setup(IRenderSystem& renderSystem, IVisualRenderer::SShaderData& shaderData) override;
 	//
 	virtual void Render(IRenderSystem& renderSystem) override;
+	//
+	virtual void Shutdown() override;
 
 
 protected:

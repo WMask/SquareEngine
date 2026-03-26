@@ -12,8 +12,38 @@
 namespace SConst
 {
 	static const std::uint32_t MaxShaders = 64u;
+	static const char* ShaderIncludesExt = ".hlsli";
 }
 
+
+class SShaderIncludeHandler : public ID3DInclude
+{
+public:
+	SShaderIncludeHandler(const std::unordered_map<std::string, SBytes>& inIncludeShaders) : includeShaders(inIncludeShaders) {}
+	//
+	STDMETHOD(Open)(D3D_INCLUDE_TYPE Type, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
+	{
+		for (auto& entry : includeShaders)
+		{
+			if (entry.first.ends_with(pFileName))
+			{
+				*ppData = entry.second.data();
+				*pBytes = entry.second.size();
+				return S_OK;
+			}
+		}
+		return E_FAIL;
+	}
+	//
+	STDMETHOD(Close)(LPCVOID pData) override
+	{
+		return S_OK;
+	}
+
+private:
+	//
+	const std::unordered_map<std::string, SBytes>& includeShaders;
+};
 
 SDXShaderManager::~SDXShaderManager()
 {
@@ -65,8 +95,42 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 
 	auto LoadShadersTask = [this, paths, delegate]()
 	{
+		std::unordered_map<std::string, SBytes> includes;
+		includes.reserve(paths.size());
+
+		// load include files
 		for (auto path : paths)
 		{
+			if (path.extension().string() == SConst::ShaderIncludesExt)
+			{
+				SBytes data;
+				try
+				{
+					data = ReadBinaryFile(path);
+				}
+				catch (std::exception&)
+				{
+					DebugMsg("[%s] SDXShaderManager::LoadShaders(): cannot load '%s' include file\n",
+						GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
+				}
+
+				if (!data.empty())
+				{
+					includes.emplace(path.string(), data);
+				}
+			}
+		}
+
+		SShaderIncludeHandler includeHandler(includes);
+
+		// load and compile shaders
+		for (auto path : paths)
+		{
+			if (path.extension().string() == SConst::ShaderIncludesExt)
+			{
+				continue;
+			}
+
 			std::string name = ToUtf8(path.c_str());
 			size_t pos = name.find("Shaders");
 			if (pos != std::string::npos)
@@ -94,7 +158,7 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 			else
 			{
 				// compile
-				if (SUCCEEDED(D3DCompile(code.c_str(), code.length(), NULL, NULL, NULL, "VShader", "vs_4_0", 0, 0, vsCode.GetAddressOf(), compileError.GetAddressOf())))
+				if (SUCCEEDED(D3DCompile(code.c_str(), code.length(), NULL, NULL, &includeHandler, "VShader", "vs_4_0", 0, 0, vsCode.GetAddressOf(), compileError.GetAddressOf())))
 				{
 					if (threadPool->IsDebugLogsEnabled())
 					{
@@ -122,7 +186,7 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 					compileError.Reset();
 				}
 
-				if (SUCCEEDED(D3DCompile(code.c_str(), code.length(), NULL, NULL, NULL, "PShader", "ps_4_0", 0, 0, psCode.GetAddressOf(), compileError.GetAddressOf())))
+				if (SUCCEEDED(D3DCompile(code.c_str(), code.length(), NULL, NULL, &includeHandler, "PShader", "ps_4_0", 0, 0, psCode.GetAddressOf(), compileError.GetAddressOf())))
 				{
 					if (threadPool->IsDebugLogsEnabled())
 					{

@@ -202,22 +202,25 @@ void SWindowsApplication::Run()
     MSG msg;
 	while (!quit)
 	{
-        if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         {
-            if (msg.message == WM_QUIT) break;
+            if (msg.message == WM_QUIT)
+            {
+                quit = TRUE;
+                break;
+            }
+
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        else
-        {
-            if (!bNoDelay)
-            {
-                std::this_thread::sleep_for(1ms);
-            }
 
-            // update and render
-            OnUpdate();
+        if (!bNoDelay)
+        {
+            std::this_thread::sleep_for(1ms);
         }
+
+        // update and render
+        OnUpdate();
 	}
 
     DebugMsg("SWindowsApplication::Run(): End game loop\n");

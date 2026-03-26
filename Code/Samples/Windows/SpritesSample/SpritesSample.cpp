@@ -51,8 +51,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				SVector3{ 750.0f, 300.0f, 0.0f },
 				SSize2F{ 256.0f, 256.0f }
 			);
-			sprite2.SetColors(SColor3(255, 255, 255), SColor3(0, 255, 0),
-				SColor3(255, 255, 255), SColor3(255, 255, 0));
+			sprite2.SetColors(SColor3(0, 255, 0), SColor3(255, 255, 255),
+				SColor3(255, 255, 0), SColor3(255, 255, 255));
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void

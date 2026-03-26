@@ -18,7 +18,7 @@
 /***************************************************************************
 * Render system interface
 */
-class IRenderSystem
+class IRenderSystem : public SUncopyable
 {
 public:
 	/**
@@ -60,6 +60,9 @@ public:
 	/**
 	* Update camera */
 	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) = 0;
+	/**
+	* Adds draw calls debug info */
+	virtual void AddDrawCalls(std::uint32_t drawCalls) noexcept = 0;
 	/**
 	* Return client render size in pixels */
 	virtual SSize2 GetRenderSize() const noexcept = 0;

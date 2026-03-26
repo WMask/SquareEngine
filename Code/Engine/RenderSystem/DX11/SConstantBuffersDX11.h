@@ -18,7 +18,6 @@ using Microsoft::WRL::ComPtr;
 struct DX11SPRITEVERTEX
 {
 	SVector3 pos;
-	std::uint32_t index;
 };
 
 /***************************************************************************
@@ -41,6 +40,8 @@ public:
 public:
 	//
 	ComPtr<ID3D11Buffer> spriteVertexBuffer;
+	//
+	ComPtr<ID3D11Buffer> spriteIndexBuffer;
 	//
 	ComPtr<ID3D11Buffer> projMatrixBuffer;
 	//

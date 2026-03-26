@@ -31,9 +31,9 @@ public:// IWorld interface implementation
 	//
 	virtual void UpdateWorldScale(SSize2 newScreenSize) override;
 	//
-	virtual const SWorldScale& GetWorldScale() const { return worldScale; }
+	virtual const SWorldScale& GetScale() const { return worldScale; }
 	//
-	virtual SWorldScale& GetWorldScale() { return worldScale; }
+	virtual SWorldScale& GetScale() { return worldScale; }
 	//
 	virtual const class SCamera& GetCamera() const { return camera; }
 	//

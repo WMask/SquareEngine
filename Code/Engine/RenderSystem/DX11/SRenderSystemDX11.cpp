@@ -31,7 +31,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	HWND hWnd = static_cast<HWND>(windowHandle);
 	HDC hDC = GetDC(hWnd);
-	maxRefreshRate = GetDeviceCaps(hDC, VREFRESH);
+	cachedMaxRefreshRate = GetDeviceCaps(hDC, VREFRESH);
 	int ScreenW = GetDeviceCaps(hDC, HORZRES);
 	int ScreenH = GetDeviceCaps(hDC, VERTRES);
 	ReleaseDC(hWnd, hDC);
@@ -46,53 +46,108 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	const bool bAllowFullscreen = GetFeatureFlag(features, SAppFeature::AllowFullscreen);
 
-	// find display mode
-	DXGI_MODE_DESC displayModeDesc{};
-	if (!SFindDisplayMode(width, height, maxRefreshRate, &displayModeDesc))
+	// create device
+	D3D_FEATURE_LEVEL createdLevel{};
+	D3D_FEATURE_LEVEL featureLevels[] = {
+		D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_11_0
+	};
+
+	ComPtr<ID3D11Device> newDevice;
+	ComPtr<ID3D11DeviceContext> newDeviceContext;
+	if (FAILED(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, featureLevels, ARRAYSIZE(featureLevels),
+		D3D11_SDK_VERSION, newDevice.GetAddressOf(), &createdLevel, newDeviceContext.GetAddressOf())))
 	{
-		throw std::exception("Cannot find display mode");
-	}
-
-	// create device and swap chain
-	DXGI_SWAP_CHAIN_DESC swapChainDesc{};
-	swapChainDesc.BufferCount = 1;
-	swapChainDesc.BufferDesc = displayModeDesc;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.OutputWindow = hWnd;
-	swapChainDesc.SampleDesc.Count = 1;
-	swapChainDesc.SampleDesc.Quality = 0;
-	swapChainDesc.SwapEffect = bVSync ? DXGI_SWAP_EFFECT_SEQUENTIAL : DXGI_SWAP_EFFECT_DISCARD;
-	swapChainDesc.Windowed = (mode == SAppMode::Windowed);
-	swapChainDesc.Flags = bAllowFullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0;
-
-	D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_1;
-
-	if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
-		D3D11_SDK_VERSION, &swapChainDesc, swapChain.GetAddressOf(), d3dDevice.GetAddressOf(),
-		NULL, deviceContext.GetAddressOf())))
-	{
-		featureLevel = D3D_FEATURE_LEVEL_11_0;
-
-		if (FAILED(D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
-			D3D11_SDK_VERSION, &swapChainDesc, swapChain.GetAddressOf(), d3dDevice.GetAddressOf(),
-			NULL, deviceContext.GetAddressOf())))
-		{
-			throw std::exception("Cannot create device");
-		}
-
-		DebugMsg("SRenderSystemDX11::Create(): Created D3D_11.0 device\n");
+		throw std::exception("Cannot create device");
 	}
 	else
 	{
-		DebugMsg("SRenderSystemDX11::Create(): Created D3D_11.1 device\n");
+		DebugMsg("SRenderSystemDX11::Create(): Created D3D_11.%d device\n",
+			(createdLevel == D3D_FEATURE_LEVEL_11_1) ? 1 : 0);
 	}
+
+	ComPtr<ID3D11Device5> d3dDevice5;
+	if (SUCCEEDED(newDevice.As(&d3dDevice5)))
+	{
+		d3dDevice = d3dDevice5;
+	}
+	else
+	{
+		d3dDevice = newDevice;
+	}
+
+	ComPtr<ID3D11DeviceContext4> deviceContext4;
+	if (SUCCEEDED(newDeviceContext.As(&deviceContext4)))
+	{
+		deviceContext = deviceContext4;
+	}
+	else
+	{
+		deviceContext = newDeviceContext;
+	}
+
+	// get DXGI device
+	ComPtr<IDXGIDevice> dxGIDevice;
+	d3dDevice.As(&dxGIDevice);
+
+	// get DXGI adapter
+	ComPtr<IDXGIAdapter> dxGIAdapter;
+	dxGIDevice->GetAdapter(&dxGIAdapter);
+
+	// get DXGI factory (DXGI 1.4+)
+	ComPtr<IDXGIFactory4> dxGIFactory;
+	dxGIAdapter->GetParent(IID_PPV_ARGS(&dxGIFactory));
+
+	// create swap chain
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+	swapChainDesc.Width = width;
+	swapChainDesc.Height = height;
+	swapChainDesc.Format = SConst::DefaultBackBufferFormat;
+	swapChainDesc.Stereo = FALSE;
+	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferCount = 2;
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+	swapChainDesc.Flags = bAllowFullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0u;
+
+	std::string swapEffectName;
+	D3D11_FEATURE_DATA_D3D11_OPTIONS3 options3{};
+	HRESULT hFeatureGetResult = d3dDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS3, &options3, sizeof(options3));
+	if (SUCCEEDED(hFeatureGetResult) && options3.VPAndRTArrayIndexFromAnyShaderFeedingRasterizer)
+	{
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapEffectName = "EFFECT_FLIP_DISCARD";
+	}
+	else
+	{
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+		swapEffectName = "EFFECT_FLIP_SEQUENTIAL";
+	}
+
+	ComPtr<IDXGISwapChain1> newSwapChain;
+	if (FAILED(dxGIFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd,
+		&swapChainDesc, NULL, NULL, newSwapChain.GetAddressOf())))
+	{
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+		swapEffectName = "EFFECT_DISCARD";
+
+		if (FAILED(dxGIFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd,
+			&swapChainDesc, NULL, NULL, newSwapChain.GetAddressOf())))
+		{
+			throw std::exception("Cannot create swap chain");
+		}
+	}
+
+	DebugMsg("SRenderSystemDX11::Create(): Created swapchain type: %s\n", swapEffectName.c_str());
+
+	newSwapChain.As(&swapChain);
 
 	CreateRenderTargetViewAndSwapChain(width, height);
 
 	// set up rasterizer
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
 	rasterizerDesc.AntialiasedLineEnable = true;
-	rasterizerDesc.CullMode = D3D11_CULL_NONE;
+	rasterizerDesc.CullMode = D3D11_CULL_BACK;
 	rasterizerDesc.DepthBias = 0;
 	rasterizerDesc.DepthBiasClamp = 0.0f;
 	rasterizerDesc.DepthClipEnable = true;
@@ -129,19 +184,19 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	// init managers
 	shaderManager.Init(context.pool);
 
-	cameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
-	cameraTarget = SVector3{ cameraPos.x, cameraPos.y, 0.0f };
-	constantBuffers.Init(d3dDevice.Get(), deviceContext.Get(), cameraPos, cameraTarget, width, height);
+	cachedCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
+	cachedCameraTarget = SVector3{ cachedCameraPos.x, cachedCameraPos.y, 0.0f };
+	constantBuffers.Init(d3dDevice.Get(), deviceContext.Get(), cachedCameraPos, cachedCameraTarget, width, height);
 	context.world->UpdateWorldScale(viewportSize);
-	renderSystemSize = SSize2{ width, height };
+	cachedRenderSystemSize = SSize2{ width, height };
 
 	const bool bShouldGoFullscreen = (ScreenW == width && ScreenH == height);
-	if (bShouldGoFullscreen || context.app->GetWindowMode() == SAppMode::Fullscreen)
+	if (bShouldGoFullscreen || mode == SAppMode::Fullscreen)
 	{
 		SetMode(SAppMode::Fullscreen);
 	}
 
-	bNeedDebugTrace = GetFeatureFlag(features, SAppFeature::RenderSystemDebugTrace);
+	bCachedNeedDebugTrace = GetFeatureFlag(features, SAppFeature::RenderSystemDebugTrace);
 	DebugMsg("SRenderSystemDX11::Create(): Render system created\n");
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Create()") }
@@ -158,8 +213,7 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 	// create back buffer and render target
 	ComPtr<ID3D11Texture2D> backBuffer;
-	if (FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-		reinterpret_cast<void**>(backBuffer.GetAddressOf()))))
+	if (FAILED(swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
 	{
 		throw std::exception("Cannot get back buffer");
 	}
@@ -168,8 +222,6 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 	{
 		throw std::exception("Cannot create render target");
 	}
-
-	backBuffer.Reset();
 
 	// set depth stencil view
 	D3D11_TEXTURE2D_DESC depthBufferDesc{};
@@ -182,19 +234,17 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 	depthBufferDesc.SampleDesc.Quality = 0;
 	depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	depthBufferDesc.CPUAccessFlags = 0;
-	depthBufferDesc.MiscFlags = 0;
 
-	if (FAILED(d3dDevice->CreateTexture2D(&depthBufferDesc, NULL, depthStencilBuffer.GetAddressOf())))
+	if (FAILED(d3dDevice->CreateTexture2D(&depthBufferDesc, NULL, depthStencil.GetAddressOf())))
 	{
 		throw std::exception("Cannot create depth stencil buffer");
 	}
 
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
-	depthStencilDesc.DepthEnable = true;
+	depthStencilDesc.DepthEnable = TRUE;
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	depthStencilDesc.StencilEnable = true;
+	depthStencilDesc.StencilEnable = TRUE;
 	depthStencilDesc.StencilReadMask = 0xFF;
 	depthStencilDesc.StencilWriteMask = 0xFF;
 	depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
@@ -214,11 +264,11 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 	deviceContext->OMSetDepthStencilState(depthStencilState.Get(), 1);
 
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc{};
-	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilViewDesc.Format = depthBufferDesc.Format;
 	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
 
-	if (FAILED(d3dDevice->CreateDepthStencilView(depthStencilBuffer.Get(),
+	if (FAILED(d3dDevice->CreateDepthStencilView(depthStencil.Get(),
 		&depthStencilViewDesc, depthStencilView.GetAddressOf())))
 	{
 		throw std::exception("Cannot create depth stencil view");
@@ -243,6 +293,7 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
+	texturedSpriteRendererDX11.Shutdown();
 	coloredSpriteRendererDX11.Shutdown();
 	constantBuffers.Shutdown();
 	shaderManager.Shutdown();
@@ -250,7 +301,7 @@ void SRenderSystemDX11::Shutdown()
 	blendState.Reset();
 	depthStencilView.Reset();
 	depthStencilState.Reset();
-	depthStencilBuffer.Reset();
+	depthStencil.Reset();
 	renderTargetView.Reset();
 	deviceContext.Reset();
 	d3dDevice.Reset();
@@ -298,12 +349,16 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 			throw std::exception("Cannot create vertex shader");
 		}
 
+		shader.vsCode = shaderData.vsCode.Get();
 		if (coloredSpriteRendererDX11.CheckShaderName(shaderData.name))
 		{
-			shader.vsCode = shaderData.vsCode.Get();
 			coloredSpriteRendererDX11.Setup(*this, shader);
-			shader.vsCode = nullptr;
 		}
+		else if (texturedSpriteRendererDX11.CheckShaderName(shaderData.name))
+		{
+			texturedSpriteRendererDX11.Setup(*this, shader);
+		}
+		shader.vsCode = nullptr;
 
 		shaders.emplace(shaderData.name, shader);
 	});
@@ -337,25 +392,35 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// setup device
 	auto& features = context.app->GetFeatures();
-	auto [clearColor, bHasClearColor] = GetClearColor(features);
+	auto [clearColor, bHasClearColor] = GetFeatureColor(features, SAppFeature::ClearScreenColor);
 	if (bHasClearColor)
 	{
 		deviceContext->ClearRenderTargetView(renderTargetView.Get(), SConvert::FromSColor3(clearColor));
 	}
 
 	deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	deviceContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
 
 	// render frame
+	drawCalls = 0;
 	coloredSpriteRendererDX11.Render(*this);
+	texturedSpriteRendererDX11.Render(*this);
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
-	swapChain->Present(bVSync ? DXGI_SWAP_EFFECT_SEQUENTIAL : DXGI_SWAP_EFFECT_DISCARD, 0);
-
-	if (bNeedDebugTrace)
+	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);
+	if (FAILED(hRenderResult))
 	{
-		DebugMsg("SRenderSystemDX11::Render(): WorldScale=%.2fx%.2f Frame=%d, Time=%.1fs FPS=[%d]\n",
-			world->GetWorldScale().GetScale().x, world->GetWorldScale().GetScale().y,
-			context.gameFrame, context.gameTime, context.fps);
+		DebugMsg("[%s] SRenderSystemDX11::Render(): render failed result: %d\n\n", static_cast<std::int32_t>(hRenderResult));
+
+		throw std::exception("Render failed");
+	}
+
+	if (bCachedNeedDebugTrace)
+	{
+		const auto worldScale = world->GetScale().GetScale();
+		DebugMsg("[%s] SRenderSystemDX11::Render(): WorldScale=%.2fx%.2f Frame=%d, Time=%.1fs DrawCalls=%d FPS=[%d]\n\n",
+			GetTimeStamp(std::chrono::system_clock::now()).c_str(), worldScale.x, worldScale.y,
+			context.gameFrame, context.gameTime, drawCalls, context.fps);
 	}
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Render()") }
@@ -365,12 +430,12 @@ void SRenderSystemDX11::Subscribe(const SAppContext& inContext)
 {
 	SAppContext context = inContext;
 
-	context.world->onTintChanged.connect<&SRenderSystemDX11::OnTintChanged>(this);
+	context.world->onGlobalTintChanged.connect<&SRenderSystemDX11::OnGlobalTintChanged>(this);
 	context.world->GetCamera().onViewChanged.connect<&SRenderSystemDX11::OnCameraViewChanged>(this);
-	context.world->GetWorldScale().onScaleChanged.connect<&SRenderSystemDX11::OnWorldScaleChanged>(this);
+	context.world->GetScale().onScaleChanged.connect<&SRenderSystemDX11::OnWorldScaleChanged>(this);
 }
 
-void SRenderSystemDX11::OnTintChanged(SColor3 globalTint)
+void SRenderSystemDX11::OnGlobalTintChanged(SColor3 globalTint)
 {
 	if (deviceContext && constantBuffers.settingsBuffer)
 	{
@@ -399,12 +464,12 @@ void SRenderSystemDX11::UpdateCamera(SVector3 newPos, SVector3 newTarget)
 {
 	if (deviceContext &&
 		constantBuffers.viewMatrixBuffer && (
-		cameraPos != newPos || cameraTarget != newTarget))
+		cachedCameraPos != newPos || cachedCameraTarget != newTarget))
 	{
 		SMatrix4 view = SMath::LookAtMatrix(newPos, newTarget);
 		deviceContext->UpdateSubresource(constantBuffers.viewMatrixBuffer.Get(), 0, NULL, view.m, 0, 0);
-		cameraPos = newPos;
-		cameraTarget = newTarget;
+		cachedCameraPos = newPos;
+		cachedCameraTarget = newTarget;
 	}
 }
 
@@ -423,7 +488,7 @@ void SRenderSystemDX11::RequestResize(std::uint32_t width, std::uint32_t height)
 	S_TRY
 
 	DXGI_MODE_DESC displayModeDesc{};
-	if (!SFindDisplayMode(width, height, maxRefreshRate, &displayModeDesc))
+	if (!SFindDisplayMode(width, height, cachedMaxRefreshRate, &displayModeDesc))
 	{
 		throw std::exception("Cannot find display mode");
 	}
@@ -438,21 +503,21 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 	S_TRY
 
 	SSize2 newViewportSize{ width, height };
-	bool needResize = (renderSystemSize != newViewportSize);
+	bool needResize = (cachedRenderSystemSize != newViewportSize);
 
 	if (swapChain && needResize)
 	{
 		// reset render system
 		deviceContext->OMSetRenderTargets(0, NULL, NULL);
 		depthStencilView.Reset();
-		depthStencilBuffer.Reset();
+		depthStencil.Reset();
 		renderTargetView.Reset();
 
 		// resize swap chain
 		auto& features = context.app->GetFeatures();
 		const bool bAllowFullscreen = GetFeatureFlag(features, SAppFeature::AllowFullscreen);
 		const UINT flags = bAllowFullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0u;
-		if (FAILED(swapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, flags)))
+		if (FAILED(swapChain->ResizeBuffers(2, width, height, SConst::DefaultBackBufferFormat, flags)))
 		{
 			throw std::exception("Cannot resize swap chain");
 		}
@@ -464,7 +529,7 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 		auto newCameraTarget = SVector3{ newCameraPos.x, newCameraPos.y, 0.0f };
 		context.world->GetCamera().Set(newCameraPos, newCameraTarget);
 		context.world->UpdateWorldScale(newViewportSize);
-		renderSystemSize = newViewportSize;
+		cachedRenderSystemSize = newViewportSize;
 
 		// update projection matrix
 		SMatrix4 proj = SMath::OrthoMatrix(newViewportSize, 1.0f, 0.0f);
@@ -479,17 +544,6 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 void SRenderSystemDX11::SetMode(SAppMode mode)
 {
 	if (swapChain) swapChain->SetFullscreenState((mode == SAppMode::Fullscreen), nullptr);
-}
-
-std::pair<SColor3, bool> SRenderSystemDX11::GetClearColor(const SAppFeaturesMap& features)
-{
-	auto colorIt = features.find(SAppFeature::ClearScreenColor);
-	if (colorIt->second.has_value())
-	{
-		return { std::any_cast<SColor3>(colorIt->second), true };
-	}
-
-	return { SConst::OneSColor3, false };
 }
 
 #endif // WIN32

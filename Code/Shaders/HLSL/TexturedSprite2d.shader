@@ -1,4 +1,4 @@
-// ColoredSprite2d.shader
+// TexturedSprite2d.shader
 
 #include "ShaderUtils.hlsli"
 
@@ -30,12 +30,14 @@ struct VS_INPUT
 	float  iRotation : INSTANCEROT;
 	float2 iScale    : INSTANCESCALE;
 	float4 iColor[4] : INSTANCECOLOR;
+	float2 iTexUV[4] : INSTANCEUV;
 };
 
 struct VS_OUT
 {
 	float4 vPosition : SV_POSITION;
 	float4 vColor    : COLOR0;
+	float2 vTexUV    : TEXCOORD;
 };
 
 VS_OUT VShader(VS_INPUT input)
@@ -50,6 +52,7 @@ VS_OUT VShader(VS_INPUT input)
 
 	output.vPosition = mul(vWorldPos, mWVP);
 	output.vColor = input.iColor[input.vVertexID];
+	output.vTexUV = input.iTexUV[input.vVertexID];
 
 	return output;
 }

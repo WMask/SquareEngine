@@ -1,8 +1,8 @@
 /***************************************************************************
-* SColoredSpriteRendererDX11.cpp
+* STexturedSpriteRendererDX11.cpp
 */
 
-#include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
+#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
@@ -14,22 +14,23 @@
 #include <algorithm>
 
 
-static const char* ColoredSpriteShaderName = "ColoredSprite2d.shader";
+static const char* TexturedSpriteShaderName = "TexturedSprite2d.shader";
 
-struct DX11COLOREDSPRITEINSTANCE
+struct DX11TEXTUREDSPRITEINSTANCE
 {
 	SVector3 pos;
 	float    rotation;
 	SVector2 scale;
 	SColor4F colors[4];
+	SVector2 uvs[4];
 };
 
-SColoredSpriteRendererDX11::~SColoredSpriteRendererDX11()
+STexturedSpriteRendererDX11::~STexturedSpriteRendererDX11()
 {
 	Shutdown();
 }
 
-void SColoredSpriteRendererDX11::Shutdown()
+void STexturedSpriteRendererDX11::Shutdown()
 {
 	if (instanceBuffer)
 	{
@@ -37,9 +38,9 @@ void SColoredSpriteRendererDX11::Shutdown()
 	}
 }
 
-bool SColoredSpriteRendererDX11::CheckShaderName(const std::string& inShaderName)
+bool STexturedSpriteRendererDX11::CheckShaderName(const std::string& inShaderName)
 {
-	if (inShaderName.ends_with(ColoredSpriteShaderName))
+	if (inShaderName.ends_with(TexturedSpriteShaderName))
 	{
 		shaderName = inShaderName;
 		return true;
@@ -48,7 +49,7 @@ bool SColoredSpriteRendererDX11::CheckShaderName(const std::string& inShaderName
 	return false;
 }
 
-void SColoredSpriteRendererDX11::Setup(IRenderSystem& renderSystem, IVisualRenderer::SShaderData& shaderData)
+void STexturedSpriteRendererDX11::Setup(IRenderSystem& renderSystem, IVisualRenderer::SShaderData& shaderData)
 {
 	S_TRY
 
@@ -64,14 +65,18 @@ void SColoredSpriteRendererDX11::Setup(IRenderSystem& renderSystem, IVisualRende
 	// create input layouts
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{ "POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
-		{ "INSTANCEPOS",   0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "INSTANCEROT",   0, DXGI_FORMAT_R32_FLOAT,          1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "INSTANCESCALE", 0, DXGI_FORMAT_R32G32_FLOAT,       1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "INSTANCECOLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "INSTANCECOLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 40, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "INSTANCECOLOR", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 56, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		{ "INSTANCECOLOR", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 72, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
+		{ "POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,   D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "INSTANCEPOS",   0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,   D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEROT",   0, DXGI_FORMAT_R32_FLOAT,          1, 12,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCESCALE", 0, DXGI_FORMAT_R32G32_FLOAT,       1, 16,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 40,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 56,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 72,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    0, DXGI_FORMAT_R32G32_FLOAT,       1, 88,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    1, DXGI_FORMAT_R32G32_FLOAT,       1, 96,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    2, DXGI_FORMAT_R32G32_FLOAT,       1, 104, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    3, DXGI_FORMAT_R32G32_FLOAT,       1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
 	};
 
 	if (FAILED(d3dDevice->CreateInputLayout(layout, std::size(layout),
@@ -85,7 +90,7 @@ void SColoredSpriteRendererDX11::Setup(IRenderSystem& renderSystem, IVisualRende
 	// create instance buffer
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.ByteWidth = sizeof(DX11COLOREDSPRITEINSTANCE) * MaxInstancedSpritesCount;
+	bufferDesc.ByteWidth = sizeof(DX11TEXTUREDSPRITEINSTANCE) * MaxInstancedSpritesCount;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, NULL, instanceBuffer.GetAddressOf())))
@@ -93,10 +98,10 @@ void SColoredSpriteRendererDX11::Setup(IRenderSystem& renderSystem, IVisualRende
 		throw std::exception("Cannot create vertex buffer");
 	}
 
-	S_CATCH{ S_THROW("SColoredSpriteRendererDX11::Setup()") }
+	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Setup()") }
 }
 
-void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
+void STexturedSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 {
 	S_TRY
 
@@ -111,26 +116,26 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 	{
 		if (renderSystemDX11.IsNeedDebugTrace())
 		{
-			DebugMsg("[%s] SColoredSpriteRendererDX11::Render(): wrong context\n",
+			DebugMsg("[%s] STexturedSpriteRendererDX11::Render(): wrong context\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str());
 		}
 		return;
 	}
 
-	std::uint32_t batchesRendered = 0;
 	std::uint32_t numSprites = 0;
+	std::uint32_t batchesRendered = 0;
 
-	auto spritesView = world->GetEntities().view<SColoredSpriteComponent>();
+	auto spritesView = world->GetEntities().view<STexturedSpriteComponent>();
 	if (!spritesView.empty())
 	{
 		numSprites = spritesView.size();
 		std::uint32_t spriteId = 0;
-		std::vector<DX11COLOREDSPRITEINSTANCE> batchData;
+		std::vector<DX11TEXTUREDSPRITEINSTANCE> batchData;
 		batchData.reserve(MaxInstancedSpritesCount);
 
 		// setup context
 		ID3D11Buffer* buffers[2] = { spriteVertexBuffer, instanceBuffer.Get() };
-		static UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11COLOREDSPRITEINSTANCE) };
+		static UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11TEXTUREDSPRITEINSTANCE) };
 		static UINT offsets[2] = { 0, 0 };
 		d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
 		d3dDeviceContext->IASetIndexBuffer(spriteIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
@@ -141,14 +146,15 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 
 		for (auto spriteEntity : spritesView)
 		{
-			const auto& spriteComponent = spritesView.get<SColoredSpriteComponent>(spriteEntity);
+			const auto& spriteComponent = spritesView.get<STexturedSpriteComponent>(spriteEntity);
 
 			// store instance data
-			DX11COLOREDSPRITEINSTANCE instance{};
+			DX11TEXTUREDSPRITEINSTANCE instance{};
 			instance.pos = spriteComponent.position;
 			instance.rotation = spriteComponent.rotation;
 			instance.scale = SConvert::ToVector2(spriteComponent.size);
 			memcpy(instance.colors, spriteComponent.colors, sizeof(SColor4F) * 4);
+			memcpy(instance.uvs, spriteComponent.uvs, sizeof(SVector2) * 4);
 			batchData.push_back(instance);
 
 			const bool bTimeToRenderBatch = (
@@ -166,7 +172,7 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 				{
 					throw std::exception("Cannot update vertex buffer");
 				}
-				memcpy(mappedResource.pData, batchData.data(), sizeof(DX11COLOREDSPRITEINSTANCE) * numInstances);
+				memcpy(mappedResource.pData, batchData.data(), sizeof(DX11TEXTUREDSPRITEINSTANCE) * numInstances);
 				d3dDeviceContext->Unmap(instanceBuffer.Get(), 0);
 
 				// render sprites
@@ -184,9 +190,9 @@ void SColoredSpriteRendererDX11::Render(IRenderSystem& renderSystem)
 	if (renderSystemDX11.IsNeedDebugTrace())
 	{
 		renderSystemDX11.AddDrawCalls(batchesRendered);
-		DebugMsg("[%s] SColoredSpriteRendererDX11::Render(): %d batches, %d sprite instances\n",
+		DebugMsg("[%s] STexturedSpriteRendererDX11::Render(): %d batches, %d sprite instances\n",
 			GetTimeStamp(std::chrono::system_clock::now()).c_str(), batchesRendered, numSprites);
 	}
 
-	S_CATCH{ S_THROW("SColoredSpriteRendererDX11::Render()") }
+	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Render()") }
 }

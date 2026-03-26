@@ -20,7 +20,7 @@
 /***************************************************************************
 * Application interface
 */
-class IApplication
+class IApplication : public SUncopyable
 {
 public:
 	/**

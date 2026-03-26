@@ -30,7 +30,7 @@ void SWorld::SetGlobalTint(const std::optional<SColor3>& tint)
 	if (globalTint != tint)
 	{
 		globalTint = tint;
-		onTintChanged(globalTint.value());
+		onGlobalTintChanged(globalTint.value());
 	}
 }
 

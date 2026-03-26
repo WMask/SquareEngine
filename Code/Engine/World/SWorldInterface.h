@@ -101,12 +101,12 @@ protected:
 
 /***************************************************************************
 * Game world interface */
-class IWorld
+class IWorld : public SUncopyable
 {
 public:
 	/**
 	* Subscribe to get changes of sprites global tint. */
-	entt::delegate<void(SColor3)> onTintChanged;
+	entt::delegate<void(SColor3)> onGlobalTintChanged;
 
 public:
 	/**
@@ -126,10 +126,10 @@ public:
 	virtual void UpdateWorldScale(SSize2 newScreenSize) = 0;
 	/**
 	* Get world scale */
-	virtual const SWorldScale& GetWorldScale() const = 0;
+	virtual const SWorldScale& GetScale() const = 0;
 	/**
 	* Get world scale */
-	virtual SWorldScale& GetWorldScale() = 0;
+	virtual SWorldScale& GetScale() = 0;
 	/**
 	* Get camera */
 	virtual const class SCamera& GetCamera() const = 0;

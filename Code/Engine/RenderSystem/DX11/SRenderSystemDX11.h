@@ -6,10 +6,13 @@
 
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "RenderSystem/Windows/SDXShaderManager.h"
+#include "RenderSystem/Windows/SWindowsUtils.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
+#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
 
-#include <d3d11.h>
+#include <d3d11_4.h>
+#include <dxgi1_4.h>
 #include <directxmath.h>
 #include <wrl.h>
 
@@ -37,7 +40,7 @@ public:
 	//
 	IWorld* GetWorld() const noexcept { return world; }
 	//
-	bool IsNeedDebugTrace() const noexcept { return bNeedDebugTrace; }
+	bool IsNeedDebugTrace() const noexcept { return bCachedNeedDebugTrace; }
 
 
 public:// IRenderSystem interface implementation
@@ -68,7 +71,9 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
 	//
-	virtual SSize2 GetRenderSize() const noexcept override { return renderSystemSize; }
+	virtual void AddDrawCalls(std::uint32_t inDrawCalls) noexcept { drawCalls += inDrawCalls; }
+	//
+	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
 	//
 	virtual SRSStats GetStats() const noexcept override { return SRSStats{}; }
 	//
@@ -79,9 +84,7 @@ protected:
 	//
 	void CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height);
 	//
-	std::pair<SColor3, bool> GetClearColor(const SAppFeaturesMap& features);
-	//
-	void OnTintChanged(SColor3 globalTint);
+	void OnGlobalTintChanged(SColor3 globalTint);
 	//
 	void OnWorldScaleChanged(SVector2 worldScale);
 	//
@@ -89,17 +92,18 @@ protected:
 
 
 protected:
-
-
-protected:
 	//
 	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
+	//
+	STexturedSpriteRendererDX11 texturedSpriteRendererDX11;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
 	SDXShaderManager shaderManager;
 	//
-	ComPtr<IDXGISwapChain> swapChain;
+	STextureManagerDX11 textureManager;
+	//
+	ComPtr<IDXGISwapChain4> swapChain;
 	//
 	ComPtr<ID3D11Device> d3dDevice;
 	//
@@ -107,7 +111,7 @@ protected:
 	//
 	ComPtr<ID3D11RenderTargetView> renderTargetView;
 	//
-	ComPtr<ID3D11Texture2D> depthStencilBuffer;
+	ComPtr<ID3D11Texture2D> depthStencil;
 	//
 	ComPtr<ID3D11DepthStencilState> depthStencilState;
 	//
@@ -124,14 +128,19 @@ protected:
 	//
 	IWorld* world{};
 	//
-	SSize2 renderSystemSize{};
+	std::uint32_t drawCalls = 0;
+
+
+protected:
 	//
-	SVector3 cameraPos{};
+	SSize2 cachedRenderSystemSize{};
 	//
-	SVector3 cameraTarget{};
+	SVector3 cachedCameraPos{};
 	//
-	bool bNeedDebugTrace = false;
+	SVector3 cachedCameraTarget{};
 	//
-	int maxRefreshRate = 0;
+	std::uint32_t cachedMaxRefreshRate = 0;
+	//
+	bool bCachedNeedDebugTrace = false;
 
 };

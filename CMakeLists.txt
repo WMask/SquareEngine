@@ -6,11 +6,20 @@ cmake_minimum_required(VERSION 3.21)
 
 project(SquareEngine)
 
+## Add configuration ##
+
 set(PROJECT_FILES_DIR "Projects/${CMAKE_SYSTEM_NAME}")
 set(ENGINE_SOURCE_DIR "Code/Engine")
 set(THIRD_PARTY_DIR "Code/ThirdParty")
 set(SAMPLES_SOURCE_DIR "Code/Samples/${CMAKE_SYSTEM_NAME}")
 set(CMAKE_SUPPRESS_REGENERATION true)
+
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(PNG_TESTS OFF CACHE BOOL "" FORCE)
+set(PNG_TOOLS OFF CACHE BOOL "" FORCE)
 
 ## Fetch third-party libs ##
 
@@ -40,6 +49,18 @@ FetchContent_Declare(
 	GIT_TAG        v3.12.0
 )
 
+FetchContent_Declare(
+	zlib
+	GIT_REPOSITORY https://github.com/madler/zlib.git
+	GIT_TAG        v1.3.2
+)
+
+FetchContent_Declare(
+	png
+	GIT_REPOSITORY https://github.com/pnggroup/libpng.git
+	GIT_TAG        v1.6.56
+)
+
 message("--\n-- Downloading GL Math 1.0.3 ...\n--")
 
 FetchContent_MakeAvailable(glm)
@@ -59,6 +80,20 @@ message("--\n-- Downloading nlohmann/json 3.12.0 ...\n--")
 
 FetchContent_MakeAvailable(json)
 FetchContent_GetProperties(json)
+
+message("--\n-- Downloading zlib 1.3.2 ...\n--")
+
+FetchContent_MakeAvailable(zlib)
+FetchContent_GetProperties(zlib)
+
+set(ZLIB_INCLUDE_DIR ${zlib_SOURCE_DIR})
+set(ZLIB_LIBRARY ${zlib_BINARY_DIR})
+
+message("--\n-- Downloading libpng 1.6.56 ...\n--")
+
+FetchContent_MakeAvailable(png)
+FetchContent_GetProperties(png)
+
 
 ## Add Engine libs ##
 
@@ -85,8 +120,21 @@ target_include_directories(SCore
 		${ENGINE_SOURCE_DIR}
 		${glm_SOURCE_DIR}
 		${eigen_SOURCE_DIR}
+		${zlib_SOURCE_DIR}
+		${png_SOURCE_DIR}
+		${png_BINARY_DIR}
 )
 target_compile_features(SCore PUBLIC cxx_std_20)
+target_link_directories(SCore PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
+target_link_libraries(SCore
+    # Debug configuration
+    $<$<CONFIG:Debug>:zsd libpng16_staticd>
+    # Release configuration
+    $<$<CONFIG:Release>:zs libpng16_static>
+)
 
 
 add_library(SWorld SHARED
@@ -103,6 +151,10 @@ target_include_directories(SWorld
 		${entt_SOURCE_DIR}/src
 )
 target_compile_features(SWorld PUBLIC cxx_std_20)
+target_link_directories(SWorld PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
 target_link_libraries(SWorld SCore)
 add_dependencies(SWorld SCore)
 
@@ -128,6 +180,10 @@ target_include_directories(SApplication
 		${json_SOURCE_DIR}/include
 )
 target_compile_features(SApplication PUBLIC cxx_std_20)
+target_link_directories(SApplication PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
 target_link_libraries(SApplication SCore SWorld)
 add_dependencies(SApplication SCore SWorld)
 
@@ -145,6 +201,8 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
@@ -156,6 +214,10 @@ target_include_directories(SRenderSystem
 		${entt_SOURCE_DIR}/src
 )
 target_compile_features(SRenderSystem PUBLIC cxx_std_20)
+target_link_directories(SRenderSystem PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
 target_link_libraries(SRenderSystem SCore SApplication SWorld)
 add_dependencies(SRenderSystem SCore SApplication SWorld)
 
@@ -169,6 +231,10 @@ target_include_directories(HelloWorld
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(HelloWorld PUBLIC cxx_std_20)
+target_link_directories(HelloWorld PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
 target_link_libraries(HelloWorld SCore)
 add_dependencies(HelloWorld SCore)
 
@@ -181,6 +247,10 @@ target_include_directories(HelloApplication
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(HelloApplication PUBLIC cxx_std_20)
+target_link_directories(HelloApplication PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
 target_link_libraries(HelloApplication SCore SApplication SRenderSystem)
 add_dependencies(HelloApplication SCore SApplication SRenderSystem)
 
@@ -193,6 +263,10 @@ target_include_directories(SpritesSample
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(SpritesSample PUBLIC cxx_std_20)
+target_link_directories(SpritesSample PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
 target_link_libraries(SpritesSample SCore SApplication SRenderSystem SWorld)
 add_dependencies(SpritesSample SCore SApplication SRenderSystem SWorld)
 
@@ -257,11 +331,13 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
 	)
 	source_group("Header Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp

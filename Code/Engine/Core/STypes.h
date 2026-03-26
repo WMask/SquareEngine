@@ -26,6 +26,23 @@ using SBytes = std::vector<std::uint8_t>;
 
 
 /***************************************************************************
+* Uncopyable type
+*/
+class SUncopyable
+{
+public:
+	//
+	SUncopyable() {}
+
+private:
+	//
+	SUncopyable(const SUncopyable&) = delete;
+	//
+	SUncopyable& operator=(const SUncopyable&) = delete;
+};
+
+
+/***************************************************************************
 * Range class. Clamps value to specified range.
 */
 template<typename T, const T& minValue, const T& maxValue>
@@ -48,6 +65,14 @@ private:
 	//
 	T value;
 };
+
+/**
+* Check bounds (compile time) */
+template <typename T>
+constexpr bool InRange(T value, T minValue, T maxValue)
+{
+	return (value >= minValue && value < maxValue);
+}
 
 
 /***************************************************************************

@@ -10,6 +10,9 @@
 /** Max sprites count in one batch */
 static const std::uint32_t MaxInstancedSpritesCount = 512u;
 
+/** Id in texture manager */
+using STexID = std::uint32_t;
+
 /** Render system stats */
 struct SRSStats
 {

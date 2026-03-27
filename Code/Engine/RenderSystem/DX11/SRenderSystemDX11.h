@@ -7,6 +7,7 @@
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "RenderSystem/Windows/SDXShaderManager.h"
 #include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
 #include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
@@ -30,7 +31,9 @@ public:
 	//
 	SRenderSystemDX11();
 	//
-	SShaderDataDX11* FindShader(const std::string& name);
+	const SShaderDataDX11* FindShader(const std::string& name) const;
+
+	ID3D11ShaderResourceView* FindTexture(STexID id) const;
 	//
 	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
 	//
@@ -54,6 +57,8 @@ public:// IRenderSystem interface implementation
 	virtual void Subscribe(const SAppContext& context) override;
 	//
 	virtual void LoadShaders(const std::filesystem::path& folderPath) override;
+	//
+	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
 	//
 	virtual void Update(float deltaSeconds, const SAppContext& context) override;
 	//

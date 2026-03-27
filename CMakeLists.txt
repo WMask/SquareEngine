@@ -94,6 +94,11 @@ message("--\n-- Downloading libpng 1.6.56 ...\n--")
 FetchContent_MakeAvailable(png)
 FetchContent_GetProperties(png)
 
+set(PNG_PNG_INCLUDE_DIR ${png_SOURCE_DIR})
+set(PNG_LIBRARY ${png_BINARY_DIR})
+
+find_package(PNG REQUIRED)
+
 
 ## Add Engine libs ##
 
@@ -129,11 +134,18 @@ target_link_directories(SCore PRIVATE
     ${zlib_BINARY_DIR}
     ${png_BINARY_DIR}
 )
-target_link_libraries(SCore
-    # Debug configuration
-    $<$<CONFIG:Debug>:zsd libpng16_staticd>
-    # Release configuration
-    $<$<CONFIG:Release>:zs libpng16_static>
+target_link_libraries(SCore PRIVATE
+    $<$<CONFIG:Debug>:zd libpng16d>
+    $<$<CONFIG:Release>:z libpng16>
+)
+add_dependencies(SCore zlib PNG::PNG)
+add_custom_command(TARGET SCore POST_BUILD
+	COMMAND cmd.exe /c if "$(Configuration)" == "Debug" "${CMAKE_COMMAND}" -E copy_if_different
+		"${zlib_BINARY_DIR}/Debug/zd.dll" "Debug"
+		"${png_BINARY_DIR}/Debug/libpng16d.dll" "Debug"
+	COMMAND cmd.exe /c if "$(Configuration)" == "Release" "${CMAKE_COMMAND}" -E copy_if_different
+		"${zlib_BINARY_DIR}/Release/z.dll" "Release"
+		"${png_BINARY_DIR}/Release/libpng16.dll" "Release"
 )
 
 
@@ -151,10 +163,6 @@ target_include_directories(SWorld
 		${entt_SOURCE_DIR}/src
 )
 target_compile_features(SWorld PUBLIC cxx_std_20)
-target_link_directories(SWorld PRIVATE
-    ${zlib_BINARY_DIR}
-    ${png_BINARY_DIR}
-)
 target_link_libraries(SWorld SCore)
 add_dependencies(SWorld SCore)
 
@@ -180,10 +188,6 @@ target_include_directories(SApplication
 		${json_SOURCE_DIR}/include
 )
 target_compile_features(SApplication PUBLIC cxx_std_20)
-target_link_directories(SApplication PRIVATE
-    ${zlib_BINARY_DIR}
-    ${png_BINARY_DIR}
-)
 target_link_libraries(SApplication SCore SWorld)
 add_dependencies(SApplication SCore SWorld)
 
@@ -205,6 +209,8 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 )
@@ -214,10 +220,6 @@ target_include_directories(SRenderSystem
 		${entt_SOURCE_DIR}/src
 )
 target_compile_features(SRenderSystem PUBLIC cxx_std_20)
-target_link_directories(SRenderSystem PRIVATE
-    ${zlib_BINARY_DIR}
-    ${png_BINARY_DIR}
-)
 target_link_libraries(SRenderSystem SCore SApplication SWorld)
 add_dependencies(SRenderSystem SCore SApplication SWorld)
 
@@ -231,10 +233,6 @@ target_include_directories(HelloWorld
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(HelloWorld PUBLIC cxx_std_20)
-target_link_directories(HelloWorld PRIVATE
-    ${zlib_BINARY_DIR}
-    ${png_BINARY_DIR}
-)
 target_link_libraries(HelloWorld SCore)
 add_dependencies(HelloWorld SCore)
 
@@ -247,10 +245,6 @@ target_include_directories(HelloApplication
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(HelloApplication PUBLIC cxx_std_20)
-target_link_directories(HelloApplication PRIVATE
-    ${zlib_BINARY_DIR}
-    ${png_BINARY_DIR}
-)
 target_link_libraries(HelloApplication SCore SApplication SRenderSystem)
 add_dependencies(HelloApplication SCore SApplication SRenderSystem)
 
@@ -263,10 +257,6 @@ target_include_directories(SpritesSample
 		${ENGINE_SOURCE_DIR}
 )
 target_compile_features(SpritesSample PUBLIC cxx_std_20)
-target_link_directories(SpritesSample PRIVATE
-    ${zlib_BINARY_DIR}
-    ${png_BINARY_DIR}
-)
 target_link_libraries(SpritesSample SCore SApplication SRenderSystem SWorld)
 add_dependencies(SpritesSample SCore SApplication SRenderSystem SWorld)
 
@@ -334,12 +324,14 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)
 endif()

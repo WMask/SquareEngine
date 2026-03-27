@@ -14,6 +14,8 @@
 
 
 SRenderSystemDX11::SRenderSystemDX11()
+	: coloredSpriteRendererDX11(*this)
+	, texturedSpriteRendererDX11(*this)
 {
 }
 
@@ -183,6 +185,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	// init managers
 	shaderManager.Init(context.pool);
+	textureManager.Init(context.pool);
 
 	cachedCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
 	cachedCameraTarget = SVector3{ cachedCameraPos.x, cachedCameraPos.y, 0.0f };
@@ -353,11 +356,11 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		shader.vsCode = shaderData.vsCode.Get();
 		if (coloredSpriteRendererDX11.CheckShaderName(shaderData.name))
 		{
-			coloredSpriteRendererDX11.Setup(*this, shader);
+			coloredSpriteRendererDX11.Setup(shader);
 		}
 		else if (texturedSpriteRendererDX11.CheckShaderName(shaderData.name))
 		{
-			texturedSpriteRendererDX11.Setup(*this, shader);
+			texturedSpriteRendererDX11.Setup(shader);
 		}
 		shader.vsCode = nullptr;
 
@@ -367,10 +370,28 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 	S_CATCH{ S_THROW("SRenderSystemDX11::LoadShaders()") }
 }
 
-SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name)
+STexID SRenderSystemDX11::LoadTexture(const std::filesystem::path& texturePath)
+{
+	return textureManager.LoadTexture(texturePath);
+}
+
+const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) const
 {
 	auto shaderIt = shaders.find(name);
 	return (shaderIt == shaders.end()) ? nullptr : &shaderIt->second;
+}
+
+
+ID3D11ShaderResourceView* SRenderSystemDX11::FindTexture(STexID id) const
+{
+	ID3D11Texture2D* texture = nullptr;
+	ID3D11ShaderResourceView* view = nullptr;
+	if (textureManager.FindTexture(id, &texture, &view))
+	{
+		return view;
+	}
+
+	return nullptr;
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -378,6 +399,7 @@ void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
 	S_TRY
 
 	shaderManager.Update();
+	textureManager.Update(d3dDevice.Get());
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Update()") }
 }
@@ -404,8 +426,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// render frame
 	drawCalls = 0;
-	coloredSpriteRendererDX11.Render(*this);
-	texturedSpriteRendererDX11.Render(*this);
+	coloredSpriteRendererDX11.Render();
+	texturedSpriteRendererDX11.Render();
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);

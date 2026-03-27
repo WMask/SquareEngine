@@ -16,6 +16,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	{
 		entt::entity movingEntity;
 		entt::entity rotatingEntity;
+		entt::entity texturedEntity;
 
 		auto onKeys = [](std::int32_t key, SKeyState keyState, SAppContext context)->void
 		{
@@ -53,6 +54,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			);
 			sprite2.SetColors(SColor3(0, 255, 0), SColor3(255, 255, 255),
 				SColor3(255, 255, 0), SColor3(255, 255, 255));
+
+			texturedEntity = registry.create();
+			auto& sprite3 = registry.emplace<SColoredSpriteComponent>(
+				texturedEntity, 0.0f,
+				SVector3{ 300.0f, 700.0f, 0.0f },
+				SSize2F{ 256.0f, 256.0f }
+			);
+			sprite3.SetWhiteColors();
+			auto& texUV3 = registry.emplace<SSpriteUVComponent>(texturedEntity);
+			texUV3.SetDefaultUV();
+			auto texId = context.render->LoadTexture("../../Code/Samples/Assets/T_Tree1.png");
+			auto& texture3 = registry.emplace<STexturedComponent>(texturedEntity, texId);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
@@ -91,7 +104,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		app->SetInitHandler(onInitHandler);
 		app->SetUpdateHandler(onUpdateHandler);
 		app->SetFeature(SAppFeature::VSync, true);
-		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
+		app->SetFeature(SAppFeature::HighFrequencyTimer, true);
 		app->SetFeature(SAppFeature::ThreadPoolDebugTrace, true);
 		app->SetFeature(SAppFeature::RenderSystemDebugTrace, true);
 		app->Init(hInstance);

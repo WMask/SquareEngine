@@ -21,6 +21,11 @@ struct SColoredSpriteComponent
 
 public:
 	//
+	inline void SetWhiteColors()
+	{
+		colors[0] = colors[1] = colors[2] = colors[3] = SConst::OneSColor4F;
+	}
+	//
 	inline void SetColors(const SColor4F& color)
 	{
 		colors[0] = colors[1] = colors[2] = colors[3] = color;
@@ -48,22 +53,29 @@ public:
 	}
 };
 
-/** Textured sprite component */
-struct STexturedSpriteComponent : public SColoredSpriteComponent
+
+/** Texture component */
+struct STexturedComponent
+{
+	// id in texture manager
+	STexID texId;
+};
+
+
+/** Sprite UV component */
+struct SSpriteUVComponent
 {
 	SVector2 uvs[4];
-	// id in texture manager
-	STexID textureId;
 
 
 public:
 	//
 	inline void SetDefaultUV()
 	{
-		uvs[0] = SVector2{ 1.0f,-1.0f};
-		uvs[1] = SVector2{-1.0f,-1.0f};
-		uvs[2] = SVector2{ 1.0f, 1.0f};
-		uvs[3] = SVector2{-1.0f, 1.0f};
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
 	}
 	//
 	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)

@@ -54,7 +54,7 @@ VS_OUT VShader(VS_INPUT input)
 	return output;
 }
 
-float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0, float4 vTint : COLOR1) : SV_TARGET
+float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0) : SV_TARGET
 {
 	return vColor * vGlobalTint;
 }

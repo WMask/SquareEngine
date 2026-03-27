@@ -28,6 +28,9 @@ public:
 	* Load shaders */
 	virtual void LoadShaders(const std::filesystem::path& folderPath) = 0;
 	/**
+	* Load texture */
+	virtual STexID LoadTexture(const std::filesystem::path& texturePath) = 0;
+	/**
 	* Create render system */
 	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) = 0;
 	/**
@@ -91,9 +94,9 @@ public:
 	//
 	virtual ~IVisualRenderer() {}
 	//
-	virtual void Setup(IRenderSystem& renderSystem, SShaderData& shaderData) = 0;
+	virtual void Setup(SShaderData& shaderData) = 0;
 	//
-	virtual void Render(IRenderSystem& renderSystem) = 0;
+	virtual void Render() = 0;
 	//
 	virtual void Shutdown() = 0;
 

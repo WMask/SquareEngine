@@ -57,7 +57,17 @@ VS_OUT VShader(VS_INPUT input)
 	return output;
 }
 
-float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0, float4 vTint : COLOR1) : SV_TARGET
+Texture2D tex2D;
+
+SamplerState linearSampler
 {
-	return vColor * vGlobalTint;
+	Filter = MIN_MAG_MIP_LINEAR;
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
+
+float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0, float2 vCoord : TEXCOORD) : SV_TARGET
+{
+	float4 texColor = tex2D.Sample(linearSampler, vCoord);
+	return texColor * vColor * vGlobalTint;
 }

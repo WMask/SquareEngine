@@ -296,6 +296,7 @@ void SRenderSystemDX11::Shutdown()
 	texturedSpriteRendererDX11.Shutdown();
 	coloredSpriteRendererDX11.Shutdown();
 	constantBuffers.Shutdown();
+	textureManager.Shutdown();
 	shaderManager.Shutdown();
 	rasterizerState.Reset();
 	blendState.Reset();

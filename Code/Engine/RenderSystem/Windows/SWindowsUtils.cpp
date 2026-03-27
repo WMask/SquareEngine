@@ -103,15 +103,36 @@ STextureManagerDX11::STextureManagerDX11()
 
 STextureManagerDX11::~STextureManagerDX11()
 {
+    Shutdown();
+}
+
+void STextureManagerDX11::Shutdown()
+{
     ClearCache(nullptr);
 }
 
+bool STextureManagerDX11::FindTexture(STexID id, ID3D11Texture2D** outTexture,
+    ID3D11ShaderResourceView** outView, SSize2* outTexSize)
+{
+    if (texturesCache.contains(id))
+    {
+        auto& texData = texturesCache[id];
+        *outTexture = texData.texture.Get();
+        *outView = texData.view.Get();
+        if (outTexSize) *outTexSize = texData.texSize;
+        return true;
+    }
+
+    return false;
+}
+
 std::pair<STexID, bool> STextureManagerDX11::LoadTexture(const std::filesystem::path& texPath,
-    ID3D11Device* device, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView, SSize2* outTexSize)
+    ID3D11Device* device, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView,
+    SSize2* outTexSize)
 {
     S_TRY
 
-    if (!device || !outTexture)
+    if (!device)
     {
         throw std::exception("Invalid function arguments");
     }
@@ -129,9 +150,9 @@ std::pair<STexID, bool> STextureManagerDX11::LoadTexture(const std::filesystem::
     if (texturesCache.contains(nameId))
     {
         auto& texData = texturesCache[nameId];
-        *outTexture = texData.texture.Get();
-        *outView = texData.view.Get();
-        *outTexSize = texData.texSize;
+        if (outTexture) *outTexture = texData.texture.Get();
+        if (outView) *outView = texData.view.Get();
+        if (outTexSize) *outTexSize = texData.texSize;
         return { nameId, true };
     }
 
@@ -155,30 +176,27 @@ std::pair<STexID, bool> STextureManagerDX11::LoadTexture(const std::filesystem::
 
     D3D11_SUBRESOURCE_DATA initData = { texPixelsPtr, static_cast<UINT>(width * 4), static_cast<UINT>(data.size()) };
 
-    if (SUCCEEDED(device->CreateTexture2D(&desc, &initData, outTexture)))
+    ComPtr<ID3D11Texture2D> newTexture;
+    if (SUCCEEDED(device->CreateTexture2D(&desc, &initData, newTexture.GetAddressOf())))
     {
         STextureDataDX11 newTexData;
-        newTexData.texture = *outTexture;
+        newTexData.texture = std::move(newTexture);
         newTexData.texSize = SSize2{ static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height) };
 
-        if (outTexSize) *outTexSize = newTexData.texSize;
+        D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+        SRVDesc.Format = desc.Format;
+        SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        SRVDesc.Texture2D.MipLevels = 1;
 
-        if (outView)
+        ComPtr<ID3D11ShaderResourceView> newView;
+        if (SUCCEEDED(device->CreateShaderResourceView(newTexData.texture.Get(), &SRVDesc, newView.GetAddressOf())))
         {
-            D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
-            SRVDesc.Format = desc.Format;
-            SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-            SRVDesc.Texture2D.MipLevels = 1;
-
-            if (SUCCEEDED(device->CreateShaderResourceView(*outTexture, &SRVDesc, outView)))
-            {
-                newTexData.view = *outView;
-            }
-            else
-            {
-                return { 0, false };
-            }
+            newTexData.view = std::move(newView);
         }
+
+        if (outTexture) *outTexture = newTexData.texture.Get();
+        if (outTexSize) *outTexSize = newTexData.texSize;
+        if (outView) *outView = newTexData.view.Get();
 
         texturesCache.emplace(nameId, newTexData);
         return { nameId, true };

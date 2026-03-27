@@ -39,10 +39,14 @@ public:
 	//
 	~STextureManagerDX11();
 	//
-	std::pair<STexID, bool> LoadTexture(const std::filesystem::path& texPath, ID3D11Device* device,
-		ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView, SSize2* outTexSize);
+	void Shutdown();
 	//
-	void RemoveTextures() { texturesCache.clear(); }
+	bool FindTexture(STexID id, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView,
+		SSize2* outTexSize = nullptr);
+	//
+	std::pair<STexID, bool> LoadTexture(const std::filesystem::path& texPath, ID3D11Device* device,
+		ID3D11Texture2D** outTexture = nullptr, ID3D11ShaderResourceView** outView = nullptr,
+		SSize2* outTexSize = nullptr);
 	/** If world is not null - only unused textures removed. If null - all textures removed. */
 	void ClearCache(IWorld* world);
 	//

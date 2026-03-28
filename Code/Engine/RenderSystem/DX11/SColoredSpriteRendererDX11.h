@@ -22,7 +22,7 @@ struct DX11COLOREDSPRITEINSTANCE
 };
 
 /***************************************************************************
-* Colored sprite renderer
+* Colored sprite render system
 */
 class SColoredSpriteRendererDX11 : public SUncopyable
 {
@@ -36,7 +36,7 @@ public:
 	//
 	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	void Render();
+	void Render(float deltaSeconds, float gameTime);
 	//
 	void Shutdown();
 

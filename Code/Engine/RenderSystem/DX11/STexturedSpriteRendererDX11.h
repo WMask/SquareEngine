@@ -23,7 +23,7 @@ struct DX11TEXTUREDSPRITEINSTANCE
 };
 
 /***************************************************************************
-* Textured sprite renderer
+* Textured sprite render system
 */
 class STexturedSpriteRendererDX11 : public SUncopyable
 {
@@ -33,18 +33,18 @@ public:
 	//
 	~STexturedSpriteRendererDX11();
 	//
+	void Shutdown();
+	//
 	bool CheckShaderName(const std::string& shaderName);
 	//
 	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	void Render();
-	//
-	void Shutdown();
+	virtual void Render(float deltaSeconds, float gameTime);
 
 
 protected:
 	//
-	void RenderBatch(struct ID3D11ShaderResourceView* view);
+	virtual void RenderBatch(struct ID3D11ShaderResourceView* view);
 
 
 protected:

@@ -207,6 +207,8 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
@@ -321,6 +323,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
 	)
 	source_group("Header Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
@@ -328,6 +331,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp

@@ -16,6 +16,7 @@
 SRenderSystemDX11::SRenderSystemDX11()
 	: coloredSpriteRendererDX11(*this)
 	, texturedSpriteRendererDX11(*this)
+	, frameAnimSpriteRendererDX11(*this)
 {
 }
 
@@ -299,6 +300,7 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
+	frameAnimSpriteRendererDX11.Shutdown();
 	texturedSpriteRendererDX11.Shutdown();
 	coloredSpriteRendererDX11.Shutdown();
 	constantBuffers.Shutdown();
@@ -364,6 +366,8 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		else if (texturedSpriteRendererDX11.CheckShaderName(shaderData.name))
 		{
 			texturedSpriteRendererDX11.Setup(shader);
+			frameAnimSpriteRendererDX11.Setup(shader);
+			frameAnimSpriteRendererDX11.CheckShaderName(shaderData.name);
 		}
 		shader.vsCode = nullptr;
 
@@ -390,16 +394,17 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 }
 
 
-ID3D11ShaderResourceView* SRenderSystemDX11::FindTexture(STexID id) const
+std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
 {
+	SSize2 size{};
 	ID3D11Texture2D* texture = nullptr;
 	ID3D11ShaderResourceView* view = nullptr;
-	if (textureManager.FindTexture(id, &texture, &view))
+	if (textureManager.FindTexture(id, &texture, &view, &size))
 	{
-		return view;
+		return { view, size };
 	}
 
-	return nullptr;
+	return { view, size };
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -434,8 +439,9 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// render frame
 	drawCalls = 0;
-	coloredSpriteRendererDX11.Render();
-	texturedSpriteRendererDX11.Render();
+	coloredSpriteRendererDX11.Render(context.deltaSeconds, context.gameTime);
+	texturedSpriteRendererDX11.Render(context.deltaSeconds, context.gameTime);
+	frameAnimSpriteRendererDX11.Render(context.deltaSeconds, context.gameTime);
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);

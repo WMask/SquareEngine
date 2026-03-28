@@ -17,6 +17,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		entt::entity movingEntity;
 		entt::entity rotatingEntity;
 		entt::entity texturedEntity;
+		entt::entity animatedEntity;
 
 		auto onKeys = [](std::int32_t key, SKeyState keyState, SAppContext context)->void
 		{
@@ -67,8 +68,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			sprite3.SetWhiteColors();
 			auto& texUV3 = registry.emplace<SSpriteUVComponent>(texturedEntity);
 			texUV3.SetDefaultUV();
-			auto texId = context.render->LoadTexture("../../Code/Samples/Assets/T_Tree1.png");
-			auto& texture3 = registry.emplace<STexturedComponent>(texturedEntity, texId);
+			auto texId1 = context.render->LoadTexture("../../Code/Samples/Assets/T_Tree1.png");
+			registry.emplace<STexturedComponent>(texturedEntity, texId1);
+
+			// animated entity
+			animatedEntity = registry.create();
+			auto& sprite4 = registry.emplace<SColoredSpriteComponent>(
+				animatedEntity, 0.0f,
+				SVector3{ 750.0f, 680.0f, 0.0f },
+				SSize2F{ 256.0f, 256.0f }
+			);
+			sprite4.SetWhiteColors();
+			auto texId2 = context.render->LoadTexture("../../Code/Samples/Assets/T_Boom1.png");
+			registry.emplace<STexturedComponent>(animatedEntity, texId2);
+			auto& anim4 = registry.emplace<SSpriteFrameAnimComponent>(animatedEntity);
+			anim4.SetAnim(0, 50, 25, SSize2{ 100, 100 }, 0.0f);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void

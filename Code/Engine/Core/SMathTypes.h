@@ -199,9 +199,13 @@ namespace SConst
 
 namespace SConvert
 {
-	inline SVector2 ToVector2(const SSize2F& v)
+	inline SVector2 ToVector2(const SSize2F& size)
 	{
-		return SVector2{ v.width, v.height };
+		return SVector2{ size.width, size.height };
+	}
+	inline SSize2F ToSize2F(const SSize2& size)
+	{
+		return SSize2F{ static_cast<float>(size.width), static_cast<float>(size.height) };
 	}
 }
 

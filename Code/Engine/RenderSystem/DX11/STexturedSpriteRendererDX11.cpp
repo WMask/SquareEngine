@@ -95,7 +95,7 @@ void STexturedSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
 	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Setup()") }
 }
 
-void STexturedSpriteRendererDX11::Render()
+void STexturedSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 
@@ -130,15 +130,21 @@ void STexturedSpriteRendererDX11::Render()
 
 	// cache texture
 	const auto& registry = world->GetEntities();
-	const auto& spritesView = registry.view<const STexturedComponent,
-		const SColoredSpriteComponent, const SSpriteUVComponent>();
+	const auto& spritesView = registry.view<
+		const STexturedComponent,
+		const SColoredSpriteComponent,
+		const SSpriteUVComponent>(entt::exclude<SSpriteFrameAnimComponent>);
 	auto firstEntity = spritesView.front();
 	if (firstEntity != entt::null)
 	{
-		auto [texturedComponent, spr, uv] = registry.get<const STexturedComponent,
-			const SColoredSpriteComponent, const SSpriteUVComponent>(firstEntity);
-		cachedView = renderSystemDX11.FindTexture(texturedComponent.texId);
+		// cache first entity
+		auto [texturedComponent, spr, uv] = registry.get<
+			const STexturedComponent,
+			const SColoredSpriteComponent,
+			const SSpriteUVComponent>(firstEntity);
+		auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.texId);
 		cachedId = texturedComponent.texId;
+		cachedView = view;
 	}
 
 	// render sprites
@@ -155,8 +161,9 @@ void STexturedSpriteRendererDX11::Render()
 				RenderBatch(cachedView);
 			}
 
+			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.texId);
 			cachedId = texturedComponent.texId;
-			cachedView = renderSystemDX11.FindTexture(cachedId);
+			cachedView = view;
 		}
 
 		// store instance data

@@ -91,7 +91,7 @@ void SColoredSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
 	S_CATCH{ S_THROW("SColoredSpriteRendererDX11::Setup()") }
 }
 
-void SColoredSpriteRendererDX11::Render()
+void SColoredSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 

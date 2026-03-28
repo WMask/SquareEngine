@@ -86,3 +86,52 @@ public:
 		uvs[3] = lb;
 	}
 };
+
+
+/** Sprite frame animation component */
+struct SSpriteFrameAnimComponent
+{
+	// start offset on frames sheet
+	std::int32_t frameOffset;
+	//
+	std::int32_t framesCount;
+	//
+	std::int32_t framesPerSecond;
+	// in pixels
+	SSize2F frameSize;
+	//
+	float startTime;
+
+
+public:
+	//
+	inline void SetAnim(std::int32_t inFrameOffset, std::int32_t inFramesCount,
+		std::int32_t inFramesPerSecond, SSize2 inFrameSize, float inStartTime)
+	{
+		frameOffset = inFrameOffset;
+		framesCount = inFramesCount;
+		framesPerSecond = inFramesPerSecond;
+		frameSize = SConvert::ToSize2F(inFrameSize);
+		startTime = inStartTime;
+	}
+	//
+	inline void GenerateFrameUV(float gameTime, SSize2 texSize, SSpriteUVComponent& outUV) const
+	{
+		const float frameTime = (1.0f / framesPerSecond);
+		std::uint32_t frameId = frameOffset + (static_cast<std::uint32_t>((gameTime - startTime) / frameTime) % framesCount);
+		if (frameId >= (frameOffset + framesCount)) frameId = frameOffset;
+
+		const std::uint32_t columns = texSize.width / frameSize.width;
+		const std::uint32_t x = frameId % columns;
+		const std::uint32_t y = frameId / columns;
+		const float xs = frameSize.width / static_cast<float>(texSize.width);
+		const float ys = frameSize.height / static_cast<float>(texSize.height);
+		const float xf = static_cast<float>(x * frameSize.width) / static_cast<float>(texSize.width);
+		const float yf = static_cast<float>(y * frameSize.height) / static_cast<float>(texSize.height);
+
+		outUV.uvs[0] = SVector2{ xf + xs, yf      }; // rt
+		outUV.uvs[1] = SVector2{ xf,      yf      }; // lt
+		outUV.uvs[2] = SVector2{ xf + xs, yf + ys }; // rb
+		outUV.uvs[3] = SVector2{ xf,      yf + ys }; // lb
+	}
+};

@@ -5,6 +5,8 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
+#include <functional>
 
 
 /** Max sprites count in one batch */
@@ -12,6 +14,8 @@ static const std::uint32_t MaxInstancedSpritesCount = 512u;
 
 /** Id in texture manager */
 using STexID = std::uint32_t;
+using TTexIDList = std::unordered_map<std::filesystem::path, STexID>;
+using OnPreLoadTexturesDelegate = std::function<void(TTexIDList&)>;
 
 /** Render system stats */
 struct SRSStats

@@ -25,10 +25,10 @@ class IApplication : public SUncopyable
 public:
 	/**
 	Init handler */
-	typedef std::function<void(SAppContext)> SInitHandler;
+	using SInitHandler = std::function<void(SAppContext)>;
 	/**
 	Update handler with delta seconds */
-	typedef std::function<void(float, SAppContext)> SUpdateHandler;
+	using SUpdateHandler = std::function<void(float, SAppContext)>;
 
 
 public:

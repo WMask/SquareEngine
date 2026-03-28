@@ -26,6 +26,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 struct SWin32Handles
 {
     SAppContext& appContext;
+    IRenderSystemEx* renderEx;
 };
 
 
@@ -166,7 +167,7 @@ void SWindowsApplication::Run()
 
     // set WndProc handles
     SWin32Handles handles{
-        context
+        context, renderSystem.get()
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
 
@@ -174,16 +175,6 @@ void SWindowsApplication::Run()
     SYSTEMTIME time;
     GetSystemTime(&time);
     srand(time.wMilliseconds + time.wSecond + time.wHour + time.wDay);
-
-    // call app init handler
-    if (initHandler)
-    {
-        S_TRY
-
-        initHandler(context);
-
-        S_CATCH{ S_THROW("SWindowsApplication::Run(onInitHandler)") }
-    }
 
     // set loop variables
     startFrameTime = SClock::now();
@@ -196,8 +187,19 @@ void SWindowsApplication::Run()
     const bool bHighFrequencyTimer = GetFeatureFlag(features, SAppFeature::HighFrequencyTimer);
 
     // run game loop
-    DebugMsg("SWindowsApplication::Run(): Start game loop\n");
+    DebugMsg("[%s] SWindowsApplication::Run(): Start game loop\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str());
     if (bHighFrequencyTimer) timeBeginPeriod(1);
+
+    // call app init handler
+    if (initHandler)
+    {
+        S_TRY
+
+            initHandler(context);
+
+        S_CATCH{ S_THROW("SWindowsApplication::Run(onInitHandler)") }
+    }
 
     MSG msg;
 	while (!quit)
@@ -223,7 +225,8 @@ void SWindowsApplication::Run()
         OnUpdate();
 	}
 
-    DebugMsg("SWindowsApplication::Run(): End game loop\n");
+    DebugMsg("[%s] SWindowsApplication::Run(): End game loop\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str());
     if (bHighFrequencyTimer) timeEndPeriod(1);
 
     // set NULL to skip crash in WndProc
@@ -347,10 +350,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     handles->appContext.app->SetWindowSize(width, height, false);
                 }
 
-                if (handles->appContext.render &&
+                if (handles->renderEx &&
                     width >= 640 && height >= 480)
                 {
-                    handles->appContext.render->Resize(width, height, handles->appContext);
+                    handles->renderEx->Resize(width, height, handles->appContext);
                 }
             }
             break;

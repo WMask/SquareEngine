@@ -25,7 +25,7 @@ using Microsoft::WRL::ComPtr;
 /***************************************************************************
 * DirectX 11 render system
 */
-class SRenderSystemDX11 : public IRenderSystem
+class SRenderSystemDX11 : public IRenderSystemEx
 {
 public:
 	//
@@ -50,6 +50,27 @@ public:// IRenderSystem interface implementation
 	//
 	virtual ~SRenderSystemDX11() override;
 	//
+	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
+	//
+	virtual void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate) override;
+	//
+	virtual void Clear(IWorld* world, bool removeRooted = false) override;
+	//
+	virtual void RequestResize(std::uint32_t width, std::uint32_t height) override;
+	//
+	virtual void SetMode(SAppMode mode) override;
+	//
+	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
+	//
+	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
+	//
+	virtual SRSStats GetStats() const noexcept override { return cachedStats; }
+	//
+	virtual SRSType GetType() const noexcept override { return SRSType::DX11; }
+
+
+public:// IRenderSystemEx interface implementation
+	//
 	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override;
 	//
 	virtual void Shutdown() override;
@@ -58,31 +79,15 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void LoadShaders(const std::filesystem::path& folderPath) override;
 	//
-	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
-	//
 	virtual void Update(float deltaSeconds, const SAppContext& context) override;
 	//
 	virtual void Render(const SAppContext& context) override;
 	//
 	virtual bool CanRender() const noexcept override;
 	//
-	virtual void Clear(IWorld* world, bool removeRooted = false) override;
-	//
-	virtual void RequestResize(std::uint32_t width, std::uint32_t height) override;
-	//
 	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) override;
 	//
-	virtual void SetMode(SAppMode mode) override;
-	//
-	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
-	//
 	virtual void AddDrawCalls(std::uint32_t inDrawCalls) noexcept { drawCalls += inDrawCalls; }
-	//
-	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
-	//
-	virtual SRSStats GetStats() const noexcept override { return SRSStats{}; }
-	//
-	virtual SRSType GetType() const noexcept override { return SRSType::DX11; }
 
 
 protected:
@@ -137,6 +142,8 @@ protected:
 
 
 protected:
+	//
+	SRSStats cachedStats{};
 	//
 	SSize2 cachedRenderSystemSize{};
 	//

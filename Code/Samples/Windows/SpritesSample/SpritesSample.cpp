@@ -37,6 +37,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			auto& registry = context.world->GetEntities();
 
+			// moving entity
 			movingEntity = registry.create();
 			auto& sprite1 = registry.emplace<SColoredSpriteComponent>(
 				movingEntity, 0.0f,
@@ -46,6 +47,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			sprite1.SetColors(SColor3(255, 0, 0), SColor3(0, 255, 0),
 				SColor3(0, 0, 255), SColor3(255, 255, 255));
 
+			// rotating entity
 			rotatingEntity = registry.create();
 			auto& sprite2 = registry.emplace<SColoredSpriteComponent>(
 				rotatingEntity, 0.0f,
@@ -55,6 +57,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			sprite2.SetColors(SColor3(0, 255, 0), SColor3(255, 255, 255),
 				SColor3(255, 255, 0), SColor3(255, 255, 255));
 
+			// textured entity
 			texturedEntity = registry.create();
 			auto& sprite3 = registry.emplace<SColoredSpriteComponent>(
 				texturedEntity, 0.0f,
@@ -73,6 +76,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto& registry = context.world->GetEntities();
 			auto view = registry.view<SColoredSpriteComponent>();
 
+			// move
 			auto& sprite1 = view.get<SColoredSpriteComponent>(movingEntity);
 			sprite1.position = SVector3 {
 				300.0f + sin(context.gameTime) * 32.0f,
@@ -80,9 +84,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				0.0f
 			};
 
+			// rotate
 			auto& sprite2 = view.get<SColoredSpriteComponent>(rotatingEntity);
 			sprite2.rotation += deltaSeconds;
 
+			// check input
 			if (context.input &&
 				context.input->GetActiveInputDevice())
 			{
@@ -104,7 +110,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		app->SetInitHandler(onInitHandler);
 		app->SetUpdateHandler(onUpdateHandler);
 		app->SetFeature(SAppFeature::VSync, true);
-		app->SetFeature(SAppFeature::HighFrequencyTimer, true);
+		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
 		app->SetFeature(SAppFeature::ThreadPoolDebugTrace, true);
 		app->SetFeature(SAppFeature::RenderSystemDebugTrace, true);
 		app->Init(hInstance);

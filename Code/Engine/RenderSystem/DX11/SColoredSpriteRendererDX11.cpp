@@ -42,7 +42,7 @@ bool SColoredSpriteRendererDX11::CheckShaderName(const std::string& inShaderName
 	return false;
 }
 
-void SColoredSpriteRendererDX11::Setup(IVisualRenderer::SShaderData& shaderData)
+void SColoredSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
 {
 	S_TRY
 

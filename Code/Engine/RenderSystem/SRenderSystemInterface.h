@@ -4,13 +4,13 @@
 
 #pragma once
 
+#include "Core/SUtils.h"
 #include "Core/SMathTypes.h"
 #include "RenderSystem/RenderSystemModule.h"
 #include "RenderSystem/SRenderSystemTypes.h"
 #include "Application/SApplicationTypes.h"
 #include "World/SWorldInterface.h"
 
-#include <filesystem>
 #include <string>
 #include <map>
 
@@ -21,15 +21,55 @@
 class IRenderSystem : public SUncopyable
 {
 public:
+	//
+	struct SShaderData {};
+
+public:
 	/**
 	* Virtual destructor */
 	virtual ~IRenderSystem() {}
 	/**
-	* Load shaders */
-	virtual void LoadShaders(const std::filesystem::path& folderPath) = 0;
-	/**
 	* Load texture */
 	virtual STexID LoadTexture(const std::filesystem::path& texturePath) = 0;
+	/**
+	* Load textures and call delegate */
+	virtual void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate) = 0;
+	/**
+	* Remove all graphics objects: textures, fonts etc. */
+	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;
+	/**
+	* Request resize */
+	virtual void RequestResize(std::uint32_t width, std::uint32_t height) = 0;
+	/**
+	* Update camera */
+	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) = 0;
+	/**
+	* Set window mode */
+	virtual void SetMode(SAppMode mode) = 0;
+	/**
+	* Return client render size in pixels */
+	virtual SSize2 GetRenderSize() const noexcept = 0;
+	/**
+	* Return current stats */
+	virtual SRSStats GetStats() const noexcept = 0;
+	/**
+	* Return render system type */
+	virtual SRSType GetType() const noexcept = 0;
+
+};
+
+using TRenderSystemPtr = std::unique_ptr<IRenderSystem>;
+
+
+/***************************************************************************
+* Extended render system interface
+*/
+class IRenderSystemEx : public IRenderSystem
+{
+public:
+	/**
+	* Load shaders */
+	virtual void LoadShaders(const std::filesystem::path& folderPath) = 0;
 	/**
 	* Create render system */
 	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) = 0;
@@ -58,46 +98,9 @@ public:
 	* Resize render system */
 	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) = 0;
 	/**
-	* Set window mode */
-	virtual void SetMode(SAppMode mode) = 0;
-	/**
-	* Update camera */
-	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) = 0;
-	/**
 	* Adds draw calls debug info */
 	virtual void AddDrawCalls(std::uint32_t drawCalls) noexcept = 0;
-	/**
-	* Return client render size in pixels */
-	virtual SSize2 GetRenderSize() const noexcept = 0;
-	/**
-	* Return current stats */
-	virtual SRSStats GetStats() const noexcept = 0;
-	/**
-	* Return render system type */
-	virtual SRSType GetType() const noexcept = 0;
 
 };
 
-using TRenderSystemPtr = std::unique_ptr<IRenderSystem>;
-
-
-/***************************************************************************
-* Visual renderer
-*/
-class IVisualRenderer
-{
-public:
-	//
-	struct SShaderData {};
-
-public:
-	//
-	virtual ~IVisualRenderer() {}
-	//
-	virtual void Setup(SShaderData& shaderData) = 0;
-	//
-	virtual void Render() = 0;
-	//
-	virtual void Shutdown() = 0;
-
-};
+using TRenderSystemExPtr = std::unique_ptr<IRenderSystemEx>;

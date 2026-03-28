@@ -25,24 +25,21 @@ struct DX11TEXTUREDSPRITEINSTANCE
 /***************************************************************************
 * Textured sprite renderer
 */
-class STexturedSpriteRendererDX11 : public IVisualRenderer
+class STexturedSpriteRendererDX11 : public SUncopyable
 {
 public:
 	//
 	STexturedSpriteRendererDX11(class SRenderSystemDX11& renderSystem);
 	//
+	~STexturedSpriteRendererDX11();
+	//
 	bool CheckShaderName(const std::string& shaderName);
-
-
-public: // IVisual2DRenderer interface implementation
 	//
-	virtual ~STexturedSpriteRendererDX11() override;
+	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	virtual void Setup(IVisualRenderer::SShaderData& shaderData) override;
+	void Render();
 	//
-	virtual void Render() override;
-	//
-	virtual void Shutdown() override;
+	void Shutdown();
 
 
 protected:

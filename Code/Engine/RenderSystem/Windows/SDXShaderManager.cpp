@@ -64,11 +64,11 @@ void SDXShaderManager::Init(IThreadPool* inThreadPool)
 
 void SDXShaderManager::Update()
 {
-	if (compiledShaders && !compiledShaders->empty())
+	if (compiledShaders)
 	{
 		SCompiledShaderData data;
 		// read in game thread space
-		while (compiledShaders->pop(data))
+		if (compiledShaders->pop(data))
 		{
 			if (!data.psCode.Get() || !data.vsCode.Get())
 			{

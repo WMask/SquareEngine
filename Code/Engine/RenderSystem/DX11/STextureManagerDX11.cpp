@@ -16,6 +16,7 @@
 namespace SConst
 {
     static const std::uint32_t MaxTextures = 64u;
+    static const std::uint32_t MaxTexturesPerFrame = 8u;
 }
 
 
@@ -58,22 +59,34 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 {
     S_TRY
 
-    if (d3dDevice && loadedTextures && !loadedTextures->empty())
+    if (d3dDevice && loadedTextures)
     {
         STextureData data{};
-        // read in game thread space
-        while (loadedTextures->pop(data))
+        for (std::uint32_t i = 0; i < SConst::MaxTexturesPerFrame; i++)
         {
-            STextureDataDX11 texture{};
-            if (!CreateTexture(d3dDevice, data, texture))
+            // read in game thread space
+            if (loadedTextures->pop(data))
             {
-                throw std::exception("Cannot create texture");
+                STextureDataDX11 texture{};
+                if (!CreateTexture(d3dDevice, data, texture))
+                {
+                    throw std::exception("Cannot create texture");
+                }
+
+                texturesCache.emplace(data.id, std::move(texture));
+
+                DebugMsg("[%s] STextureManagerDX11::Update(): texture id=%d created and added to cache\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), data.id);
+
+                if (!preLoadDelegatesCache.empty())
+                {
+                    CheckPreLoadFinished();
+                }
             }
-
-            texturesCache.emplace(data.id, std::move(texture));
-
-            DebugMsg("[%s] STextureManagerDX11::Update(): texture id=%d created and added to cache\n",
-                GetTimeStamp(std::chrono::system_clock::now()).c_str(), data.id);
+            else
+            {
+                break;
+            }
         }
     }
 
@@ -107,6 +120,41 @@ STexID STextureManagerDX11::LoadTexture(const std::filesystem::path& path)
     // send task to thread pool
     threadPool->AddTask(LoadTextureTask, "Load texture");
     return id;
+}
+
+void STextureManagerDX11::PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate)
+{
+    TTexIDList ids;
+    ids.reserve(paths.size());
+    for (auto& path : paths)
+    {
+        ids.emplace(path, GenerateTexID(path.string()));
+    }
+
+    preLoadDelegatesCache.emplace_back(ids, delegate);
+
+    auto PreLoadTexturesTask = [this, ids]()
+    {
+        for (auto& entry : ids)
+        {
+            STextureData texture{};
+            if (LoadTextureData(entry.first, &texture.data, &texture.texSize))
+            {
+                texture.id = entry.second;
+
+                // write in thread pool space
+                loadedTextures->push(texture);
+            }
+            else
+            {
+                DebugMsg("[%s] STextureManagerDX11::PreLoadTextures(): cannot load '%s'\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), entry.first.string().c_str());
+            }
+        }
+    };
+
+    // send task to thread pool
+    threadPool->AddTask(PreLoadTexturesTask, "PreLoad texture list");
 }
 
 bool STextureManagerDX11::LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize)
@@ -163,6 +211,40 @@ bool STextureManagerDX11::CreateTexture(ID3D11Device* d3dDevice, const STextureD
     }
 
     return false;
+}
+
+void STextureManagerDX11::CheckPreLoadFinished()
+{
+    std::forward_list<TPreLoadDelegatesCache::const_iterator> eraseList;
+
+    for (auto it = preLoadDelegatesCache.begin(); it != preLoadDelegatesCache.end(); ++it)
+    {
+        bool bAllLoaded = true;
+
+        for (auto idData : it->first)
+        {
+            if (!texturesCache.contains(idData.second))
+            {
+                bAllLoaded = false;
+                break;
+            }
+        }
+
+        if (bAllLoaded)
+        {
+            eraseList.push_front(it);
+
+            if (it->second)
+            {
+                it->second(it->first);
+            }
+        }
+    }
+
+    for (auto eraseIt : eraseList)
+    {
+        preLoadDelegatesCache.erase(eraseIt);
+    }
 }
 
 void STextureManagerDX11::ClearCache(IWorld* world)

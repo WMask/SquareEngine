@@ -64,7 +64,8 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	}
 	else
 	{
-		DebugMsg("SRenderSystemDX11::Create(): Created D3D_11.%d device\n",
+		DebugMsg("[%s] SRenderSystemDX11::Create(): Created D3D_11.%d device\n",
+			GetTimeStamp(std::chrono::system_clock::now()).c_str(),
 			(createdLevel == D3D_FEATURE_LEVEL_11_1) ? 1 : 0);
 	}
 
@@ -140,7 +141,8 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 		}
 	}
 
-	DebugMsg("SRenderSystemDX11::Create(): Created swapchain type: %s\n", swapEffectName.c_str());
+	DebugMsg("[%s] SRenderSystemDX11::Create(): Created swapchain type: %s\n",
+		GetTimeStamp(std::chrono::system_clock::now()).c_str(), swapEffectName.c_str());
 
 	newSwapChain.As(&swapChain);
 
@@ -200,7 +202,8 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	}
 
 	bCachedNeedDebugTrace = GetFeatureFlag(features, SAppFeature::RenderSystemDebugTrace);
-	DebugMsg("SRenderSystemDX11::Create(): Render system created\n");
+	DebugMsg("[%s] SRenderSystemDX11::Create(): Render system created\n",
+		GetTimeStamp(std::chrono::system_clock::now()).c_str());
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Create()") }
 }
@@ -375,6 +378,11 @@ STexID SRenderSystemDX11::LoadTexture(const std::filesystem::path& texturePath)
 	return textureManager.LoadTexture(texturePath);
 }
 
+void SRenderSystemDX11::PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate)
+{
+	textureManager.PreLoadTextures(paths, delegate);
+}
+
 const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) const
 {
 	auto shaderIt = shaders.find(name);
@@ -445,6 +453,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 			GetTimeStamp(std::chrono::system_clock::now()).c_str(), worldScale.x, worldScale.y,
 			context.gameFrame, context.gameTime, drawCalls, context.fps);
 	}
+
+	cachedStats.numTextures = textureManager.GetNumTextures();
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Render()") }
 }

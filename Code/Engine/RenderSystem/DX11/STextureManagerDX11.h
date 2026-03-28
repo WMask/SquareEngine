@@ -7,6 +7,7 @@
 #include "Core/SMathTypes.h"
 #include "Core/ThreadPool/SThreadPoolInterface.h"
 #include "Core/ThreadPool/Fifo4.h"
+#include "Core/SUtils.h"
 #include "World/SWorldInterface.h"
 #include "RenderSystem/SRenderSystemTypes.h"
 
@@ -25,7 +26,7 @@ using Microsoft::WRL::ComPtr;
 class STextureManagerDX11
 {
 public:
-	STextureManagerDX11() {}
+	STextureManagerDX11() : threadPool(nullptr) {}
 	//
 	~STextureManagerDX11();
 	//
@@ -36,6 +37,8 @@ public:
 	void Update(ID3D11Device* d3dDevice);
 	//
 	STexID LoadTexture(const std::filesystem::path& path);
+	//
+	void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate);
 	//
 	bool FindTexture(STexID id, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView, SSize2* outTexSize = nullptr) const;
 	/**
@@ -70,15 +73,21 @@ protected:
 	bool LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize);
 	//
 	bool CreateTexture(ID3D11Device* device, const STextureData& textureData, STextureDataDX11& outTexture);
+	//
+	void CheckPreLoadFinished();
 
 
 protected:
+	//
+	using TPreLoadDelegatesCache = std::list<std::pair<TTexIDList, OnPreLoadTexturesDelegate>>;
 	//
 	using TCircularFIFOTextureQueue = Fifo4<STextureData>;
 	//
 	std::unordered_map<STexID, STextureDataDX11> texturesCache;
 	//
 	std::shared_ptr<TCircularFIFOTextureQueue> loadedTextures;
+	//
+	TPreLoadDelegatesCache preLoadDelegatesCache;
 	//
 	std::hash<std::string> hasher;
 	//

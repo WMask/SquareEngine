@@ -48,7 +48,7 @@ public: // IApplication interface implementation
 	//
 	virtual void SetUpdateHandler(IApplication::SUpdateHandler handler) noexcept override { updateHandler = handler; }
 	//
-	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept override { renderSystem = std::move(render); }
+	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept override { renderSystem.reset(static_cast<IRenderSystemEx*>(render.release())); }
 	//
 	virtual void SetFeature(SAppFeature feature, const std::any& value) noexcept override { features[feature] = value; }
 	//
@@ -121,7 +121,7 @@ protected:
 	//
 	IApplication::SUpdateHandler updateHandler;
 	//
-	TRenderSystemPtr renderSystem;
+	TRenderSystemExPtr renderSystem;
 	//
 	TWorldPtr world;
 

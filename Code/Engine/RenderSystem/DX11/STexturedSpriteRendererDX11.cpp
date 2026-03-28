@@ -42,7 +42,7 @@ bool STexturedSpriteRendererDX11::CheckShaderName(const std::string& inShaderNam
 	return false;
 }
 
-void STexturedSpriteRendererDX11::Setup(IVisualRenderer::SShaderData& shaderData)
+void STexturedSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
 {
 	S_TRY
 
@@ -126,15 +126,38 @@ void STexturedSpriteRendererDX11::Render()
 	batchesRendered = 0;
 	batchData.reserve(MaxInstancedSpritesCount);
 	ID3D11ShaderResourceView* cachedView = nullptr;
+	STexID cachedId = 0;
 
-	const auto& spritesView = world->GetEntities().view<
-		const SColoredSpriteComponent, const STexturedComponent, const SSpriteUVComponent>();
-	spritesView.each([this, &cachedView](
-		const SColoredSpriteComponent& spriteComponent,
+	// cache texture
+	const auto& registry = world->GetEntities();
+	const auto& spritesView = registry.view<const STexturedComponent,
+		const SColoredSpriteComponent, const SSpriteUVComponent>();
+	auto firstEntity = spritesView.front();
+	if (firstEntity != entt::null)
+	{
+		auto [texturedComponent, spr, uv] = registry.get<const STexturedComponent,
+			const SColoredSpriteComponent, const SSpriteUVComponent>(firstEntity);
+		cachedView = renderSystemDX11.FindTexture(texturedComponent.texId);
+		cachedId = texturedComponent.texId;
+	}
+
+	// render sprites
+	spritesView.each([this, &cachedView, &cachedId](
 		const STexturedComponent& texturedComponent,
+		const SColoredSpriteComponent& spriteComponent,
 		const SSpriteUVComponent& uvComponent)
 	{
-		cachedView = renderSystemDX11.FindTexture(texturedComponent.texId);
+		if (cachedId != texturedComponent.texId)
+		{
+			if (!batchData.empty())
+			{
+				// render if texture changed
+				RenderBatch(cachedView);
+			}
+
+			cachedId = texturedComponent.texId;
+			cachedView = renderSystemDX11.FindTexture(cachedId);
+		}
 
 		// store instance data
 		DX11TEXTUREDSPRITEINSTANCE instance{};

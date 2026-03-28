@@ -67,3 +67,5 @@ struct S_CORE_API SFileRAII : public SUncopyable
 	operator FILE* () const { return file; }
 	FILE* file;
 };
+
+using SPathList = std::vector<std::filesystem::path>;

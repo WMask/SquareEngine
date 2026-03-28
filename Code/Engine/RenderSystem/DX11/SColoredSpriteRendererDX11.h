@@ -24,24 +24,21 @@ struct DX11COLOREDSPRITEINSTANCE
 /***************************************************************************
 * Colored sprite renderer
 */
-class SColoredSpriteRendererDX11 : public IVisualRenderer
+class SColoredSpriteRendererDX11 : public SUncopyable
 {
 public:
 	//
 	SColoredSpriteRendererDX11(class SRenderSystemDX11& renderSystem);
 	//
+	~SColoredSpriteRendererDX11();
+	//
 	bool CheckShaderName(const std::string& shaderName);
-
-
-public: // IVisual2DRenderer interface implementation
 	//
-	virtual ~SColoredSpriteRendererDX11() override;
+	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	virtual void Setup(IVisualRenderer::SShaderData& shaderData) override;
+	void Render();
 	//
-	virtual void Render() override;
-	//
-	virtual void Shutdown() override;
+	void Shutdown();
 
 
 protected:

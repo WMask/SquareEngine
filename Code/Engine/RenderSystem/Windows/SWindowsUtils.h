@@ -4,8 +4,18 @@
 
 #pragma once
 
+#include "Core/SMathTypes.h"
+
 #include <d3d11.h>
-#include <cstdint>
+#include <wrl.h>
+
+using Microsoft::WRL::ComPtr;
+
+
+namespace SConst
+{
+	static const DXGI_FORMAT DefaultBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+}
 
 
 /** Find display mode */

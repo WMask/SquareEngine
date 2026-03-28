@@ -9,6 +9,13 @@
 #include <any>
 
 
+/** Key state: Up, Down */
+enum class SKeyState
+{
+	Up,
+	Down
+};
+
 /** Window mode */
 enum class SAppMode { Windowed, Fullscreen };
 
@@ -64,16 +71,32 @@ inline std::int32_t GetFeatureValue(const SAppFeaturesMap& features, SAppFeature
 	return (featureIt != features.end() && featureIt->second.has_value()) ? std::any_cast<std::int32_t>(featureIt->second) : -1;
 }
 
+/** Get color feature value */
+inline std::pair<SColor3, bool> GetFeatureColor(const SAppFeaturesMap& features, SAppFeature type)
+{
+	auto colorIt = features.find(SAppFeature::ClearScreenColor);
+	if (colorIt->second.has_value())
+	{
+		return { std::any_cast<SColor3>(colorIt->second), true };
+	}
+
+	return { SConst::OneSColor3, false };
+}
+
 /** Application context */
 struct SAppContext
 {
 	class IApplication* app{};
+	//
+	class IInputSystem* input{};
 	//
 	class IThreadPool* pool{};
 	//
 	class IWorld* world{};
 	//
 	class IRenderSystem* render{};
+	//
+	float deltaSeconds{};
 	//
 	float gameTime{};
 	//

@@ -5,14 +5,14 @@
 #ifdef WIN32
 
 #include "RenderSystem/Windows/SWindowsUtils.h"
+#include "Core/SException.h"
+#include "Core/SUtils.h"
 
 #include <wrl.h>
 #include <vector>
 #include <cmath>
 
 #pragma comment(lib, "dxgi.lib")
-
-using namespace Microsoft::WRL;
 
 
 std::vector<ComPtr<IDXGIAdapter>> SEnumerateAdapters()
@@ -50,7 +50,7 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxR
         {
             UINT numModes = 0;
             std::vector<DXGI_MODE_DESC> displayModes;
-            DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            DXGI_FORMAT format = SConst::DefaultBackBufferFormat;
 
             output->GetDisplayModeList(format, 0, &numModes, NULL);
             displayModes.resize(numModes);
@@ -63,7 +63,7 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxR
                     mode.Height == height &&
                     RefreshRate >= 56 &&
                     RefreshRate <= maxRefreshRate &&
-                    mode.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
+                    mode.Format == SConst::DefaultBackBufferFormat)
                 {
                     float prevRate = static_cast<float>(outMode->RefreshRate.Numerator) / static_cast<float>(outMode->RefreshRate.Denominator);
                     float curRate = static_cast<float>(mode.RefreshRate.Numerator) / static_cast<float>(mode.RefreshRate.Denominator);
@@ -82,7 +82,7 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxR
 void SMakeWindowAssociation(HWND hWnd)
 {
     ComPtr<IDXGIFactory> factory;
-    if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(factory.GetAddressOf()))))
+    if (FAILED(CreateDXGIFactory(IID_PPV_ARGS(&factory))))
     {
         throw std::exception("SMakeWindowAssociation(): Cannot create factory");
     }

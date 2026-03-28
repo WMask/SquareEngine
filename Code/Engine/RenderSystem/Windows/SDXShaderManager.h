@@ -17,7 +17,7 @@ using Microsoft::WRL::ComPtr;
 
 
 /** DirectX 11 shader data */
-struct SShaderDataDX11 : public IVisualRenderer::SShaderData
+struct SShaderDataDX11 : public IRenderSystem::SShaderData
 {
 	ComPtr<ID3D11VertexShader> vs;
 	//
@@ -56,11 +56,13 @@ public:
 	//
 	SDXShaderManager() : threadPool{} {}
 	//
-	~SDXShaderManager() { threadPool = nullptr; }
+	~SDXShaderManager();
 	//
 	void Init(IThreadPool* threadPool);
 	//
 	void Update();
+	//
+	void Shutdown();
 	//
 	void LoadShader(const std::filesystem::path& path, TOnLoadedDelegate delegate);
 	//

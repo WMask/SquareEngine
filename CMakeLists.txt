@@ -6,11 +6,20 @@ cmake_minimum_required(VERSION 3.21)
 
 project(SquareEngine)
 
+## Add configuration ##
+
 set(PROJECT_FILES_DIR "Projects/${CMAKE_SYSTEM_NAME}")
 set(ENGINE_SOURCE_DIR "Code/Engine")
 set(THIRD_PARTY_DIR "Code/ThirdParty")
 set(SAMPLES_SOURCE_DIR "Code/Samples/${CMAKE_SYSTEM_NAME}")
 set(CMAKE_SUPPRESS_REGENERATION true)
+
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(PNG_TESTS OFF CACHE BOOL "" FORCE)
+set(PNG_TOOLS OFF CACHE BOOL "" FORCE)
 
 ## Fetch third-party libs ##
 
@@ -34,6 +43,24 @@ FetchContent_Declare(
 	GIT_TAG        v3.16.0
 )
 
+FetchContent_Declare(
+	json
+	GIT_REPOSITORY https://github.com/nlohmann/json.git
+	GIT_TAG        v3.12.0
+)
+
+FetchContent_Declare(
+	zlib
+	GIT_REPOSITORY https://github.com/madler/zlib.git
+	GIT_TAG        v1.3.2
+)
+
+FetchContent_Declare(
+	png
+	GIT_REPOSITORY https://github.com/pnggroup/libpng.git
+	GIT_TAG        v1.6.56
+)
+
 message("--\n-- Downloading GL Math 1.0.3 ...\n--")
 
 FetchContent_MakeAvailable(glm)
@@ -49,6 +76,30 @@ message("--\n-- Downloading Entt 3.16.0 ...\n--")
 FetchContent_MakeAvailable(entt)
 FetchContent_GetProperties(entt)
 
+message("--\n-- Downloading nlohmann/json 3.12.0 ...\n--")
+
+FetchContent_MakeAvailable(json)
+FetchContent_GetProperties(json)
+
+message("--\n-- Downloading zlib 1.3.2 ...\n--")
+
+FetchContent_MakeAvailable(zlib)
+FetchContent_GetProperties(zlib)
+
+set(ZLIB_INCLUDE_DIR ${zlib_SOURCE_DIR})
+set(ZLIB_LIBRARY ${zlib_BINARY_DIR})
+
+message("--\n-- Downloading libpng 1.6.56 ...\n--")
+
+FetchContent_MakeAvailable(png)
+FetchContent_GetProperties(png)
+
+set(PNG_PNG_INCLUDE_DIR ${png_SOURCE_DIR})
+set(PNG_LIBRARY ${png_BINARY_DIR})
+
+find_package(PNG REQUIRED)
+
+
 ## Add Engine libs ##
 
 add_library(SCore SHARED
@@ -56,7 +107,6 @@ add_library(SCore SHARED
     ${ENGINE_SOURCE_DIR}/Core/CoreModule.h
     ${ENGINE_SOURCE_DIR}/Core/SCoreModule.h
     ${ENGINE_SOURCE_DIR}/Core/SMacros.h
-    ${ENGINE_SOURCE_DIR}/Core/SCamera.h
     ${ENGINE_SOURCE_DIR}/Core/SDelegate.h
     ${ENGINE_SOURCE_DIR}/Core/SException.h
     ${ENGINE_SOURCE_DIR}/Core/SLogger.h
@@ -75,8 +125,28 @@ target_include_directories(SCore
 		${ENGINE_SOURCE_DIR}
 		${glm_SOURCE_DIR}
 		${eigen_SOURCE_DIR}
+		${zlib_SOURCE_DIR}
+		${png_SOURCE_DIR}
+		${png_BINARY_DIR}
 )
 target_compile_features(SCore PUBLIC cxx_std_20)
+target_link_directories(SCore PRIVATE
+    ${zlib_BINARY_DIR}
+    ${png_BINARY_DIR}
+)
+target_link_libraries(SCore PRIVATE
+    $<$<CONFIG:Debug>:zd libpng16d>
+    $<$<CONFIG:Release>:z libpng16>
+)
+add_dependencies(SCore zlib PNG::PNG)
+add_custom_command(TARGET SCore POST_BUILD
+	COMMAND cmd.exe /c if "$(Configuration)" == "Debug" "${CMAKE_COMMAND}" -E copy_if_different
+		"${zlib_BINARY_DIR}/Debug/zd.dll" "Debug"
+		"${png_BINARY_DIR}/Debug/libpng16d.dll" "Debug"
+	COMMAND cmd.exe /c if "$(Configuration)" == "Release" "${CMAKE_COMMAND}" -E copy_if_different
+		"${zlib_BINARY_DIR}/Release/z.dll" "Release"
+		"${png_BINARY_DIR}/Release/libpng16.dll" "Release"
+)
 
 
 add_library(SWorld SHARED
@@ -85,6 +155,7 @@ add_library(SWorld SHARED
     ${ENGINE_SOURCE_DIR}/World/SWorldInterface.h
     ${ENGINE_SOURCE_DIR}/World/SWorld.h
     ${ENGINE_SOURCE_DIR}/World/SWorld.cpp
+    ${ENGINE_SOURCE_DIR}/World/SCamera.h
 )
 target_include_directories(SWorld
 	PUBLIC
@@ -102,12 +173,19 @@ add_library(SApplication SHARED
     ${ENGINE_SOURCE_DIR}/Application/SApplicationModule.cpp
     ${ENGINE_SOURCE_DIR}/Application/SApplicationTypes.h
     ${ENGINE_SOURCE_DIR}/Application/SApplicationInterface.h
+    ${ENGINE_SOURCE_DIR}/Application/SLocalization.h
+    ${ENGINE_SOURCE_DIR}/Application/SLocalization.cpp
+    ${ENGINE_SOURCE_DIR}/Application/SInputSystem.h
+    ${ENGINE_SOURCE_DIR}/Application/SInputSystem.cpp
+    ${ENGINE_SOURCE_DIR}/Application/SAppConfig.h
+    ${ENGINE_SOURCE_DIR}/Application/SAppConfig.cpp
     ${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.cpp
     ${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.h
 )
 target_include_directories(SApplication
 	PUBLIC
 		${ENGINE_SOURCE_DIR}
+		${json_SOURCE_DIR}/include
 )
 target_compile_features(SApplication PUBLIC cxx_std_20)
 target_link_libraries(SApplication SCore SWorld)
@@ -127,8 +205,12 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 )
@@ -239,13 +321,17 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
 	)
 	source_group("Header Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)
 endif()

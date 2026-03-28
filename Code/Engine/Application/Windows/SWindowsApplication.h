@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <chrono>
 
+#include "Application/SInputSystem.h"
 #include "Application/SApplicationInterface.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "World/SWorldInterface.h"
@@ -47,7 +48,7 @@ public: // IApplication interface implementation
 	//
 	virtual void SetUpdateHandler(IApplication::SUpdateHandler handler) noexcept override { updateHandler = handler; }
 	//
-	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept override { renderSystem = std::move(render); }
+	virtual void SetRenderSystem(TRenderSystemPtr render) noexcept override { renderSystem.reset(static_cast<IRenderSystemEx*>(render.release())); }
 	//
 	virtual void SetFeature(SAppFeature feature, const std::any& value) noexcept override { features[feature] = value; }
 	//
@@ -55,11 +56,17 @@ public: // IApplication interface implementation
 	//
 	virtual const SAppFeaturesMap& GetFeatures() const noexcept override { return features; }
 	//
-	virtual void SetWindowMode(SAppMode mode) override;
+	virtual void SetWindowMode(SAppMode mode) noexcept override { appMode = mode; }
 	//
-	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height) override;
+	virtual SAppMode GetWindowMode() const noexcept override { return appMode; }
+	//
+	virtual void SetWindowSize(std::uint32_t width, std::uint32_t height, bool resizeRenderSystem = false) override;
 	//
 	virtual SSize2 GetWindowSize() const noexcept override { return windowSize; }
+	//
+	virtual void SetConfig(const SAppConfig& newConfig) noexcept override { cfg = newConfig; }
+	//
+	virtual const SAppConfig& GetConfig() const noexcept override { return cfg; }
 	//
 	virtual void Run() override;
 	//
@@ -89,28 +96,32 @@ protected:
 	//
 	SAppFeaturesMap features;
 	//
+	SAppConfig cfg;
+	//
 	STimePoint startFrameTime;
 	//
 	STimePoint prevFrameTime;
 	//
 	std::uint32_t currentGameFrame;
 	//
-	std::int32_t accumulatedFrames;
+	std::uint32_t accumulatedFrames;
 	//
-	float accumulatedTime;
+	float accumulatedTime{};
 
 
 protected:
 	//
-	TThreadPoolPtr threadPool;
-	//
 	SAppContext context;
+	//
+	TInputSystemPtr inputSystem;
+	//
+	TThreadPoolPtr threadPool;
 	//
 	IApplication::SInitHandler initHandler;
 	//
 	IApplication::SUpdateHandler updateHandler;
 	//
-	TRenderSystemPtr renderSystem;
+	TRenderSystemExPtr renderSystem;
 	//
 	TWorldPtr world;
 

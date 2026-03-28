@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Core/SMath.h"
+#include "entt/entt.hpp"
 
 
 /***************************************************************************
@@ -12,6 +13,10 @@
 */
 class SCamera
 {
+public:
+	//
+	entt::delegate<void(const SCamera&)> onViewChanged;
+
 public:
 	/**
 	* Constructor */
@@ -22,6 +27,8 @@ public:
 	{
 		position = newPos;
 		target = newTarget;
+
+		if (onViewChanged) onViewChanged(*this);
 	}
 	/**
 	* Move camera */
@@ -29,6 +36,8 @@ public:
 	{
 		position = position + newPosOffset;
 		target = target + newTargetOffset;
+
+		if (onViewChanged) onViewChanged(*this);
 	}
 	/**
 	* Get position */

@@ -9,25 +9,16 @@
 #include "Core/SMath.h"
 #include <directxmath.h>
 
-inline SMatrix4 ToMatrix4(const DirectX::XMMATRIX& m)
+
+SConstantBuffersDX11::~SConstantBuffersDX11()
 {
-	SMatrix4 result;
-	DirectX::XMFLOAT4X4 m4;
-	XMStoreFloat4x4(&m4, m);
-	std::memcpy(&result, &m4._11, sizeof(float) * 16);
-	return result;
+	Shutdown();
 }
 
 void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
 	SVector3 cameraPos, SVector3 cameraTarget, std::uint32_t width, std::uint32_t height)
 {
 	S_TRY
-
-	struct VS_MATRIX_BUFFER
-	{
-		SMatrix4 mat;
-	};
-	VS_MATRIX_BUFFER matData;
 
 	struct VS_COLORS_BUFFER
 	{
@@ -47,16 +38,17 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	};
 	VS_FRAME_ANIM2D_BUFFER anim2dData;
 
+	SSingleMatrixBuffer matData{};
+	SSettingsBuffer settingsData{};
+	SSpriteFlagsBuffer flagsData{};
+
 	D3D11_BUFFER_DESC cbDesc{};
-	cbDesc.ByteWidth = sizeof(VS_MATRIX_BUFFER);
+	cbDesc.ByteWidth = sizeof(SSingleMatrixBuffer);
 	cbDesc.Usage = D3D11_USAGE_DEFAULT;
 	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
 	D3D11_SUBRESOURCE_DATA subResData{};
 	subResData.pSysMem = &matData;
-
-	SSettingsBuffer settingsData{};
-	SSpriteFlagsBuffer flagsData{};
 
 	// create constant buffers
 	matData.mat = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
@@ -128,34 +120,43 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	d3dDeviceContext->VSSetConstantBuffers(4, 1, customUvBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(5, 1, frameAnimBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(6, 1, settingsBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(6, 1, settingsBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(7, 1, flagsBuffer.GetAddressOf());
 
 	// create vertex buffer
-	D3D11_BUFFER_DESC bufferDesc{};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(DX11SPRITEVERTEX) * 6;
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
 	DX11SPRITEVERTEX data[] = {
-		DX11SPRITEVERTEX{ SVector3{ 0.5f,-0.5f, 0.0f }, 1 },
-		DX11SPRITEVERTEX{ SVector3{-0.5f,-0.5f, 0.0f }, 0 },
-		DX11SPRITEVERTEX{ SVector3{ 0.5f, 0.5f, 0.0f }, 2 },
-		DX11SPRITEVERTEX{ SVector3{-0.5f,-0.5f, 0.0f }, 0 },
-		DX11SPRITEVERTEX{ SVector3{-0.5f, 0.5f, 0.0f }, 3 },
-		DX11SPRITEVERTEX{ SVector3{ 0.5f, 0.5f, 0.0f }, 2 }
+		DX11SPRITEVERTEX{ SVector3{ 0.5f,-0.5f, 0.0f } }, // rt
+		DX11SPRITEVERTEX{ SVector3{-0.5f,-0.5f, 0.0f } }, // lt
+		DX11SPRITEVERTEX{ SVector3{ 0.5f, 0.5f, 0.0f } }, // rb
+		DX11SPRITEVERTEX{ SVector3{-0.5f, 0.5f, 0.0f } }  // lb
 	};
-	D3D11_SUBRESOURCE_DATA vertexData{};
-	vertexData.pSysMem = data;
+	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferDesc.ByteWidth = sizeof(data);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA bufferData{};
+	bufferData.pSysMem = data;
 
-	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &vertexData, spriteVertexBuffer.GetAddressOf())))
+	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, spriteVertexBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create vertex buffer");
+	}
+
+	// create index buffer
+	std::uint16_t indexData[] = {0, 1, 2, 3};
+	bufferDesc.ByteWidth = sizeof(indexData);
+	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferData.pSysMem = indexData;
+
+	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, spriteIndexBuffer.GetAddressOf())))
+	{
+		throw std::exception("Cannot create index buffer");
 	}
 
 	S_CATCH{ S_THROW("SConstantBuffersDX11::Init()") }
 }
 
-void SConstantBuffersDX11::Destroy()
+void SConstantBuffersDX11::Shutdown()
 {
 	flagsBuffer.Reset();
 	settingsBuffer.Reset();
@@ -165,5 +166,6 @@ void SConstantBuffersDX11::Destroy()
 	transMatrixBuffer.Reset();
 	projMatrixBuffer.Reset();
 	viewMatrixBuffer.Reset();
+	spriteIndexBuffer.Reset();
 	spriteVertexBuffer.Reset();
 }

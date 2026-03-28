@@ -1,4 +1,4 @@
-// ColoredSprite2d.shader
+// TexturedSprite2d.shader
 
 #include "ShaderUtils.hlsli"
 
@@ -30,12 +30,14 @@ struct VS_INPUT
 	float  iRotation : INSTANCEROT;
 	float2 iScale    : INSTANCESCALE;
 	float4 iColor[4] : INSTANCECOLOR;
+	float2 iTexUV[4] : INSTANCEUV;
 };
 
 struct VS_OUT
 {
 	float4 vPosition : SV_POSITION;
 	float4 vColor    : COLOR0;
+	float2 vTexUV    : TEXCOORD;
 };
 
 VS_OUT VShader(VS_INPUT input)
@@ -50,11 +52,22 @@ VS_OUT VShader(VS_INPUT input)
 
 	output.vPosition = mul(vWorldPos, mWVP);
 	output.vColor = input.iColor[input.vVertexID];
+	output.vTexUV = input.iTexUV[input.vVertexID];
 
 	return output;
 }
 
-float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0) : SV_TARGET
+Texture2D tex2D;
+
+SamplerState linearSampler
 {
-	return vColor * vGlobalTint;
+	Filter = MIN_MAG_MIP_LINEAR;
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
+
+float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0, float2 vCoord : TEXCOORD) : SV_TARGET
+{
+	float4 texColor = tex2D.Sample(linearSampler, vCoord);
+	return texColor * vColor * vGlobalTint;
 }

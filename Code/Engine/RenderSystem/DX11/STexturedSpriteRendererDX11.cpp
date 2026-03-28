@@ -1,0 +1,219 @@
+/***************************************************************************
+* STexturedSpriteRendererDX11.cpp
+*/
+
+#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
+#include "RenderSystem/DX11/SRenderSystemDX11.h"
+#include "RenderSystem/SECSComponents.h"
+#include "Core/SException.h"
+
+
+static const char* TexturedSpriteShaderName = "TexturedSprite2d.shader";
+
+STexturedSpriteRendererDX11::STexturedSpriteRendererDX11(SRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
+{
+}
+
+STexturedSpriteRendererDX11::~STexturedSpriteRendererDX11()
+{
+	Shutdown();
+}
+
+void STexturedSpriteRendererDX11::Shutdown()
+{
+	if (instanceBuffer)
+	{
+		instanceBuffer.Reset();
+	}
+
+	d3dDeviceContext = nullptr;
+	spriteVertexBuffer = nullptr;
+	spriteIndexBuffer = nullptr;
+}
+
+bool STexturedSpriteRendererDX11::CheckShaderName(const std::string& inShaderName)
+{
+	if (inShaderName.ends_with(TexturedSpriteShaderName))
+	{
+		shaderName = inShaderName;
+		return true;
+	}
+
+	return false;
+}
+
+void STexturedSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
+{
+	S_TRY
+
+	d3dDeviceContext = renderSystemDX11.GetD3D11DeviceContext();
+	spriteVertexBuffer = renderSystemDX11.GetConstantBuffers().spriteVertexBuffer.Get();
+	spriteIndexBuffer = renderSystemDX11.GetConstantBuffers().spriteIndexBuffer.Get();
+	auto& shaderDataDX11 = static_cast<SShaderDataDX11&>(shaderData);
+	auto d3dDevice = renderSystemDX11.GetD3D11Device();
+	if (!d3dDevice)
+	{
+		throw std::exception("Invalid render device");
+	}
+
+	// create input layouts
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,   D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "INSTANCEPOS",   0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,   D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEROT",   0, DXGI_FORMAT_R32_FLOAT,          1, 12,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCESCALE", 0, DXGI_FORMAT_R32G32_FLOAT,       1, 16,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 24,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 40,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 56,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCECOLOR", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 72,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    0, DXGI_FORMAT_R32G32_FLOAT,       1, 88,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    1, DXGI_FORMAT_R32G32_FLOAT,       1, 96,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    2, DXGI_FORMAT_R32G32_FLOAT,       1, 104, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCEUV",    3, DXGI_FORMAT_R32G32_FLOAT,       1, 112, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
+	};
+
+	if (FAILED(d3dDevice->CreateInputLayout(layout, std::size(layout),
+		shaderDataDX11.vsCode->GetBufferPointer(),
+		shaderDataDX11.vsCode->GetBufferSize(),
+		shaderDataDX11.layout.GetAddressOf())))
+	{
+		throw std::exception("Cannot create input layout");
+	}
+
+	// create instance buffer
+	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	bufferDesc.ByteWidth = sizeof(DX11TEXTUREDSPRITEINSTANCE) * MaxInstancedSpritesCount;
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, NULL, instanceBuffer.GetAddressOf())))
+	{
+		throw std::exception("Cannot create vertex buffer");
+	}
+
+	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Setup()") }
+}
+
+void STexturedSpriteRendererDX11::Render()
+{
+	S_TRY
+
+	auto shader = renderSystemDX11.FindShader(shaderName);
+	auto world = renderSystemDX11.GetWorld();
+	if (!shader || !world || !d3dDeviceContext || !spriteVertexBuffer || !spriteIndexBuffer || !instanceBuffer)
+	{
+		if (renderSystemDX11.IsNeedDebugTrace())
+		{
+			DebugMsg("[%s] STexturedSpriteRendererDX11::Render(): wrong context\n",
+				GetTimeStamp(std::chrono::system_clock::now()).c_str());
+		}
+		return;
+	}
+
+	// setup context
+	ID3D11Buffer* buffers[2] = { spriteVertexBuffer, instanceBuffer.Get() };
+	static UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11TEXTUREDSPRITEINSTANCE) };
+	static UINT offsets[2] = { 0, 0 };
+	d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
+	d3dDeviceContext->IASetIndexBuffer(spriteIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	d3dDeviceContext->IASetInputLayout(shader->layout.Get());
+	d3dDeviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
+	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
+
+	numSprites = 0;
+	batchesRendered = 0;
+	batchData.reserve(MaxInstancedSpritesCount);
+	ID3D11ShaderResourceView* cachedView = nullptr;
+	STexID cachedId = 0;
+
+	// cache texture
+	const auto& registry = world->GetEntities();
+	const auto& spritesView = registry.view<const STexturedComponent,
+		const SColoredSpriteComponent, const SSpriteUVComponent>();
+	auto firstEntity = spritesView.front();
+	if (firstEntity != entt::null)
+	{
+		auto [texturedComponent, spr, uv] = registry.get<const STexturedComponent,
+			const SColoredSpriteComponent, const SSpriteUVComponent>(firstEntity);
+		cachedView = renderSystemDX11.FindTexture(texturedComponent.texId);
+		cachedId = texturedComponent.texId;
+	}
+
+	// render sprites
+	spritesView.each([this, &cachedView, &cachedId](
+		const STexturedComponent& texturedComponent,
+		const SColoredSpriteComponent& spriteComponent,
+		const SSpriteUVComponent& uvComponent)
+	{
+		if (cachedId != texturedComponent.texId)
+		{
+			if (!batchData.empty())
+			{
+				// render if texture changed
+				RenderBatch(cachedView);
+			}
+
+			cachedId = texturedComponent.texId;
+			cachedView = renderSystemDX11.FindTexture(cachedId);
+		}
+
+		// store instance data
+		DX11TEXTUREDSPRITEINSTANCE instance{};
+		instance.pos = spriteComponent.position;
+		instance.rotation = spriteComponent.rotation;
+		instance.scale = SConvert::ToVector2(spriteComponent.size);
+		memcpy(instance.colors, spriteComponent.colors, sizeof(SColor4F) * 4);
+		memcpy(instance.uvs, uvComponent.uvs, sizeof(SVector2) * 4);
+		batchData.push_back(instance);
+
+		if (batchData.size() == MaxInstancedSpritesCount)
+		{
+			// render if max number reached
+			RenderBatch(cachedView);
+		}
+
+		numSprites++;
+	});
+
+	if (!batchData.empty())
+	{
+		// render last
+		RenderBatch(cachedView);
+	}
+
+	if (renderSystemDX11.IsNeedDebugTrace())
+	{
+		renderSystemDX11.AddDrawCalls(batchesRendered);
+		DebugMsg("[%s] STexturedSpriteRendererDX11::Render(): %d batches, %d sprite instances\n",
+			GetTimeStamp(std::chrono::system_clock::now()).c_str(), batchesRendered, numSprites);
+	}
+
+	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Render()") }
+}
+
+void STexturedSpriteRendererDX11::RenderBatch(ID3D11ShaderResourceView* view)
+{
+	// fill instanced vertex buffer
+	const std::uint32_t numInstances = batchData.size();
+	D3D11_MAPPED_SUBRESOURCE mappedResource{};
+	if (FAILED(d3dDeviceContext->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
+	{
+		throw std::exception("Cannot update vertex buffer");
+	}
+	memcpy(mappedResource.pData, batchData.data(), sizeof(DX11TEXTUREDSPRITEINSTANCE) * numInstances);
+	d3dDeviceContext->Unmap(instanceBuffer.Get(), 0);
+
+	if (view)
+	{
+		d3dDeviceContext->PSSetShaderResources(0, 1, &view);
+	}
+
+	// render sprites
+	d3dDeviceContext->DrawIndexedInstanced(4, numInstances, 0, 0, 0);
+
+	// cleanup batch data
+	batchData.clear();
+	batchesRendered++;
+}

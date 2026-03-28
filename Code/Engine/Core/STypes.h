@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "Core/SMathTypes.h"
+
 #include <string>
 #include <optional>
 #include <algorithm>
@@ -21,6 +23,23 @@ enum class SRSType
 
 /** Bytes array */
 using SBytes = std::vector<std::uint8_t>;
+
+
+/***************************************************************************
+* Uncopyable type
+*/
+class SUncopyable
+{
+public:
+	//
+	SUncopyable() {}
+
+private:
+	//
+	SUncopyable(const SUncopyable&) = delete;
+	//
+	SUncopyable& operator=(const SUncopyable&) = delete;
+};
 
 
 /***************************************************************************
@@ -46,6 +65,14 @@ private:
 	//
 	T value;
 };
+
+/**
+* Check bounds (compile time) */
+template <typename T>
+constexpr bool InRange(T value, T minValue, T maxValue)
+{
+	return (value >= minValue && value < maxValue);
+}
 
 
 /***************************************************************************
@@ -92,7 +119,17 @@ namespace SConvert
 {
 	inline SColor4F FromSColor3(const SColor3& color)
 	{
-		return SColor4F{
+		return SColor4F {
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f,
+			1.0f
+		};
+	}
+
+	inline SVector4 ToVector4(const SColor3& color)
+	{
+		return SVector4 {
 			static_cast<float>(color.r) / 255.0f,
 			static_cast<float>(color.g) / 255.0f,
 			static_cast<float>(color.b) / 255.0f,

@@ -6,10 +6,14 @@
 
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "RenderSystem/Windows/SDXShaderManager.h"
+#include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
+#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
 
-#include <d3d11.h>
+#include <d3d11_4.h>
+#include <dxgi1_4.h>
 #include <directxmath.h>
 #include <wrl.h>
 
@@ -21,13 +25,15 @@ using Microsoft::WRL::ComPtr;
 /***************************************************************************
 * DirectX 11 render system
 */
-class SRenderSystemDX11 : public IRenderSystem
+class SRenderSystemDX11 : public IRenderSystemEx
 {
 public:
 	//
 	SRenderSystemDX11();
 	//
-	SShaderDataDX11* FindShader(const std::string& name);
+	const SShaderDataDX11* FindShader(const std::string& name) const;
+
+	ID3D11ShaderResourceView* FindTexture(STexID id) const;
 	//
 	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
 	//
@@ -37,12 +43,33 @@ public:
 	//
 	IWorld* GetWorld() const noexcept { return world; }
 	//
-	bool IsNeedDebugTrace() const noexcept { return bNeedDebugTrace; }
+	bool IsNeedDebugTrace() const noexcept { return bCachedNeedDebugTrace; }
 
 
 public:// IRenderSystem interface implementation
 	//
 	virtual ~SRenderSystemDX11() override;
+	//
+	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
+	//
+	virtual void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate) override;
+	//
+	virtual void Clear(IWorld* world, bool removeRooted = false) override;
+	//
+	virtual void RequestResize(std::uint32_t width, std::uint32_t height) override;
+	//
+	virtual void SetMode(SAppMode mode) override;
+	//
+	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
+	//
+	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
+	//
+	virtual SRSStats GetStats() const noexcept override { return cachedStats; }
+	//
+	virtual SRSType GetType() const noexcept override { return SRSType::DX11; }
+
+
+public:// IRenderSystemEx interface implementation
 	//
 	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override;
 	//
@@ -56,44 +83,37 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void Render(const SAppContext& context) override;
 	//
-	virtual bool CanRender() const override;
+	virtual bool CanRender() const noexcept override;
 	//
-	virtual void Clear(IWorld* world, bool removeRooted = false) override;
+	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) override;
 	//
-	virtual void RequestResize(std::int32_t width, std::int32_t height) override {}
-	//
-	virtual void Resize(std::int32_t width, std::int32_t height, const SAppContext& context) override {}
-	//
-	virtual void SetMode(SAppMode mode) override {}
-	//
-	virtual void UpdateCamera(float deltaSeconds, SVector3 newPos, SVector3 newTarget) override {}
-	//
-	virtual SRSStats GetStats() const override { return SRSStats{}; }
-	//
-	virtual SRSType GetType() const override { return SRSType::DX11; }
+	virtual void AddDrawCalls(std::uint32_t inDrawCalls) noexcept { drawCalls += inDrawCalls; }
 
 
 protected:
 	//
-	std::pair<SColor3, bool> GetClearColor(const SAppFeaturesMap& features);
+	void CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height);
+	//
+	void OnGlobalTintChanged(SColor3 globalTint);
+	//
+	void OnWorldScaleChanged(SVector2 worldScale);
+	//
+	void OnCameraViewChanged(const SCamera& camera);
 
 
 protected:
 	//
 	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
-
-
-protected:
 	//
-	IWorld* world{};
-	//
-	SDXShaderManager shaderManager;
+	STexturedSpriteRendererDX11 texturedSpriteRendererDX11;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
-	std::unordered_map<std::string, SShaderDataDX11> shaders;
+	SDXShaderManager shaderManager;
 	//
-	ComPtr<IDXGISwapChain> swapChain;
+	STextureManagerDX11 textureManager;
+	//
+	ComPtr<IDXGISwapChain4> swapChain;
 	//
 	ComPtr<ID3D11Device> d3dDevice;
 	//
@@ -101,7 +121,7 @@ protected:
 	//
 	ComPtr<ID3D11RenderTargetView> renderTargetView;
 	//
-	ComPtr<ID3D11Texture2D> depthStencilBuffer;
+	ComPtr<ID3D11Texture2D> depthStencil;
 	//
 	ComPtr<ID3D11DepthStencilState> depthStencilState;
 	//
@@ -110,7 +130,29 @@ protected:
 	ComPtr<ID3D11BlendState> blendState;
 	//
 	ComPtr<ID3D11RasterizerState> rasterizerState;
+
+
+protected:
 	//
-	bool bNeedDebugTrace = false;
+	std::unordered_map<std::string, SShaderDataDX11> shaders;
+	//
+	IWorld* world{};
+	//
+	std::uint32_t drawCalls = 0;
+
+
+protected:
+	//
+	SRSStats cachedStats{};
+	//
+	SSize2 cachedRenderSystemSize{};
+	//
+	SVector3 cachedCameraPos{};
+	//
+	SVector3 cachedCameraTarget{};
+	//
+	std::uint32_t cachedMaxRefreshRate = 0;
+	//
+	bool bCachedNeedDebugTrace = false;
 
 };

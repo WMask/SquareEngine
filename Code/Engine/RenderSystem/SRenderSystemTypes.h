@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "Core/SMathTypes.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <functional>

@@ -5,7 +5,8 @@
 #include <windows.h>
 #include "Core/SCoreModule.h"
 #include "RenderSystem/SRenderSystemModule.h"
-#include "Application/SInputSystem.h"
+#include "Application/SInputInterface.h"
+#include "World/SGuiInterface.h"
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)

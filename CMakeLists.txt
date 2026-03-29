@@ -12,6 +12,7 @@ set(PROJECT_FILES_DIR "Projects/${CMAKE_SYSTEM_NAME}")
 set(ENGINE_SOURCE_DIR "Code/Engine")
 set(THIRD_PARTY_DIR "Code/ThirdParty")
 set(SAMPLES_SOURCE_DIR "Code/Samples/${CMAKE_SYSTEM_NAME}")
+set(TOOLS_SOURCE_DIR "Code/Tools")
 set(CMAKE_SUPPRESS_REGENERATION true)
 
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
@@ -50,6 +51,12 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+	stb
+	GIT_REPOSITORY https://github.com/nothings/stb.git
+	GIT_TAG        origin/master
+)
+
+FetchContent_Declare(
 	zlib
 	GIT_REPOSITORY https://github.com/madler/zlib.git
 	GIT_TAG        v1.3.2
@@ -80,6 +87,11 @@ message("--\n-- Downloading nlohmann/json 3.12.0 ...\n--")
 
 FetchContent_MakeAvailable(json)
 FetchContent_GetProperties(json)
+
+message("--\n-- Downloading stb/truetype ...\n--")
+
+FetchContent_MakeAvailable(stb)
+FetchContent_GetProperties(stb)
 
 message("--\n-- Downloading zlib 1.3.2 ...\n--")
 
@@ -197,6 +209,8 @@ add_dependencies(SApplication SCore SWorld)
 
 
 add_library(SRenderSystem SHARED
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SFontSystem.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/SFontSystem.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/SECSComponents.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/RenderSystemModule.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.h
@@ -207,12 +221,12 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
@@ -265,6 +279,18 @@ target_include_directories(SpritesSample
 target_compile_features(SpritesSample PUBLIC cxx_std_20)
 target_link_libraries(SpritesSample SCore SApplication SRenderSystem SWorld)
 add_dependencies(SpritesSample SCore SApplication SRenderSystem SWorld)
+
+
+add_executable(FontTool
+	${TOOLS_SOURCE_DIR}/FontTool/FontTool.cpp
+)
+target_include_directories(FontTool
+	PUBLIC
+		${ENGINE_SOURCE_DIR}
+		${stb_SOURCE_DIR}
+)
+target_compile_features(FontTool PUBLIC cxx_std_20)
+target_link_libraries(FontTool SCore)
 
 
 if (WIN32)
@@ -327,17 +353,17 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
 	)
 	source_group("Header Files\\DX11" FILES
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.h
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.h
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRendererDX11.cpp
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRendererDX11.cpp
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRendererDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp

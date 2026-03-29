@@ -14,9 +14,9 @@
 
 
 SRenderSystemDX11::SRenderSystemDX11()
-	: coloredSpriteRenderDX11(*this)
-	, texturedSpriteRenderDX11(*this)
-	, frameAnimSpriteRenderDX11(*this)
+	: coloredSpriteRender(*this)
+	, texturedSpriteRender(*this)
+	, frameAnimSpriteRender(*this)
 {
 }
 
@@ -300,9 +300,9 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
-	frameAnimSpriteRenderDX11.Shutdown();
-	texturedSpriteRenderDX11.Shutdown();
-	coloredSpriteRenderDX11.Shutdown();
+	frameAnimSpriteRender.Shutdown();
+	texturedSpriteRender.Shutdown();
+	coloredSpriteRender.Shutdown();
 	constantBuffers.Shutdown();
 	textureManager.Shutdown();
 	shaderManager.Shutdown();
@@ -359,15 +359,15 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		}
 
 		shader.vsCode = shaderData.vsCode.Get();
-		if (coloredSpriteRenderDX11.CheckShaderName(shaderData.name))
+		if (coloredSpriteRender.CheckShaderName(shaderData.name))
 		{
-			coloredSpriteRenderDX11.Setup(shader);
+			coloredSpriteRender.Setup(shader);
 		}
-		else if (texturedSpriteRenderDX11.CheckShaderName(shaderData.name))
+		else if (texturedSpriteRender.CheckShaderName(shaderData.name))
 		{
-			texturedSpriteRenderDX11.Setup(shader);
-			frameAnimSpriteRenderDX11.Setup(shader);
-			frameAnimSpriteRenderDX11.CheckShaderName(shaderData.name);
+			texturedSpriteRender.Setup(shader);
+			frameAnimSpriteRender.Setup(shader);
+			frameAnimSpriteRender.CheckShaderName(shaderData.name);
 		}
 		shader.vsCode = nullptr;
 
@@ -439,9 +439,9 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// render frame
 	drawCalls = 0;
-	coloredSpriteRenderDX11.Render(context.deltaSeconds, context.gameTime);
-	texturedSpriteRenderDX11.Render(context.deltaSeconds, context.gameTime);
-	frameAnimSpriteRenderDX11.Render(context.deltaSeconds, context.gameTime);
+	coloredSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	frameAnimSpriteRender.Render(context.deltaSeconds, context.gameTime);
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);

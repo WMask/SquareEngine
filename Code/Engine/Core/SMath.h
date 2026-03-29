@@ -219,6 +219,21 @@ inline SVector2 operator*(const SSize2F& size, const SVector2& v)
 
 
 /***************************************************************************
+* Rect
+*/
+
+inline bool Contains(const SRectF& r, const SPoint2F& p)
+{
+	return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+}
+
+inline bool Contains(const SRect& r, const SPoint2& p)
+{
+	return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+}
+
+
+/***************************************************************************
 * Matrix
 */
 

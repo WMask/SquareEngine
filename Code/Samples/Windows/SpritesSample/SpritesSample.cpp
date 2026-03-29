@@ -5,7 +5,7 @@
 #include <windows.h>
 #include "Core/SCoreModule.h"
 #include "RenderSystem/SRenderSystemModule.h"
-#include "Application/SInputSystem.h"
+#include "Application/SInputInterface.h"
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
@@ -82,7 +82,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto texId2 = context.render->LoadTexture("../../Code/Samples/Assets/T_Boom1.png");
 			registry.emplace<STexturedComponent>(animatedEntity, texId2);
 			auto& anim4 = registry.emplace<SSpriteFrameAnimComponent>(animatedEntity);
-			anim4.SetAnim(0, 50, 25, SSize2{ 100, 100 }, 0.0f);
+			anim4.SetAnim(0, 50, 25, SSize2{ 100, 100 }, context.gameTime);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void

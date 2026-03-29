@@ -1,8 +1,8 @@
 /***************************************************************************
-* SColoredSpriteRendererDX11.cpp
+* SColoredSpriteRenderSystemDX11.cpp
 */
 
-#include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
+#include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
@@ -10,16 +10,16 @@
 static const char* ColoredSpriteShaderName = "ColoredSprite2d.shader";
 
 
-SColoredSpriteRendererDX11::SColoredSpriteRendererDX11(SRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
+SColoredSpriteRenderSystemDX11::SColoredSpriteRenderSystemDX11(SRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
 {
 }
 
-SColoredSpriteRendererDX11::~SColoredSpriteRendererDX11()
+SColoredSpriteRenderSystemDX11::~SColoredSpriteRenderSystemDX11()
 {
 	Shutdown();
 }
 
-void SColoredSpriteRendererDX11::Shutdown()
+void SColoredSpriteRenderSystemDX11::Shutdown()
 {
 	if (instanceBuffer)
 	{
@@ -31,7 +31,7 @@ void SColoredSpriteRendererDX11::Shutdown()
 	spriteIndexBuffer = nullptr;
 }
 
-bool SColoredSpriteRendererDX11::CheckShaderName(const std::string& inShaderName)
+bool SColoredSpriteRenderSystemDX11::CheckShaderName(const std::string& inShaderName)
 {
 	if (inShaderName.ends_with(ColoredSpriteShaderName))
 	{
@@ -42,7 +42,7 @@ bool SColoredSpriteRendererDX11::CheckShaderName(const std::string& inShaderName
 	return false;
 }
 
-void SColoredSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
+void SColoredSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderData)
 {
 	S_TRY
 
@@ -88,10 +88,10 @@ void SColoredSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
 		throw std::exception("Cannot create vertex buffer");
 	}
 
-	S_CATCH{ S_THROW("SColoredSpriteRendererDX11::Setup()") }
+	S_CATCH{ S_THROW("SColoredSpriteRenderSystemDX11::Setup()") }
 }
 
-void SColoredSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
+void SColoredSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 
@@ -101,7 +101,7 @@ void SColoredSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 	{
 		if (renderSystemDX11.IsNeedDebugTrace())
 		{
-			DebugMsg("[%s] SColoredSpriteRendererDX11::Render(): wrong context\n",
+			DebugMsg("[%s] SColoredSpriteRenderSystemDX11::Render(): wrong context\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str());
 		}
 		return;
@@ -151,14 +151,14 @@ void SColoredSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 	if (renderSystemDX11.IsNeedDebugTrace())
 	{
 		renderSystemDX11.AddDrawCalls(batchesRendered);
-		DebugMsg("[%s] SColoredSpriteRendererDX11::Render(): %d batches, %d sprite instances\n",
+		DebugMsg("[%s] SColoredSpriteRenderSystemDX11::Render(): %d batches, %d sprite instances\n",
 			GetTimeStamp(std::chrono::system_clock::now()).c_str(), batchesRendered, numSprites);
 	}
 
-	S_CATCH{ S_THROW("SColoredSpriteRendererDX11::Render()") }
+	S_CATCH{ S_THROW("SColoredSpriteRenderSystemDX11::Render()") }
 }
 
-void SColoredSpriteRendererDX11::RenderBatch()
+void SColoredSpriteRenderSystemDX11::RenderBatch()
 {
 	// fill instanced vertex buffer
 	const std::uint32_t numInstances = batchData.size();

@@ -1,5 +1,5 @@
 /***************************************************************************
-* STexturedSpriteRendererDX11.h
+* STexturedSpriteRenderSystemDX11.h
 */
 
 #pragma once
@@ -25,13 +25,13 @@ struct DX11TEXTUREDSPRITEINSTANCE
 /***************************************************************************
 * Textured sprite render system
 */
-class STexturedSpriteRendererDX11 : public SUncopyable
+class STexturedSpriteRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	STexturedSpriteRendererDX11(class SRenderSystemDX11& renderSystem);
+	STexturedSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem);
 	//
-	~STexturedSpriteRendererDX11();
+	~STexturedSpriteRenderSystemDX11();
 	//
 	void Shutdown();
 	//

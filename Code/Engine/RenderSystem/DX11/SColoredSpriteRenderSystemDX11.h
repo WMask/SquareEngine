@@ -1,5 +1,5 @@
 /***************************************************************************
-* SColoredSpriteRendererDX11.h
+* SColoredSpriteRenderSystemDX11.h
 */
 
 #pragma once
@@ -24,13 +24,13 @@ struct DX11COLOREDSPRITEINSTANCE
 /***************************************************************************
 * Colored sprite render system
 */
-class SColoredSpriteRendererDX11 : public SUncopyable
+class SColoredSpriteRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	SColoredSpriteRendererDX11(class SRenderSystemDX11& renderSystem);
+	SColoredSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem);
 	//
-	~SColoredSpriteRendererDX11();
+	~SColoredSpriteRenderSystemDX11();
 	//
 	bool CheckShaderName(const std::string& shaderName);
 	//

@@ -138,7 +138,7 @@ namespace SConst
 
 
 /***************************************************************************
-* Point & Size
+* Point & Size & Rect
 */
 
 // Point 2D
@@ -157,6 +157,8 @@ struct SPoint3 : public SPoint2
 
 	bool operator==(const SPoint3&) const = default;
 };
+
+using SPoint2F = SVector2;
 
 // Size 2D
 struct SSize2
@@ -189,6 +191,28 @@ struct SSize3
 
 using SSize3F = SVector3;
 
+// Rect
+struct SRectF
+{
+	float left;
+	float top;
+	float right;
+	float bottom;
+
+	bool operator==(const SRectF&) const = default;
+};
+
+// Rect
+struct SRect
+{
+	std::int32_t left;
+	std::int32_t top;
+	std::int32_t right;
+	std::int32_t bottom;
+
+	bool operator==(const SRect&) const = default;
+};
+
 namespace SConst
 {
 	static const SPoint2 ZeroSPoint2 = SPoint2{};
@@ -206,6 +230,37 @@ namespace SConvert
 	inline SSize2F ToSize2F(const SSize2& size)
 	{
 		return SSize2F{ static_cast<float>(size.width), static_cast<float>(size.height) };
+	}
+	inline SPoint2 ToPoint2(const SPoint2F& p)
+	{
+		return SPoint2{ static_cast<std::int32_t>(p.x), static_cast<std::int32_t>(p.y) };
+	}
+	inline SSize2 ToSize2(const SSize2F& size)
+	{
+		return SSize2{ static_cast<std::uint32_t>(size.width), static_cast<std::uint32_t>(size.height) };
+	}
+	inline SRect ToRect(const SPoint2& pos, const SSize2& size)
+	{
+		const std::int32_t hw = static_cast<std::int32_t>(size.width) / 2;
+		const std::int32_t hh = static_cast<std::int32_t>(size.height) / 2;
+		return SRect{ pos.x - hw, pos.y - hh, pos.x + hw, pos.y + hh };
+	}
+	inline SRect ToRect(const SPoint2F& pos, const SSize2F& size)
+	{
+		const std::int32_t hw = static_cast<std::int32_t>(size.width) / 2;
+		const std::int32_t hh = static_cast<std::int32_t>(size.height) / 2;
+		return SRect {
+			static_cast<std::int32_t>(pos.x) - hw,
+			static_cast<std::int32_t>(pos.y) - hh,
+			static_cast<std::int32_t>(pos.x) + hw,
+			static_cast<std::int32_t>(pos.y) + hh
+		};
+	}
+	inline SRectF ToRectF(const SPoint2F& pos, const SSize2F& size)
+	{
+		const float hw = size.width / 2.0f;
+		const float hh = size.height / 2.0f;
+		return SRectF{ pos.x - hw, pos.y - hh, pos.x + hw, pos.y + hh };
 	}
 }
 

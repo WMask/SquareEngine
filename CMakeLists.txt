@@ -155,6 +155,9 @@ add_library(SWorld SHARED
     ${ENGINE_SOURCE_DIR}/World/SWorldInterface.h
     ${ENGINE_SOURCE_DIR}/World/SWorld.h
     ${ENGINE_SOURCE_DIR}/World/SWorld.cpp
+    ${ENGINE_SOURCE_DIR}/World/SGuiInterface.h
+    ${ENGINE_SOURCE_DIR}/World/SGuiSystem.h
+    ${ENGINE_SOURCE_DIR}/World/SGuiSystem.cpp
     ${ENGINE_SOURCE_DIR}/World/SCamera.h
 )
 target_include_directories(SWorld
@@ -175,6 +178,7 @@ add_library(SApplication SHARED
     ${ENGINE_SOURCE_DIR}/Application/SApplicationInterface.h
     ${ENGINE_SOURCE_DIR}/Application/SLocalization.h
     ${ENGINE_SOURCE_DIR}/Application/SLocalization.cpp
+    ${ENGINE_SOURCE_DIR}/Application/SInputInterface.h
     ${ENGINE_SOURCE_DIR}/Application/SInputSystem.h
     ${ENGINE_SOURCE_DIR}/Application/SInputSystem.cpp
     ${ENGINE_SOURCE_DIR}/Application/SAppConfig.h

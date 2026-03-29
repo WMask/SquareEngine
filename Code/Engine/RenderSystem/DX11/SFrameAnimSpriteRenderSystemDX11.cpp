@@ -1,14 +1,14 @@
 /***************************************************************************
-* SFrameAnimSpriteRendererDX11.cpp
+* SFrameAnimSpriteRenderSystemDX11.cpp
 */
 
-#include "RenderSystem/DX11/SFrameAnimSpriteRendererDX11.h"
+#include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
 
 
-void SFrameAnimSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
+void SFrameAnimSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 
@@ -18,7 +18,7 @@ void SFrameAnimSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 	{
 		if (renderSystemDX11.IsNeedDebugTrace())
 		{
-			DebugMsg("[%s] SFrameAnimSpriteRendererDX11::Render(): wrong context\n",
+			DebugMsg("[%s] SFrameAnimSpriteRenderSystemDX11::Render(): wrong context\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str());
 		}
 		return;
@@ -112,14 +112,14 @@ void SFrameAnimSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 	if (renderSystemDX11.IsNeedDebugTrace())
 	{
 		renderSystemDX11.AddDrawCalls(batchesRendered);
-		DebugMsg("[%s] SFrameAnimSpriteRendererDX11::Render(): %d batches, %d sprite instances\n",
+		DebugMsg("[%s] SFrameAnimSpriteRenderSystemDX11::Render(): %d batches, %d sprite instances\n",
 			GetTimeStamp(std::chrono::system_clock::now()).c_str(), batchesRendered, numSprites);
 	}
 
-	S_CATCH{ S_THROW("SFrameAnimSpriteRendererDX11::Render()") }
+	S_CATCH{ S_THROW("SFrameAnimSpriteRenderSystemDX11::Render()") }
 }
 
-void SFrameAnimSpriteRendererDX11::RenderBatch(ID3D11ShaderResourceView* view)
+void SFrameAnimSpriteRenderSystemDX11::RenderBatch(ID3D11ShaderResourceView* view)
 {
 	// fill instanced vertex buffer
 	const std::uint32_t numInstances = batchData.size();

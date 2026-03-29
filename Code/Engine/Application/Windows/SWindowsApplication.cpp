@@ -153,6 +153,13 @@ void SWindowsApplication::Run()
     UpdateWindow(hWnd);
 
     // create game systems
+    inputSystem = CreateDefaultInputSystem();
+    context.input = inputSystem.get();
+    inputSystem->Init(context);
+
+    guiSystem.Init(context.world, context.input);
+    context.gui = &guiSystem;
+
     if (renderSystem)
     {
         renderSystem->Subscribe(context);
@@ -160,10 +167,6 @@ void SWindowsApplication::Run()
         renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
         context.render = renderSystem.get();
     }
-
-    inputSystem = CreateDefaultInputSystem();
-    context.input = inputSystem.get();
-    inputSystem->Init(context);
 
     // set WndProc handles
     SWin32Handles handles{
@@ -309,6 +312,7 @@ std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     SWin32Handles* handles = reinterpret_cast<SWin32Handles*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    SGuiSystem* guiSystem = static_cast<SGuiSystem*>(handles ? handles->appContext.gui : nullptr);
     IInputSystem* inputSystem = handles ? handles->appContext.input : nullptr;
     IInputDevice* activeKeyboard = nullptr;
     IInputDevice* activeMouse = nullptr;
@@ -358,16 +362,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
         case WM_KEYDOWN:
-            if (activeKeyboard) activeKeyboard->SetState(static_cast<int>(wParam), true);
+            if (activeKeyboard) activeKeyboard->SetState(static_cast<std::int32_t>(wParam), true);
+            if (guiSystem) guiSystem->OnKeys(static_cast<std::int32_t>(wParam), SKeyState::Down, handles->appContext);
             break;
         case WM_KEYUP:
-            if (activeKeyboard) activeKeyboard->SetState(static_cast<int>(wParam), false);
+            if (activeKeyboard) activeKeyboard->SetState(static_cast<std::int32_t>(wParam), false);
+            if (guiSystem) guiSystem->OnKeys(static_cast<std::int32_t>(wParam), SKeyState::Up, handles->appContext);
             break;
         case WM_MOUSEMOVE:
+            if (guiSystem) guiSystem->OnMouseMove(x, y, handles->appContext);
             break;
         case WM_LBUTTONDOWN:
+            if (guiSystem) guiSystem->OnMouseButton(SMouseBtn::Left, SKeyState::Down, x, y, handles->appContext);
             break;
         case WM_LBUTTONUP:
+            if (guiSystem) guiSystem->OnMouseButton(SMouseBtn::Left, SKeyState::Up, x, y, handles->appContext);
             break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);

@@ -1,22 +1,22 @@
 /***************************************************************************
-* SFrameAnimSpriteRendererDX11.h
+* SFrameAnimSpriteRenderSystemDX11.h
 */
 
 #pragma once
 
-#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
+#include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 
 
 /***************************************************************************
 * Frame animated sprite render system
 */
-class SFrameAnimSpriteRendererDX11 : public STexturedSpriteRendererDX11
+class SFrameAnimSpriteRenderSystemDX11 : public STexturedSpriteRenderSystemDX11
 {
 public:
 	//
-	SFrameAnimSpriteRendererDX11(class SRenderSystemDX11& renderSystem) : STexturedSpriteRendererDX11(renderSystem) {}
+	SFrameAnimSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem) : STexturedSpriteRenderSystemDX11(renderSystem) {}
 	//
-	~SFrameAnimSpriteRendererDX11() {}
+	~SFrameAnimSpriteRenderSystemDX11() {}
 	//
 	virtual void Render(float deltaSeconds, float gameTime) override;
 

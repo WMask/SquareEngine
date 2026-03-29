@@ -5,6 +5,7 @@
 #pragma once
 
 #include "World/WorldModule.h"
+#include "World/SGuiInterface.h"
 #include "World/SWorldInterface.h"
 #include "Application/SApplicationTypes.h"
 

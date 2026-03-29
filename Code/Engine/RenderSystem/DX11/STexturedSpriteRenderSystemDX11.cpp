@@ -1,8 +1,8 @@
 /***************************************************************************
-* STexturedSpriteRendererDX11.cpp
+* STexturedSpriteRenderSystemDX11.cpp
 */
 
-#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
+#include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
@@ -10,16 +10,16 @@
 
 static const char* TexturedSpriteShaderName = "TexturedSprite2d.shader";
 
-STexturedSpriteRendererDX11::STexturedSpriteRendererDX11(SRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
+STexturedSpriteRenderSystemDX11::STexturedSpriteRenderSystemDX11(SRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
 {
 }
 
-STexturedSpriteRendererDX11::~STexturedSpriteRendererDX11()
+STexturedSpriteRenderSystemDX11::~STexturedSpriteRenderSystemDX11()
 {
 	Shutdown();
 }
 
-void STexturedSpriteRendererDX11::Shutdown()
+void STexturedSpriteRenderSystemDX11::Shutdown()
 {
 	if (instanceBuffer)
 	{
@@ -31,7 +31,7 @@ void STexturedSpriteRendererDX11::Shutdown()
 	spriteIndexBuffer = nullptr;
 }
 
-bool STexturedSpriteRendererDX11::CheckShaderName(const std::string& inShaderName)
+bool STexturedSpriteRenderSystemDX11::CheckShaderName(const std::string& inShaderName)
 {
 	if (inShaderName.ends_with(TexturedSpriteShaderName))
 	{
@@ -42,7 +42,7 @@ bool STexturedSpriteRendererDX11::CheckShaderName(const std::string& inShaderNam
 	return false;
 }
 
-void STexturedSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
+void STexturedSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderData)
 {
 	S_TRY
 
@@ -92,10 +92,10 @@ void STexturedSpriteRendererDX11::Setup(IRenderSystem::SShaderData& shaderData)
 		throw std::exception("Cannot create vertex buffer");
 	}
 
-	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Setup()") }
+	S_CATCH{ S_THROW("STexturedSpriteRenderSystemDX11::Setup()") }
 }
 
-void STexturedSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
+void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 
@@ -105,7 +105,7 @@ void STexturedSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 	{
 		if (renderSystemDX11.IsNeedDebugTrace())
 		{
-			DebugMsg("[%s] STexturedSpriteRendererDX11::Render(): wrong context\n",
+			DebugMsg("[%s] STexturedSpriteRenderSystemDX11::Render(): wrong context\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str());
 		}
 		return;
@@ -193,14 +193,14 @@ void STexturedSpriteRendererDX11::Render(float deltaSeconds, float gameTime)
 	if (renderSystemDX11.IsNeedDebugTrace())
 	{
 		renderSystemDX11.AddDrawCalls(batchesRendered);
-		DebugMsg("[%s] STexturedSpriteRendererDX11::Render(): %d batches, %d sprite instances\n",
+		DebugMsg("[%s] STexturedSpriteRenderSystemDX11::Render(): %d batches, %d sprite instances\n",
 			GetTimeStamp(std::chrono::system_clock::now()).c_str(), batchesRendered, numSprites);
 	}
 
-	S_CATCH{ S_THROW("STexturedSpriteRendererDX11::Render()") }
+	S_CATCH{ S_THROW("STexturedSpriteRenderSystemDX11::Render()") }
 }
 
-void STexturedSpriteRendererDX11::RenderBatch(ID3D11ShaderResourceView* view)
+void STexturedSpriteRenderSystemDX11::RenderBatch(ID3D11ShaderResourceView* view)
 {
 	// fill instanced vertex buffer
 	const std::uint32_t numInstances = batchData.size();

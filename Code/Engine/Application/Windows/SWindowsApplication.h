@@ -12,6 +12,7 @@
 #include "Application/SApplicationInterface.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "World/SWorldInterface.h"
+#include "World/SGuiSystem.h"
 #include "Core/SCoreModule.h"
 
 #pragma warning(disable : 4275)
@@ -112,6 +113,8 @@ protected:
 protected:
 	//
 	SAppContext context;
+	//
+	SGuiSystem guiSystem;
 	//
 	TInputSystemPtr inputSystem;
 	//

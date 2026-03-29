@@ -122,16 +122,25 @@ public:
 		if (frameId >= (frameOffset + framesCount)) frameId = frameOffset;
 
 		const std::uint32_t columns = texSize.width / frameSize.width;
-		const std::uint32_t x = frameId % columns;
-		const std::uint32_t y = frameId / columns;
-		const float xs = frameSize.width / static_cast<float>(texSize.width);
-		const float ys = frameSize.height / static_cast<float>(texSize.height);
-		const float xf = static_cast<float>(x * frameSize.width) / static_cast<float>(texSize.width);
-		const float yf = static_cast<float>(y * frameSize.height) / static_cast<float>(texSize.height);
+		if (columns > 0)
+		{
+			const std::uint32_t x = frameId % columns;
+			const std::uint32_t y = frameId / columns;
+			const float xs = frameSize.width / static_cast<float>(texSize.width);
+			const float ys = frameSize.height / static_cast<float>(texSize.height);
+			const float xf = static_cast<float>(x * frameSize.width) / static_cast<float>(texSize.width);
+			const float yf = static_cast<float>(y * frameSize.height) / static_cast<float>(texSize.height);
 
-		outUV.uvs[0] = SVector2{ xf + xs, yf      }; // rt
-		outUV.uvs[1] = SVector2{ xf,      yf      }; // lt
-		outUV.uvs[2] = SVector2{ xf + xs, yf + ys }; // rb
-		outUV.uvs[3] = SVector2{ xf,      yf + ys }; // lb
+			outUV.uvs[0] = SVector2{ xf + xs, yf }; // rt
+			outUV.uvs[1] = SVector2{ xf,      yf }; // lt
+			outUV.uvs[2] = SVector2{ xf + xs, yf + ys }; // rb
+			outUV.uvs[3] = SVector2{ xf,      yf + ys }; // lb
+		}
 	}
+};
+
+/** Widget component */
+struct SWidgetComponent
+{
+	bool bHovered{};
 };

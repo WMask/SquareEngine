@@ -47,8 +47,9 @@ VS_OUT VShader(VS_INPUT input)
 	float2 vPos2D = (input.vPosition.xy * input.iScale);
 	float2 vRotatedPos2D = SRotate2D(vPos2D, input.iRotation);
 
-	float4 vWorldPos = float4(vRotatedPos2D + input.iPosition.xy, input.vPosition.z, 1.0);
+	float4 vWorldPos = float4(vRotatedPos2D + input.iPosition.xy, 0.0, 1.0);
 	float4x4 mWVP = mul(mTrans, mul(mView, mProj));
+	vWorldPos.z = 1.0 - input.iPosition.z;
 
 	output.vPosition = mul(vWorldPos, mWVP);
 	output.vColor = input.iColor[input.vVertexID];

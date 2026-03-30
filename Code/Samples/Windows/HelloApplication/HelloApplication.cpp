@@ -17,6 +17,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	{
 		const std::string_view textKey = "demo_text";
 		entt::entity texturedEntity;
+		entt::entity buttonEntity;
 		entt::entity textEntity;
 		STextID textId;
 		SFontID fontId;
@@ -43,28 +44,42 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.text->AddCulture("../../Assets/Loc.json");
 			context.text->AddCulture("../../Assets/Loc_ru.json");
 			context.text->SetCulture("en");
-			auto textId = context.text->MakeId(textKey);
 
 			auto& registry = context.world->GetEntities();
 
 			// textured entity
 			texturedEntity = registry.create();
-			auto& sprite = registry.emplace<SColoredSpriteComponent>(
+			auto& sprite1 = registry.emplace<SColoredSpriteComponent>(
 				texturedEntity, true, 0.0f,
 				SVector3{ 300.0f, 300.0f, 0.0f },
 				SSize2F{ 256.0f, 256.0f }
 			);
-			sprite.SetWhiteColors();
-			auto& texUV = registry.emplace<SSpriteUVComponent>(texturedEntity);
-			texUV.SetDefaultUV();
+			sprite1.SetWhiteColors();
+			auto& texUV1 = registry.emplace<SSpriteUVComponent>(texturedEntity);
+			texUV1.SetDefaultUV();
 			auto texId3 = context.render->LoadTexture("../../Assets/Tree1.png");
 			registry.emplace<STexturedComponent>(texturedEntity, texId3);
 
+			// button entity
+			buttonEntity = registry.create();
+			auto& sprite2 = registry.emplace<SColoredSpriteComponent>(
+				buttonEntity, true, 0.0f,
+				SVector3{ 300.0f, 500.0f, 0.0f },
+				SSize2F{ 256.0f, 64.0f }
+			);
+			sprite2.SetWhiteColors();
+			auto& texUV2 = registry.emplace<SSpriteUVComponent>(buttonEntity);
+			texUV2.SetDefaultUV();
+			for (auto& uv : texUV2.uvs) uv.y /= 2.0f;
+			auto texId4 = context.render->LoadTexture("../../Assets/Buttons1.png");
+			registry.emplace<STexturedComponent>(buttonEntity, texId4);
+
 			// text entity
 			textEntity = registry.create();
+			auto textId = context.text->MakeId(textKey);
 			registry.emplace<STextComponent>(
 				textEntity,
-				SVector3{ 700.0f, 300.0f, 0.0f },
+				SVector3{ 230.0f, 500.0f, 0.1f },
 				SSize2F{ 256.0f, 256.0f },
 				SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f },
 				textId, fontId

@@ -4,12 +4,15 @@
 
 #pragma once
 
+#include "Application/SLocalizationInterface.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 
 
 /** Colored sprite component */
 struct SColoredSpriteComponent
 {
+	bool bVisible = true;
+	//
 	float rotation = 0.0f;
 	//
 	SVector3 position;
@@ -139,8 +142,45 @@ public:
 	}
 };
 
+
 /** Widget component */
 struct SWidgetComponent
 {
-	bool bHovered{};
+	bool bVisible = true;
+	//
+	bool bHovered = false;
+	//
+	float opacity = 1.0f;
+};
+
+
+/** Text component */
+struct STextComponent
+{
+	SVector3 position;
+	//
+	SSize2F size;
+	//
+	SColor4F color;
+	// text id in localization system
+	STextID textId;
+	// font id in font system
+	SFontID fontId;
+
+
+public:
+	//
+	inline void GenerateGlyphUV(SGlyph glyph, SSize2F texSize, SSpriteUVComponent& outUV) const
+	{
+		const float xx = glyph.pos.x / texSize.width;
+		const float yy = glyph.pos.y / texSize.height;
+		const float ww = glyph.size.width / texSize.width;
+		const float hh = glyph.size.height / texSize.height;
+
+		outUV.uvs[0] = SVector2{ xx + ww, yy };      // rt
+		outUV.uvs[1] = SVector2{ xx,      yy };      // lt
+		outUV.uvs[2] = SVector2{ xx + ww, yy + hh }; // rb
+		outUV.uvs[3] = SVector2{ xx,      yy + hh }; // lb
+	}
+
 };

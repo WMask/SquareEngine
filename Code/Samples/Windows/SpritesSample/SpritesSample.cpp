@@ -24,24 +24,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			switch (key)
 			{
 			case SKeys::Escape:
-				if (context.app && keyState == SKeyState::Down) context.app->RequestQuit();
+				if (keyState == SKeyState::Down) context.app->RequestQuit();
 				break;
 			}
 		};
 
 		auto onInitHandler = [&](SAppContext context)->void
 		{
-			if (context.input)
-			{
-				context.input->SetKeysHandler(onKeys);
-			}
+			context.input->SetKeysHandler(onKeys);
 
 			auto& registry = context.world->GetEntities();
 
 			// moving entity
 			movingEntity = registry.create();
 			auto& sprite1 = registry.emplace<SColoredSpriteComponent>(
-				movingEntity, 0.0f,
+				movingEntity, true, 0.0f,
 				SVector3{ 300.0f, 300.0f, 0.0f },
 				SSize2F{ 256.0f, 256.0f }
 			);
@@ -51,7 +48,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// rotating entity
 			rotatingEntity = registry.create();
 			auto& sprite2 = registry.emplace<SColoredSpriteComponent>(
-				rotatingEntity, 0.0f,
+				rotatingEntity, true, 0.0f,
 				SVector3{ 750.0f, 300.0f, 0.0f },
 				SSize2F{ 256.0f, 256.0f }
 			);
@@ -61,25 +58,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// textured entity
 			texturedEntity = registry.create();
 			auto& sprite3 = registry.emplace<SColoredSpriteComponent>(
-				texturedEntity, 0.0f,
+				texturedEntity, true, 0.0f,
 				SVector3{ 300.0f, 700.0f, 0.0f },
 				SSize2F{ 256.0f, 256.0f }
 			);
 			sprite3.SetWhiteColors();
 			auto& texUV3 = registry.emplace<SSpriteUVComponent>(texturedEntity);
 			texUV3.SetDefaultUV();
-			auto texId1 = context.render->LoadTexture("../../Code/Samples/Assets/T_Tree1.png");
+			auto texId1 = context.render->LoadTexture("../../Assets/Tree1.png");
 			registry.emplace<STexturedComponent>(texturedEntity, texId1);
 
 			// animated entity
 			animatedEntity = registry.create();
 			auto& sprite4 = registry.emplace<SColoredSpriteComponent>(
-				animatedEntity, 0.0f,
+				animatedEntity, true, 0.0f,
 				SVector3{ 750.0f, 680.0f, 0.0f },
 				SSize2F{ 256.0f, 256.0f }
 			);
 			sprite4.SetWhiteColors();
-			auto texId2 = context.render->LoadTexture("../../Code/Samples/Assets/T_Boom1.png");
+			auto texId2 = context.render->LoadTexture("../../Assets/Boom1.png");
 			registry.emplace<STexturedComponent>(animatedEntity, texId2);
 			auto& anim4 = registry.emplace<SSpriteFrameAnimComponent>(animatedEntity);
 			anim4.SetAnim(0, 50, 25, SSize2{ 100, 100 }, context.gameTime);
@@ -103,8 +100,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			sprite2.rotation += deltaSeconds;
 
 			// check input
-			if (context.input &&
-				context.input->GetActiveInputDevice())
+			if (context.input->GetActiveInputDevice())
 			{
 				auto& keys = context.input->GetActiveInputDevice()->GetState().keys;
 				if (keys[SKeys::Up])

@@ -1,11 +1,12 @@
 /***************************************************************************
-* STexturedSpriteRenderSystemDX11.h
+* STextRenderSystemDX11.h
 */
 
 #pragma once
 
 #include "Core/STypes.h"
 #include "RenderSystem/SRenderSystemInterface.h"
+#include "Application/SLocalizationInterface.h"
 
 #include <d3d11.h>
 #include <wrl.h>
@@ -13,25 +14,24 @@
 using Microsoft::WRL::ComPtr;
 
 
-struct DX11TEXTUREDSPRITEINSTANCE
+struct DX11TEXTGLYPHINSTANCE
 {
 	SVector3 pos;
-	float    rotation;
 	SVector2 scale;
-	SColor4F colors[4];
+	SColor4F color;
 	SVector2 uvs[4];
 };
 
 /***************************************************************************
-* Textured sprite render system
+* Text render system
 */
-class STexturedSpriteRenderSystemDX11 : public SUncopyable
+class STextRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	STexturedSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem);
+	STextRenderSystemDX11(class SRenderSystemDX11& renderSystem);
 	//
-	~STexturedSpriteRenderSystemDX11();
+	~STextRenderSystemDX11();
 	//
 	void Shutdown();
 	//
@@ -39,7 +39,7 @@ public:
 	//
 	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	virtual void Render(float deltaSeconds, float gameTime);
+	void Render(float deltaSeconds, float gameTime, const ILocalization* text);
 
 
 protected:
@@ -64,14 +64,18 @@ protected:
 
 protected:
 	//
-	std::vector<DX11TEXTUREDSPRITEINSTANCE> batchData;
+	std::vector<DX11TEXTGLYPHINSTANCE> batchData;
 	//
 	ID3D11ShaderResourceView* cachedTexView;
 	//
+	SSize2 cachedTexSize;
+	//
 	STexID cachedTexId;
 	//
-	std::uint32_t numSprites;
+	std::uint32_t numGlyphs;
 	//
 	std::uint32_t batchesRendered;
+	//
+	float glyphOffset;
 
 };

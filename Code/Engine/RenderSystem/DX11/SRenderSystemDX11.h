@@ -12,7 +12,7 @@
 #include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
-#include "RenderSystem/SFontSystem.h"
+#include "RenderSystem/DX11/STextRenderSystemDX11.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_4.h>
@@ -111,11 +111,11 @@ protected:
 	//
 	SFrameAnimSpriteRenderSystemDX11 frameAnimSpriteRender;
 	//
+	STextRenderSystemDX11 textRenderSystem;
+	//
 	SConstantBuffersDX11 constantBuffers;
 	//
 	STextureManagerDX11 textureManager;
-	//
-	SFontManager fontManager;
 	//
 	SDXShaderManager shaderManager;
 	//

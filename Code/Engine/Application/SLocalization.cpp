@@ -3,22 +3,31 @@
 */
 
 #include "Application/SLocalization.h"
+#include "Application/SApplicationModule.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
-#include <nlohmann/json.hpp>
+#include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
-static const wchar_t* default_value = L"default_value";
 
+namespace SApplication
+{
+    TLocalizationPtr CreateLocalization(const SAppContext& context)
+    {
+        auto loc = std::make_unique<SLocalizationManager>();
+        loc->Init(&context);
+        return loc;
+    }
+}
 
-void SLocalization::Load(const char* filePath)
+void SLocalization::Load(const std::filesystem::path& filePath)
 {
     S_TRY
 
     auto fileText = ReadTextFile(filePath);
 
-    json locFile = json::parse(fileText);
+    json locFile = json::parse(fileText.c_str());
     culture = locFile["culture"].get<std::string>();
 
     for (auto entry : locFile["entries"])
@@ -26,66 +35,113 @@ void SLocalization::Load(const char* filePath)
         std::string key = entry["key"].get<std::string>();
         std::string utf8enc = entry["value"].get<std::string>();
         std::wstring value = FromUtf8(utf8enc);
-
-        entries[key] = value;
+        Set(key, value);
     }
 
-    S_CATCH{ S_THROW_EX("SLocalization::Load('", filePath, "')"); }
+    S_CATCH {
+        std::string msg = ToUtf8(filePath.c_str());
+        S_THROW_EX("SLocalization::Load('", msg.c_str(), "')");
+    }
 }
 
-std::wstring SLocalization::Get(const char* key) const
+void SLocalization::Set(const std::string& key, const std::wstring& value)
+{
+    STextID id = hasher(key);
+    entries.emplace(id, value);
+}
+
+std::pair<std::wstring, bool> SLocalization::Get(STextID key) const
 {
     auto it = entries.find(key);
-    return (it == entries.end()) ? default_value : it->second;
+    if (it != entries.end())
+    {
+        return { it->second, true };
+    }
+
+    return { L"", false };
 }
 
-void SLocalizationManager::AddCulture(const char* filePath)
+std::pair<std::wstring, bool> SLocalization::Get(const std::string_view& key) const
+{
+    STextID id = hasher(key.data());
+    auto it = entries.find(id);
+    if (it != entries.end())
+    {
+        return { it->second, true };
+    }
+
+    return { L"", false };
+}
+
+void SLocalizationManager::AddCulture(const std::filesystem::path& filePath)
 {
     S_TRY
 
-    auto newCulture = std::make_shared<SLocalization>();
+    auto newCulture = std::make_shared<SLocalization>(hasher);
     newCulture->Load(filePath);
 
-    auto cultureName = newCulture->GetCulture();
-    bool cultureChanged = cultures.empty();
+    auto newCultureName = newCulture->GetCulture();
+    bool bCultureChanged = cultures.empty();
 
-    cultures.emplace(cultureName, newCulture);
+    cultures.emplace(newCultureName, newCulture);
 
-    if (cultureChanged)
+    if (bCultureChanged)
     {
-        culture = cultureName;
+        curCulture = newCultureName;
 
-        if (context && onCultureChanged) onCultureChanged(cultureName, *context);
+        if (context && onCultureChanged) onCultureChanged(curCulture, *context);
     }
 
     S_CATCH{ S_THROW("SLocalizationManager::AddCulture()"); }
 }
 
-bool SLocalizationManager::SetCulture(const char* inCulture)
+bool SLocalizationManager::SetCulture(const std::string& inCulture)
 {
-    auto it = cultures.find(culture);
+    auto it = cultures.find(curCulture);
     if (it != cultures.end() &&
-        culture != inCulture)
+        curCulture != inCulture)
     {
-        culture = inCulture;
-        if (context && onCultureChanged) onCultureChanged(culture, *context);
+        curCulture = inCulture;
+        if (context && onCultureChanged) onCultureChanged(curCulture, *context);
+
         return true;
     }
 
     return false;
 }
 
-void SLocalizationManager::Set(const char* key, const wchar_t* value)
+void SLocalizationManager::Set(const std::string& key, const std::wstring& value)
 {
-    auto it = cultures.find(culture);
-    if (it != cultures.end() && key && value)
+    auto it = cultures.find(curCulture);
+    if (it != cultures.end())
     {
         it->second->Set(key, value);
     }
 }
 
-std::wstring SLocalizationManager::Get(const char* key) const
+std::pair<std::wstring, bool> SLocalizationManager::Get(STextID key) const
 {
-    auto it = cultures.find(culture);
-    return (it == cultures.end()) ? default_value : it->second->Get(key);
+    auto cultureIt = cultures.find(curCulture);
+    if (cultureIt != cultures.end())
+    {
+        return cultureIt->second->Get(key);
+    }
+
+    return { L"", false };
+}
+
+std::pair<std::wstring, bool> SLocalizationManager::Get(const std::string_view& key) const
+{
+    auto cultureIt = cultures.find(curCulture);
+    if (cultureIt != cultures.end())
+    {
+        return cultureIt->second->Get(key);
+    }
+
+    return { L"", false };
+}
+
+STextID SLocalizationManager::MakeId(const std::string_view& key) const
+{
+    return hasher(key.data());;
 }

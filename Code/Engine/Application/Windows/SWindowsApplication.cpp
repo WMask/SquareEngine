@@ -58,6 +58,21 @@ SWindowsApplication::~SWindowsApplication()
         threadPool.reset();
     }
 
+    if (world)
+    {
+        world.reset();
+    }
+
+    if (guiSystem)
+    {
+        guiSystem.reset();
+    }
+
+    if (localization)
+    {
+        localization.reset();
+    }
+
     if (inputSystem)
     {
         inputSystem->Shutdown();
@@ -114,8 +129,6 @@ void SWindowsApplication::Run()
     context.app = this;
     context.pool = threadPool.get();
     context.render = renderSystem.get();
-    world = CreateWorld(context);
-    context.world = world.get();
 
     // get window size
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -153,12 +166,17 @@ void SWindowsApplication::Run()
     UpdateWindow(hWnd);
 
     // create game systems
-    inputSystem = CreateDefaultInputSystem();
-    context.input = inputSystem.get();
-    inputSystem->Init(context);
+    world = CreateWorld(context);
+    context.world = world.get();
 
-    guiSystem.Init(context.world, context.input);
-    context.gui = &guiSystem;
+    inputSystem = SApplication::CreateDefaultInputSystem(context);
+    context.input = inputSystem.get();
+
+    localization = SApplication::CreateLocalization(context);
+    context.text = localization.get();
+
+    guiSystem = CreateGuiSystem(context);
+    context.gui = guiSystem.get();
 
     if (renderSystem)
     {
@@ -199,7 +217,7 @@ void SWindowsApplication::Run()
     {
         S_TRY
 
-            initHandler(context);
+        initHandler(context);
 
         S_CATCH{ S_THROW("SWindowsApplication::Run(onInitHandler)") }
     }
@@ -312,7 +330,7 @@ std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     SWin32Handles* handles = reinterpret_cast<SWin32Handles*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-    SGuiSystem* guiSystem = static_cast<SGuiSystem*>(handles ? handles->appContext.gui : nullptr);
+    IGuiSystem* guiSystem = static_cast<IGuiSystem*>(handles ? handles->appContext.gui : nullptr);
     IInputSystem* inputSystem = handles ? handles->appContext.input : nullptr;
     IInputDevice* activeKeyboard = nullptr;
     IInputDevice* activeMouse = nullptr;

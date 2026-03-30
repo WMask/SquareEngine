@@ -137,6 +137,8 @@ target_include_directories(SCore
 		${ENGINE_SOURCE_DIR}
 		${glm_SOURCE_DIR}
 		${eigen_SOURCE_DIR}
+		${entt_SOURCE_DIR}/src
+		${json_SOURCE_DIR}/include
 		${zlib_SOURCE_DIR}
 		${png_SOURCE_DIR}
 		${png_BINARY_DIR}
@@ -151,14 +153,6 @@ target_link_libraries(SCore PRIVATE
     $<$<CONFIG:Release>:z libpng16>
 )
 add_dependencies(SCore zlib PNG::PNG)
-add_custom_command(TARGET SCore POST_BUILD
-	COMMAND cmd.exe /c if "$(Configuration)" == "Debug" "${CMAKE_COMMAND}" -E copy_if_different
-		"${zlib_BINARY_DIR}/Debug/zd.dll" "Debug"
-		"${png_BINARY_DIR}/Debug/libpng16d.dll" "Debug"
-	COMMAND cmd.exe /c if "$(Configuration)" == "Release" "${CMAKE_COMMAND}" -E copy_if_different
-		"${zlib_BINARY_DIR}/Release/z.dll" "Release"
-		"${png_BINARY_DIR}/Release/libpng16.dll" "Release"
-)
 
 
 add_library(SWorld SHARED
@@ -167,6 +161,9 @@ add_library(SWorld SHARED
     ${ENGINE_SOURCE_DIR}/World/SWorldInterface.h
     ${ENGINE_SOURCE_DIR}/World/SWorld.h
     ${ENGINE_SOURCE_DIR}/World/SWorld.cpp
+    ${ENGINE_SOURCE_DIR}/World/SFontInterface.h
+    ${ENGINE_SOURCE_DIR}/World/SFontSystem.h
+    ${ENGINE_SOURCE_DIR}/World/SFontSystem.cpp
     ${ENGINE_SOURCE_DIR}/World/SGuiInterface.h
     ${ENGINE_SOURCE_DIR}/World/SGuiSystem.h
     ${ENGINE_SOURCE_DIR}/World/SGuiSystem.cpp
@@ -176,6 +173,7 @@ target_include_directories(SWorld
 	PUBLIC
 		${ENGINE_SOURCE_DIR}
 		${entt_SOURCE_DIR}/src
+		${json_SOURCE_DIR}/include
 )
 target_compile_features(SWorld PUBLIC cxx_std_20)
 target_link_libraries(SWorld SCore)
@@ -188,6 +186,7 @@ add_library(SApplication SHARED
     ${ENGINE_SOURCE_DIR}/Application/SApplicationModule.cpp
     ${ENGINE_SOURCE_DIR}/Application/SApplicationTypes.h
     ${ENGINE_SOURCE_DIR}/Application/SApplicationInterface.h
+    ${ENGINE_SOURCE_DIR}/Application/SLocalizationInterface.h
     ${ENGINE_SOURCE_DIR}/Application/SLocalization.h
     ${ENGINE_SOURCE_DIR}/Application/SLocalization.cpp
     ${ENGINE_SOURCE_DIR}/Application/SInputInterface.h
@@ -209,8 +208,6 @@ add_dependencies(SApplication SCore SWorld)
 
 
 add_library(SRenderSystem SHARED
-    ${ENGINE_SOURCE_DIR}/RenderSystem/SFontSystem.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/SFontSystem.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/SECSComponents.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/RenderSystemModule.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.h
@@ -221,6 +218,8 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h
@@ -294,6 +293,14 @@ target_link_libraries(FontTool SCore)
 
 
 if (WIN32)
+	add_custom_command(TARGET SCore POST_BUILD
+		COMMAND cmd.exe /c if "$(Configuration)" == "Debug" "${CMAKE_COMMAND}" -E copy_if_different
+			"${zlib_BINARY_DIR}/Debug/zd.dll" "Debug"
+			"${png_BINARY_DIR}/Debug/libpng16d.dll" "Debug"
+		COMMAND cmd.exe /c if "$(Configuration)" == "Release" "${CMAKE_COMMAND}" -E copy_if_different
+			"${zlib_BINARY_DIR}/Release/z.dll" "Release"
+			"${png_BINARY_DIR}/Release/libpng16.dll" "Release"
+	)
 	target_compile_definitions(SCore PRIVATE
         UNICODE
         _UNICODE
@@ -356,6 +363,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
@@ -364,6 +372,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp

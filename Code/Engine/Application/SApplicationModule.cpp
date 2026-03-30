@@ -11,7 +11,7 @@
 
 namespace SApplication
 {
-    std::unique_ptr<IApplication> CreateApplication(SRSType RenderSystemType)
+    TApplicationPtr CreateApplication(SRSType RenderSystemType)
     {
         return std::make_unique<SWindowsApplication>();
     }

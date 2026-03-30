@@ -60,8 +60,14 @@ public:
 
 public:
 	//
-	IGuiSystem() {}
-	//
 	virtual ~IGuiSystem() {}
+	//
+	virtual void OnKeys(std::int32_t btn, SKeyState state, const SAppContext& context) = 0;
+	//
+	virtual void OnMouseButton(SMouseBtn btn, SKeyState state, std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
+	//
+	virtual void OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
 
 };
+
+using TGuiSystemPtr = std::unique_ptr<IGuiSystem>;

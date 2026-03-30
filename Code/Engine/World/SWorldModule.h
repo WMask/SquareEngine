@@ -13,3 +13,7 @@
 /** Create world */
 S_WORLD_API
 TWorldPtr CreateWorld(const SAppContext& context);
+
+/** Create GUI system */
+S_WORLD_API
+TGuiSystemPtr CreateGuiSystem(const SAppContext& context);

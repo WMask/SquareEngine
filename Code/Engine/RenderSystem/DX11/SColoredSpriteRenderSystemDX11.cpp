@@ -118,13 +118,18 @@ void SColoredSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	d3dDeviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
 	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
-	numSprites = 0;
+	// prepare cached state
+	if (batchData.capacity() < MaxInstancedSpritesCount) batchData.reserve(MaxInstancedSpritesCount);
 	batchesRendered = 0;
-	batchData.reserve(MaxInstancedSpritesCount);
+	numSprites = 0;
 
-	const auto& spritesView = world->GetEntities().view<const SColoredSpriteComponent>(entt::exclude<STexturedComponent>);
-	spritesView.each([this](const SColoredSpriteComponent& spriteComponent)
+	const auto& spritesView = world->GetEntities().view<
+		const SColoredSpriteComponent>(entt::exclude<STexturedComponent>);
+	spritesView.each([this](
+		const SColoredSpriteComponent& spriteComponent)
 	{
+		if (!spriteComponent.bVisible) return;
+
 		// store instance data
 		DX11COLOREDSPRITEINSTANCE instance{};
 		instance.pos = spriteComponent.position;

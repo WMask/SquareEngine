@@ -23,6 +23,11 @@ public:
 
 protected:
 	//
-	virtual void RenderBatch(struct ID3D11ShaderResourceView* view) override;
+	void RenderBatch();
+
+
+protected:
+	//
+	SSize2 cachedTexSize;
 
 };

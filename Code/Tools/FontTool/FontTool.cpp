@@ -15,7 +15,7 @@
 
 
 std::string MakeFontName(const std::filesystem::path& path);
-int FindMaxVertOffset(const stbtt_fontinfo& info, unsigned int bitmapSize, unsigned int lineHeight, unsigned int firstChar, unsigned int charCount);
+int FindMaxVertOffset(const stbtt_fontinfo& info, std::uint32_t bitmapSize, std::uint32_t lineHeight, const std::vector<std::uint32_t>& codes);
 
 int main(int argc, const char* argv[])
 {
@@ -23,40 +23,51 @@ int main(int argc, const char* argv[])
     {
         std::cout << "\nRequired arguments:\n";
         std::cout << "1. Path to font file (char*)\n";
-        std::cout << "2. Output image height in pixels (optional) (default: 256)\n";
-        std::cout << "3. Line height in pixels         (optional) (default: 32)\n";
-        std::cout << "4. Offset to first character     (optional) (default: 32)\n";
-        std::cout << "5. Characters count              (optional) (default: 96)\n";
+        std::cout << "2. Culture (char*) like \"en\", \"fr\"...\n";
+        std::cout << "3. Output image height in pixels (optional) (default: 256)\n";
+        std::cout << "4. Line height in pixels         (optional) (default: 32)\n";
+        std::cout << "5. Offset to first character     (optional) (default: 32)\n";
+        std::cout << "6. Characters count              (optional) (default: 96)\n";
         return 1;
     }
 
+    // "en" 256 32 65   58
+    // "ru" 256 32 1040 64
+
     // in pixels
     unsigned int bitmapSize = 256;
+	std::string culture;
 
     if (argc > 2)
     {
-        bitmapSize = atoi(argv[2]);
+        culture = argv[2];
+    }
+
+    if (argc > 3)
+    {
+        bitmapSize = atoi(argv[3]);
     }
 
     // in pixels
     unsigned int lineHeight = 32;
-    if (argc > 3)
+    if (argc > 4)
     {
-        lineHeight = atoi(argv[3]);
+        lineHeight = atoi(argv[4]);
     }
 
     unsigned int firstChar = 32;
-    if (argc > 4)
+    if (argc > 5)
     {
-        firstChar = atoi(argv[4]);
+        firstChar = atoi(argv[5]);
     }
 
     unsigned int charCount = 96;
-    if (argc > 5)
+    if (argc > 6)
     {
-        charCount = atoi(argv[5]);
+        charCount = atoi(argv[6]);
     }
 
+    // read image
     std::filesystem::path fontPath(argv[1]);
     auto fontBuffer = ReadBinaryFile(fontPath);
 
@@ -70,9 +81,30 @@ int main(int argc, const char* argv[])
     std::vector<unsigned char> bitmap;
     bitmap.resize(bitmapSize * bitmapSize, sizeof(unsigned char));
 
-    float scale = stbtt_ScaleForPixelHeight(&info, static_cast<float>(lineHeight));
+    // fill codes
+    std::vector<std::uint32_t> codes;
+    codes.reserve(1000);
 
-    int x = 0, y = FindMaxVertOffset(info, bitmapSize, lineHeight, firstChar, charCount);
+    for (std::uint32_t i = firstChar; i < firstChar + charCount; ++i)
+    {
+        codes.push_back(i);
+    }
+
+    std::vector<std::uint32_t> base = {
+        ' ', '!', '?', '"', '\'', '#', '$', '%', '&',
+        '(', ')', '[', ']', '{', '}', '<', '>', '|', '_',
+        '*', '+', '-', '/', '\\', '=', '.', ',', ':', ';', '@'
+    };
+
+    for (auto i : base)
+    {
+        const bool bNotFound = (std::find(codes.begin(), codes.end(), i) == codes.end());
+        if (bNotFound) codes.push_back(i);
+    }
+
+    // get metrics
+    float scale = stbtt_ScaleForPixelHeight(&info, static_cast<float>(lineHeight));
+    int x = 0, y = FindMaxVertOffset(info, bitmapSize, lineHeight, codes);
     int ascent, descent, lineGap;
     stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
 
@@ -91,9 +123,10 @@ int main(int argc, const char* argv[])
     };
 
     std::vector<LETTER> letters;
-    letters.reserve(charCount);
+    letters.reserve(codes.size());
 
-    for (unsigned int i = firstChar; i < firstChar + charCount; ++i)
+    // generate glyphs
+    for (auto i : codes)
     {
         int posx;
         int offsetx;
@@ -129,11 +162,12 @@ int main(int argc, const char* argv[])
         kern = stbtt_GetCodepointKernAdvance(&info, i, i + 1);
         x += static_cast<int>(roundf(kern * scale));
 
-        letters.emplace_back(LETTER{
-            static_cast<float>(x),
+        const float ww = posx * scale;
+        const float hh = static_cast<float>(y2 - y1);
+        letters.emplace_back(LETTER {
+            static_cast<float>(x) - ww,
             static_cast<float>(y),
-            posx * scale,
-            static_cast<float>(y2 - y1)
+            ww, hh
         });
     }
 
@@ -151,13 +185,14 @@ int main(int argc, const char* argv[])
     std::string fontName = MakeFontName(fontPath);
     std::cout << "Font name: " << fontName << "\n";
 
-    fprintf(jsonFile, "{\n\t\"displayName\": \"%s\",\n\t\"fontSize\": %d,\n\t\"firstCharCode\": %d,\n\t\"glyphs\": [\n", fontName.c_str(), lineHeight, firstChar);
+    fprintf(jsonFile, "{\n\t\"displayName\": \"%s\",\n\t\"fontSize\": %d,\n\t\"firstCharCode\": %d,\n\t\"culture\": \"%s\",\n\t\"glyphs\": [\n",
+        fontName.c_str(), lineHeight, firstChar, culture.c_str());
 
     charCount = static_cast<int>(letters.size());
 
     for (size_t i = 0; i < charCount; i++)
     {
-        wchar_t cc[3] = { static_cast<wchar_t>(i + firstChar), '\0', '\0' };
+        wchar_t cc[3] = { static_cast<wchar_t>(codes[i]), '\0', '\0' };
         if (cc[0] == '"') { cc[0] = cc[1] = '\''; }
         if (cc[0] == '\\') { cc[0] = cc[1] = '\\'; }
         std::string utf8_string = ToUtf8(cc);
@@ -184,7 +219,7 @@ std::string MakeFontName(const std::filesystem::path& fontPath)
     return fontName;
 }
 
-int FindMaxVertOffset(const stbtt_fontinfo& info, unsigned int bitmapSize, unsigned int lineHeight, unsigned int firstChar, unsigned int charCount)
+int FindMaxVertOffset(const stbtt_fontinfo& info, std::uint32_t bitmapSize, std::uint32_t lineHeight, const std::vector<std::uint32_t>& codes)
 {
     float scale = stbtt_ScaleForPixelHeight(&info, static_cast<float>(lineHeight));
     int x = 0, y = lineHeight / 2;
@@ -196,7 +231,7 @@ int FindMaxVertOffset(const stbtt_fontinfo& info, unsigned int bitmapSize, unsig
 
     int MaxVertOffset = 0;
 
-    for (unsigned int i = firstChar; i < firstChar + charCount; ++i)
+    for (auto i : codes)
     {
         int x1, y1, x2, y2;
         stbtt_GetCodepointBitmapBox(&info, i, scale, scale, &x1, &y1, &x2, &y2);

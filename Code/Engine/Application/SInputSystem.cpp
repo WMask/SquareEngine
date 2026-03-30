@@ -3,13 +3,23 @@
 */
 
 #include "Application/SInputSystem.h"
-#include "Application/SApplicationInterface.h"
+#include "Application/SApplicationModule.h"
 #include "Core/SException.h"
 
 
-const std::wstring IInputDevice::MouseAndKeyboard = L"[MK]";
-const std::wstring SKeyboardInputDevice::Name = L"[MK] Keyboard";
-const std::wstring SMouseInputDevice::Name = L"[MK] Mouse";
+const std::wstring_view SMouseInputDevice::Name = L"[MK] Mouse";
+const std::wstring_view SKeyboardInputDevice::Name = L"[MK] Keyboard";
+const std::wstring_view SDefaultInputSystem::Name = L"[MK] Keyboard & Mouse";
+
+namespace SApplication
+{
+    TInputSystemPtr CreateDefaultInputSystem(const SAppContext& context)
+    {
+        auto input = std::make_unique<SDefaultInputSystem>();
+        input->Init(context);
+        return input;
+    }
+}
 
 SDefaultInputSystem::SDefaultInputSystem() : activeDevice(nullptr), cfg(nullptr)
 {
@@ -218,10 +228,4 @@ uint8_t& KEYS::at(int index)
     if (index < 0 || index >= SConst::KeysCount) throw SException("KEYS::operator[]: Invalid index");
 
     return keys[index];
-}
-
-
-TInputSystemPtr CreateDefaultInputSystem()
-{
-    return std::make_unique<SDefaultInputSystem>();
 }

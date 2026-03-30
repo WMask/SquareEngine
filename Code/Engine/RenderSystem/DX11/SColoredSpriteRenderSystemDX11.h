@@ -59,11 +59,14 @@ protected:
 	ComPtr<ID3D11Buffer> instanceBuffer;
 	//
 	std::string shaderName;
+
+
+protected:
+	//
+	std::vector<DX11COLOREDSPRITEINSTANCE> batchData;
 	//
 	std::uint32_t numSprites;
 	//
 	std::uint32_t batchesRendered;
-	//
-	std::vector<DX11COLOREDSPRITEINSTANCE> batchData;
 
 };

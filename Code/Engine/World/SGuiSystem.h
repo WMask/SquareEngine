@@ -4,28 +4,30 @@
 
 #pragma once
 
-#include "World/WorldModule.h"
 #include "World/SGuiInterface.h"
 
 
 /***************************************************************************
 * GUI system class
 */
-class S_WORLD_API SGuiSystem : public IGuiSystem
+class SGuiSystem : public IGuiSystem
 {
 public:
 	//
 	SGuiSystem() {}
 	//
-	~SGuiSystem() {}
-	//
 	void Init(class IWorld* world, class IInputSystem* input);
+
+
+public: // IGuiSystem interface implementation
 	//
-	void OnKeys(std::int32_t btn, SKeyState state, const SAppContext& context);
+	virtual ~SGuiSystem() {}
 	//
-	void OnMouseButton(SMouseBtn btn, SKeyState state, std::int32_t x, std::int32_t y, const SAppContext& context);
+	virtual void OnKeys(std::int32_t btn, SKeyState state, const SAppContext& context) override;
 	//
-	void OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& context);
+	virtual void OnMouseButton(SMouseBtn btn, SKeyState state, std::int32_t x, std::int32_t y, const SAppContext& context) override;
+	//
+	virtual void OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& context) override;
 
 
 protected:

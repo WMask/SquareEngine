@@ -15,30 +15,68 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
+		const std::string_view textKey = "demo_text";
+		entt::entity texturedEntity;
+		entt::entity textEntity;
+		STextID textId;
+		SFontID fontId;
+
 		auto onKeys = [](std::int32_t key, SKeyState keyState, SAppContext context)->void
 		{
 			switch (key)
 			{
 			case SKeys::Escape:
-				if (context.app) context.app->RequestQuit();
+				context.app->RequestQuit();
 				break;
 			}
 		};
 
 		auto onInitHandler = [&](SAppContext context)->void
 		{
-			if (context.input)
-			{
-				context.input->SetKeysHandler(onKeys);
-			}
+			context.input->SetKeysHandler(onKeys);
+
+			// fonts and localization
+			auto texId1 = context.render->LoadTexture("../../Assets/Calibri_32.png");
+			fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", texId1);
+			auto texId2 = context.render->LoadTexture("../../Assets/Calibri_32_ru.png");
+			context.world->GetFonts().AddFont("../../Assets/Calibri_32_ru.json", texId2);
+			context.text->AddCulture("../../Assets/Loc.json");
+			context.text->AddCulture("../../Assets/Loc_ru.json");
+			context.text->SetCulture("en");
+			auto textId = context.text->MakeId(textKey);
+
+			auto& registry = context.world->GetEntities();
+
+			// textured entity
+			texturedEntity = registry.create();
+			auto& sprite = registry.emplace<SColoredSpriteComponent>(
+				texturedEntity, true, 0.0f,
+				SVector3{ 300.0f, 300.0f, 0.0f },
+				SSize2F{ 256.0f, 256.0f }
+			);
+			sprite.SetWhiteColors();
+			auto& texUV = registry.emplace<SSpriteUVComponent>(texturedEntity);
+			texUV.SetDefaultUV();
+			auto texId3 = context.render->LoadTexture("../../Assets/Tree1.png");
+			registry.emplace<STexturedComponent>(texturedEntity, texId3);
+
+			// text entity
+			textEntity = registry.create();
+			registry.emplace<STextComponent>(
+				textEntity,
+				SVector3{ 700.0f, 300.0f, 0.0f },
+				SSize2F{ 256.0f, 256.0f },
+				SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f },
+				textId, fontId
+			);
+			registry.emplace<SWidgetComponent>(textEntity);
 		};
 
-		auto onUpdateHandler = [](float deltaSeconds, SAppContext context)->void
+		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
 		{
-			DebugMsg("HelloApplication: Frame=%d, Time=%.1fs FPS=%d\n", context.gameFrame, context.gameTime, context.fps);
 		};
 
-		auto [cfg, bCfgLoaded] = LoadConfig("../../Code/Samples/Assets/config.json");
+		auto [cfg, bCfgLoaded] = LoadConfig("../../Assets/Config.json");
 		auto app = CreateApplication(SRSType::DX11);
 		if (bCfgLoaded)
 		{

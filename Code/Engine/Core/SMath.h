@@ -212,6 +212,11 @@ inline SSize2 operator/(const SSize2& v1, std::int32_t v2)
 	return SSize2{ v1.width / v2, v1.height / v2 };
 }
 
+inline SSize2F operator/(const SSize2F& v1, const SSize2F& v2)
+{
+	return SSize2F{ v1.width / v2.width, v1.height / v2.height };
+}
+
 inline SVector2 operator*(const SSize2F& size, const SVector2& v)
 {
 	return SVector2{ size.width * v.x, size.height * v.y };

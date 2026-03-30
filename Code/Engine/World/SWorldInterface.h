@@ -5,6 +5,7 @@
 #pragma once
 
 #include "World/SCamera.h"
+#include "World/SFontInterface.h"
 #include "Core/STypes.h"
 #include "Core/SMathTypes.h"
 #include "entt/entt.hpp"
@@ -132,10 +133,16 @@ public:
 	virtual SWorldScale& GetScale() = 0;
 	/**
 	* Get camera */
-	virtual const class SCamera& GetCamera() const = 0;
+	virtual const SCamera& GetCamera() const = 0;
 	/**
 	* Get camera */
-	virtual class SCamera& GetCamera() = 0;
+	virtual SCamera& GetCamera() = 0;
+	/**
+	* Get fonts */
+	virtual const IFontSystem& GetFonts() const = 0;
+	/**
+	* Get fonts */
+	virtual IFontSystem& GetFonts() = 0;
 	/**
 	* Set global sprites and widgets tint color (default White) */
 	virtual void SetGlobalTint(const std::optional<SColor3>& tint) = 0;

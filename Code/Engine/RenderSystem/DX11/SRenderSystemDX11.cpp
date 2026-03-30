@@ -17,6 +17,7 @@ SRenderSystemDX11::SRenderSystemDX11()
 	: coloredSpriteRender(*this)
 	, texturedSpriteRender(*this)
 	, frameAnimSpriteRender(*this)
+	, textRenderSystem(*this)
 {
 }
 
@@ -300,6 +301,7 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
+	textRenderSystem.Shutdown();
 	frameAnimSpriteRender.Shutdown();
 	texturedSpriteRender.Shutdown();
 	coloredSpriteRender.Shutdown();
@@ -368,6 +370,10 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 			texturedSpriteRender.Setup(shader);
 			frameAnimSpriteRender.Setup(shader);
 			frameAnimSpriteRender.CheckShaderName(shaderData.name);
+		}
+		else if (textRenderSystem.CheckShaderName(shaderData.name))
+		{
+			textRenderSystem.Setup(shader);
 		}
 		shader.vsCode = nullptr;
 
@@ -442,6 +448,7 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	coloredSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	frameAnimSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	textRenderSystem.Render(context.deltaSeconds, context.gameTime, context.text);
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);

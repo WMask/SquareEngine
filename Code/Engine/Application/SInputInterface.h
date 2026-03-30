@@ -177,10 +177,6 @@ struct SAxisAction : public SAction
 class IInputDevice
 {
 public:
-	static const std::wstring MouseAndKeyboard;
-
-
-public:
 	/**
 	* Virtual destructor */
 	virtual ~IInputDevice() {}
@@ -210,7 +206,7 @@ public:
 	virtual const KEYS& GetPrevState() const noexcept = 0;
 	/**
 	* Get joystick name */
-	virtual std::wstring GetName() const = 0;
+	virtual std::wstring GetName() const noexcept = 0;
 	/**
 	* Get device type */
 	virtual SInputDeviceType GetType() const noexcept = 0;

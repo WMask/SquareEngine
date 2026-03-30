@@ -2,8 +2,9 @@
 * SFontSystem.cpp
 */
 
-#include "RenderSystem/SFontSystem.h"
+#include "World/SFontSystem.h"
 #include "Core/SException.h"
+#include "Core/SUtils.h"
 
 #include <string>
 #include <vector>
@@ -25,9 +26,9 @@ void SFont::Load(const std::filesystem::path& jsonPath, STexID textureId)
 
 	json font = json::parse(fullJsonText);
 
-	fontSize = font["fontSize"].get<unsigned int>();
-	std::string utf8Name = font["displayName"].get<std::string>();
-	displayName = FromUtf8(utf8Name);
+	fontSize = font["fontSize"].get<std::uint32_t>();
+	culture = font["culture"].get<std::string>();
+	name = font["displayName"].get<std::string>();
 	texId = textureId;
 
 	json glyphsArray = font["glyphs"];
@@ -72,53 +73,71 @@ std::pair<SGlyph, bool> SFont::FindGlyph(wchar_t glyphCode) const
 	return { SGlyph{}, false };
 }
 
-void SFontManager::AddFont(const std::filesystem::path& jsonPath, const std::string_view& fontName, STexID textureId)
+SFontID SFontSystem::AddFont(const std::filesystem::path& jsonPath, STexID textureId)
 {
+	SFontID id = 0u;
+
 	S_TRY
 
-	auto fontIt = fonts.find(fontName.data());
-	if (fontIt != fonts.end())
-	{
-		fontIt->second.Load(jsonPath, textureId);
-	}
-	else
-	{
-		SFont newFont;
-		newFont.Load(jsonPath, textureId);
-		fonts.insert({ fontName.data(), newFont });
-	}
+	SFont newFont;
+	newFont.Load(jsonPath, textureId);
+	id = hasher(newFont.GetName());
+	fonts.insert({ id, newFont });
 
-	S_CATCH{ S_THROW("SFontManager::AddFont()") }
+	S_CATCH{ S_THROW("SFontSystem::AddFont()") }
+
+	return id;
 }
 
-std::pair<STexID, bool> SFontManager::GetTextureId(const std::string_view& fontName) const
+std::pair<STexID, bool> SFontSystem::GetTextureId(SFontID fontId, const std::string& culture) const
 {
-	auto fontIt = fonts.find(fontName.data());
-	if (fontIt != fonts.end())
+	auto allCultures = fonts.equal_range(fontId);
+	for (auto it = allCultures.first; it != allCultures.second; ++it)
 	{
-		return { fontIt->second.GetTextureId(), true };
+		if (it->second.GetCulture() == culture)
+		{
+			return { it->second.GetTextureId(), true};
+		}
 	}
 
 	return { 0u, false };
 }
 
-std::pair<SGlyph, bool> SFontManager::FindGlyph(const std::string_view& fontName, wchar_t glyphCode) const
+std::pair<SGlyph, bool> SFontSystem::FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const
 {
-	auto fontIt = fonts.find(fontName.data());
-	if (fontIt != fonts.end())
+	auto allCultures = fonts.equal_range(fontId);
+	for (auto it = allCultures.first; it != allCultures.second; ++it)
 	{
-		return fontIt->second.FindGlyph(glyphCode);
+		auto [glyph, bGlyphFound] = it->second.FindGlyph(glyphCode);
+		if (bGlyphFound)
+		{
+			if (outLineHeight) *outLineHeight = static_cast<float>(it->second.GetSize());
+			return { glyph, true };
+		}
 	}
 
 	return { SGlyph{}, false };
 }
 
-bool SFontManager::FindGlyphs(const std::string_view& fontName, const std::wstring_view& text, std::vector<SGlyph>& outGlyphs, SSize2F* outTextSize) const
+bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>& outGlyphs, SSize2F* outTextSize) const
 {
+	if (text.empty()) return false;
+
 	S_TRY
 
-	auto fontIt = fonts.find(fontName.data());
-	if (fontIt == fonts.end())
+	const SFont* fontPtr = nullptr;
+	auto allCultures = fonts.equal_range(fontId);
+	for (auto it = allCultures.first; it != allCultures.second; ++it)
+	{
+		auto [glyph, bGlyphFound] = it->second.FindGlyph(text[0]);
+		if (bGlyphFound)
+		{
+			fontPtr = &it->second;
+			break;
+		}
+	}
+
+	if (!fontPtr)
 	{
 		throw std::exception("Cannot find font");
 	}
@@ -126,11 +145,12 @@ bool SFontManager::FindGlyphs(const std::string_view& fontName, const std::wstri
 	outGlyphs.clear();
 	outGlyphs.reserve(text.length());
 
-	float width = 0.0f, height = fontIt->second.GetFontSizeF();
+	float width = 0.0f;
+	float height = static_cast<float>(fontPtr->GetSize());
 
 	for (auto it(text.cbegin()); it != text.cend(); ++it)
 	{
-		auto [glyph, bFound] = fontIt->second.FindGlyph(*it);
+		auto [glyph, bFound] = fontPtr->FindGlyph(*it);
 		if (!bFound)
 		{
 			throw std::exception("Cannot find glyph");
@@ -144,7 +164,7 @@ bool SFontManager::FindGlyphs(const std::string_view& fontName, const std::wstri
 
 	return outGlyphs.size() == text.length();
 
-	S_CATCH{ S_THROW_EX("SFontManager::FindGlyphs('", fontName.data(), "')") }
+	S_CATCH{ S_THROW("SFontSystem::FindGlyphs()") }
 
 	return false;
 }

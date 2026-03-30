@@ -100,11 +100,13 @@ struct SAppContext
 	//
 	class IGuiSystem* gui{};
 	//
-	class IThreadPool* pool{};
-	//
 	class IWorld* world{};
 	//
+	class ILocalization* text{};
+	//
 	class IRenderSystem* render{};
+	//
+	class IThreadPool* pool{};
 	//
 	float deltaSeconds{};
 	//

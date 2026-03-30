@@ -7,15 +7,18 @@
 #include "Application/SInputInterface.h"
 
 
-/**
-* Default input device with keys */
+/***************************************************************************
+* Default input device with keys
+*/
 class SKeyboardInputDevice : public IInputDevice
 {
 public:
-	static const std::wstring Name;
+	//
+	static const std::wstring_view Name;
 
 
 public:
+	//
 	SKeyboardInputDevice(const SAppConfig* inCfg) : cfg(inCfg), name(Name), active(true) {}
 
 
@@ -39,7 +42,7 @@ public:
 	//
 	virtual const KEYS& GetPrevState() const noexcept override { return prevKeys; }
 	//
-	virtual std::wstring GetName() const override { return name; }
+	virtual std::wstring GetName() const noexcept override { return name; }
 	//
 	virtual SInputDeviceType GetType() const noexcept override { return SInputDeviceType::Keyboard; }
 
@@ -59,12 +62,14 @@ protected:
 };
 
 
-/**
-* Default input device with pointer */
+/***************************************************************************
+* Default mouse input device
+*/
 class SMouseInputDevice : public IInputDevice
 {
 public:
-	static const std::wstring Name;
+	//
+	static const std::wstring_view Name;
 
 
 public:
@@ -92,7 +97,7 @@ public:
 	//
 	virtual const KEYS& GetPrevState() const noexcept override { return prevButtons; }
 	//
-	virtual std::wstring GetName() const override { return name; }
+	virtual std::wstring GetName() const noexcept override { return name; }
 	//
 	virtual SInputDeviceType GetType() const noexcept override { return SInputDeviceType::Mouse; }
 	//
@@ -122,10 +127,16 @@ protected:
 };
 
 
-/**
-* Default Input system */
+/***************************************************************************
+* Default Input system
+*/
 class SDefaultInputSystem : public IInputSystem
 {
+public:
+	//
+	static const std::wstring_view Name;
+
+
 public:
 	//
 	SDefaultInputSystem();
@@ -193,8 +204,3 @@ protected:
 	const SAppConfig* cfg;
 
 };
-
-
-/**
-* Default input system */
-S_APPLICATION_API TInputSystemPtr CreateDefaultInputSystem();

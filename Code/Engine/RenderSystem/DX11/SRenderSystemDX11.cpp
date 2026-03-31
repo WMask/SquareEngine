@@ -14,8 +14,10 @@
 
 
 SRenderSystemDX11::SRenderSystemDX11()
-	: coloredSpriteRendererDX11(*this)
-	, texturedSpriteRendererDX11(*this)
+	: coloredSpriteRender(*this)
+	, texturedSpriteRender(*this)
+	, frameAnimSpriteRender(*this)
+	, textRenderSystem(*this)
 {
 }
 
@@ -299,8 +301,10 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
-	texturedSpriteRendererDX11.Shutdown();
-	coloredSpriteRendererDX11.Shutdown();
+	textRenderSystem.Shutdown();
+	frameAnimSpriteRender.Shutdown();
+	texturedSpriteRender.Shutdown();
+	coloredSpriteRender.Shutdown();
 	constantBuffers.Shutdown();
 	textureManager.Shutdown();
 	shaderManager.Shutdown();
@@ -357,13 +361,19 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		}
 
 		shader.vsCode = shaderData.vsCode.Get();
-		if (coloredSpriteRendererDX11.CheckShaderName(shaderData.name))
+		if (coloredSpriteRender.CheckShaderName(shaderData.name))
 		{
-			coloredSpriteRendererDX11.Setup(shader);
+			coloredSpriteRender.Setup(shader);
 		}
-		else if (texturedSpriteRendererDX11.CheckShaderName(shaderData.name))
+		else if (texturedSpriteRender.CheckShaderName(shaderData.name))
 		{
-			texturedSpriteRendererDX11.Setup(shader);
+			texturedSpriteRender.Setup(shader);
+			frameAnimSpriteRender.Setup(shader);
+			frameAnimSpriteRender.CheckShaderName(shaderData.name);
+		}
+		else if (textRenderSystem.CheckShaderName(shaderData.name))
+		{
+			textRenderSystem.Setup(shader);
 		}
 		shader.vsCode = nullptr;
 
@@ -390,16 +400,17 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 }
 
 
-ID3D11ShaderResourceView* SRenderSystemDX11::FindTexture(STexID id) const
+std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
 {
+	SSize2 size{};
 	ID3D11Texture2D* texture = nullptr;
 	ID3D11ShaderResourceView* view = nullptr;
-	if (textureManager.FindTexture(id, &texture, &view))
+	if (textureManager.FindTexture(id, &texture, &view, &size))
 	{
-		return view;
+		return { view, size };
 	}
 
-	return nullptr;
+	return { view, size };
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -434,8 +445,10 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// render frame
 	drawCalls = 0;
-	coloredSpriteRendererDX11.Render();
-	texturedSpriteRendererDX11.Render();
+	coloredSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	frameAnimSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	textRenderSystem.Render(context.deltaSeconds, context.gameTime, context.text);
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);

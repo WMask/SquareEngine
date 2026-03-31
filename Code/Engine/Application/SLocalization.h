@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include "Application/ApplicationModule.h"
-#include "Application/SApplicationTypes.h"
-#include <entt/entt.hpp>
-#include <string>
+#include "Application/SLocalizationInterface.h"
+#include "Core/STypes.h"
+
 #include <map>
 
 #if defined(_MSC_VER)
@@ -16,75 +15,39 @@
 #endif
 
 
-/***************************************************************************
-* Localization file
-*/
-class S_APPLICATION_API SLocalization
+/** Localization file */
+class SLocalization : public SUncopyable
 {
 public:
-	using TLocMap = std::map<std::string, std::wstring>;
 	//
-	SLocalization& operator=(const SLocalization&) = default;
-	//
-	SLocalization(const SLocalization&) = default;
-
-
-public:
-	SLocalization() {}
+	SLocalization(std::hash<std::string>& inHasher) : hasher(inHasher) {}
 	//
 	~SLocalization() {}
 	//
-	void Load(const char* filePath);
+	void Load(const std::filesystem::path& filePath);
 	//
-	void Set(const char* key, const wchar_t* value) { entries[key] = value; }
+	void Set(const std::string_view& key, const std::wstring& value);
 	//
-	std::wstring Get(const char* key) const;
+	std::pair<std::wstring, bool> Get(STextID key) const;
+	//
+	std::pair<std::wstring, bool> Get(const std::string_view& key) const;
 	//
 	const std::string& GetCulture() const { return culture; }
 
 
 protected:
+	//
 	std::string culture;
 	//
-	TLocMap entries;
-
-};
-
-
-/***************************************************************************
-* Localization interface
-*/
-class ILocalizationManager
-{
-public:
-	/**
-	* Subscribe to get changes of culture. */
-	entt::delegate<void(std::string, SAppContext)> onCultureChanged;
-
-
-public:
-	virtual ~ILocalizationManager() {}
+	std::map<STextID, std::wstring> entries;
 	//
-	virtual void Init(const SAppContext* context) = 0;
-	// add new culture
-	virtual void AddCulture(const char* filePath) = 0;
-	// culture like "en", "es", "fr"
-	virtual bool SetCulture(const char* culture) = 0;
-	// set value
-	virtual void Set(const char* key, const wchar_t* value) = 0;
-	// get localized text entry
-	virtual std::wstring Get(const char* key) const = 0;
-	// get current culture's name
-	virtual const std::string& GetCulture() const = 0;
+	std::hash<std::string>& hasher;
+
 };
 
-using TLocalizationPtr = std::unique_ptr<ILocalizationManager>;
 
-
-/***************************************************************************
-* Localization manager
-*/
-class S_APPLICATION_API SLocalizationManager : public ILocalizationManager
+/** Localization manager */
+class SLocalizationManager : public ILocalization
 {
 public:
 	SLocalizationManager() : context(nullptr) {}
@@ -94,25 +57,31 @@ public:
 
 public:
 	//
-	virtual void Init(const struct SAppContext* inContext) override { context = inContext; }
+	virtual void Init(const SAppContext* inContext) override { context = inContext; }
 	//
-	virtual void AddCulture(const char* filePath) override;
+	virtual void AddCulture(const std::filesystem::path& filePath) override;
 	//
-	virtual bool SetCulture(const char* culture) override;
+	virtual bool SetCulture(const std::string& culture) override;
 	//
-	virtual void Set(const char* key, const wchar_t* value) override;
+	virtual void Set(const std::string_view& key, const std::wstring& value) override;
 	//
-	virtual std::wstring Get(const char* key) const override;
+	virtual std::pair<std::wstring, bool> Get(STextID key) const override;
 	//
-	virtual const std::string& GetCulture() const override { return culture; }
+	virtual std::pair<std::wstring, bool> Get(const std::string_view& key) const override;
+	//
+	virtual const std::string& GetCulture() const override { return curCulture; }
+	//
+	virtual STextID MakeId(const std::string_view& key) const override;
 
 
 protected:
 	//
-	std::unordered_map<std::string, std::shared_ptr<SLocalization>> cultures;
+	std::map<std::string, std::shared_ptr<SLocalization>> cultures;
 	//
-	std::string culture;
+	std::string curCulture;
 	//
 	const SAppContext* context;
+	//
+	std::hash<std::string> hasher;
 
 };

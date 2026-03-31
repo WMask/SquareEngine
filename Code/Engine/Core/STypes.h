@@ -136,4 +136,33 @@ namespace SConvert
 			1.0f
 		};
 	}
+
+	inline SColor4F ToColor4(const SVector4& v)
+	{
+		return SColor4F{ v.x, v.y, v.z, v.w };
+	}
+
+#if USING_DXMATH
+
+	inline DirectX::XMVECTOR ToXVector4(const SColor3F& c)
+	{
+		return DirectX::XMVectorSet(c.r, c.g, c.b, 1.0f);
+	}
+
+	inline DirectX::XMVECTOR ToXVector4(const SColor4F& c)
+	{
+		return DirectX::XMVectorSet(c.r, c.g, c.b, c.a);
+	}
+
+	inline SColor3F ToColor3(DirectX::XMVECTOR v)
+	{
+		return SColor3F{ DirectX::XMVectorGetX(v), DirectX::XMVectorGetY(v), DirectX::XMVectorGetZ(v) };
+	}
+
+	inline SColor4F ToColor4(DirectX::XMVECTOR v)
+	{
+		return SColor4F{ DirectX::XMVectorGetX(v), DirectX::XMVectorGetY(v), DirectX::XMVectorGetZ(v), DirectX::XMVectorGetW(v) };
+	}
+
+#endif
 }

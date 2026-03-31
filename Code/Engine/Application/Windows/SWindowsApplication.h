@@ -8,10 +8,12 @@
 #include <windows.h>
 #include <chrono>
 
-#include "Application/SInputSystem.h"
 #include "Application/SApplicationInterface.h"
+#include "Application/SLocalizationInterface.h"
+#include "Application/SInputInterface.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "World/SWorldInterface.h"
+#include "World/SGuiInterface.h"
 #include "Core/SCoreModule.h"
 
 #pragma warning(disable : 4275)
@@ -113,16 +115,20 @@ protected:
 	//
 	SAppContext context;
 	//
-	TInputSystemPtr inputSystem;
-	//
-	TThreadPoolPtr threadPool;
-	//
 	IApplication::SInitHandler initHandler;
 	//
 	IApplication::SUpdateHandler updateHandler;
 	//
-	TRenderSystemExPtr renderSystem;
-	//
 	TWorldPtr world;
+	//
+	TGuiSystemPtr guiSystem;
+	//
+	TLocalizationPtr localization;
+	//
+	TInputSystemPtr inputSystem;
+	//
+	TThreadPoolPtr threadPool;
+	//
+	TRenderSystemExPtr renderSystem;
 
 };

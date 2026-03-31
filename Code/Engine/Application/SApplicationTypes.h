@@ -16,6 +16,14 @@ enum class SKeyState
 	Down
 };
 
+/** Mouse buttons */
+enum class SMouseBtn : int
+{
+	Left,
+	Right,
+	Middle
+};
+
 /** Window mode */
 enum class SAppMode { Windowed, Fullscreen };
 
@@ -90,11 +98,15 @@ struct SAppContext
 	//
 	class IInputSystem* input{};
 	//
-	class IThreadPool* pool{};
+	class IGuiSystem* gui{};
 	//
 	class IWorld* world{};
 	//
+	class ILocalization* text{};
+	//
 	class IRenderSystem* render{};
+	//
+	class IThreadPool* pool{};
 	//
 	float deltaSeconds{};
 	//

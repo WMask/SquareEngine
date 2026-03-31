@@ -212,9 +212,29 @@ inline SSize2 operator/(const SSize2& v1, std::int32_t v2)
 	return SSize2{ v1.width / v2, v1.height / v2 };
 }
 
+inline SSize2F operator/(const SSize2F& v1, const SSize2F& v2)
+{
+	return SSize2F{ v1.width / v2.width, v1.height / v2.height };
+}
+
 inline SVector2 operator*(const SSize2F& size, const SVector2& v)
 {
 	return SVector2{ size.width * v.x, size.height * v.y };
+}
+
+
+/***************************************************************************
+* Rect
+*/
+
+inline bool Contains(const SRectF& r, const SPoint2F& p)
+{
+	return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+}
+
+inline bool Contains(const SRect& r, const SPoint2& p)
+{
+	return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
 }
 
 
@@ -288,6 +308,30 @@ namespace SMath
 
 namespace SMath
 {
+	inline SColor3F LerpColor3(const SColor3F& from, const SColor3F& to, float alpha)
+	{
+		DirectX::XMVECTOR xFrom = SConvert::ToXVector4(from);
+		DirectX::XMVECTOR xTo = SConvert::ToXVector4(to);
+		DirectX::XMVECTOR xVec = DirectX::XMVectorLerp(xFrom, xTo, alpha);
+		return SConvert::ToColor3(xVec);
+	}
+
+	inline SColor4F LerpColor4(const SColor4F& from, const SColor4F& to, float alpha)
+	{
+		DirectX::XMVECTOR xFrom = SConvert::ToXVector4(from);
+		DirectX::XMVECTOR xTo = SConvert::ToXVector4(to);
+		DirectX::XMVECTOR xVec = DirectX::XMVectorLerp(xFrom, xTo, alpha);
+		return SConvert::ToColor4(xVec);
+	}
+
+	inline SVector3 LerpVector3(const SVector3& from, const SVector3& to, float alpha)
+	{
+		DirectX::XMVECTOR xFrom = SConvert::ToXVector4(from);
+		DirectX::XMVECTOR xTo = SConvert::ToXVector4(to);
+		DirectX::XMVECTOR xVec = DirectX::XMVectorLerp(xFrom, xTo, alpha);
+		return SConvert::ToVector3(xVec);
+	}
+
 	inline SMatrix3 InverseM3(const SMatrix3& m)
 	{
 		DirectX::XMVECTOR determinant;

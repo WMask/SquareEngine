@@ -3,13 +3,23 @@
 */
 
 #include "Application/SInputSystem.h"
-#include "Application/SApplicationInterface.h"
+#include "Application/SApplicationModule.h"
 #include "Core/SException.h"
 
-const std::wstring IInputDevice::MouseAndKeyboard = L"[MK]";
-const std::wstring SKeyboardInputDevice::Name = L"[MK] Keyboard";
-const std::wstring SMouseInputDevice::Name = L"[MK] Mouse";
 
+const std::wstring_view SMouseInputDevice::Name = L"[MK] Mouse";
+const std::wstring_view SKeyboardInputDevice::Name = L"[MK] Keyboard";
+const std::wstring_view SDefaultInputSystem::Name = L"[MK] Keyboard & Mouse";
+
+namespace SApplication
+{
+    TInputSystemPtr CreateDefaultInputSystem(const SAppContext& context)
+    {
+        auto input = std::make_unique<SDefaultInputSystem>();
+        input->Init(context);
+        return input;
+    }
+}
 
 SDefaultInputSystem::SDefaultInputSystem() : activeDevice(nullptr), cfg(nullptr)
 {
@@ -55,11 +65,11 @@ void SDefaultInputSystem::Update(float deltaSeconds, SAppContext context)
     for (auto& device : devices)
     {
         uint8_t deviceId = static_cast<uint8_t>(device->GetType());
-        if (!device->IsActive() || deviceId >= FirstJoystickId) continue;
+        if (!device->IsActive() || deviceId >= SConst::FirstJoystickId) continue;
 
         if (device->GetType() == SInputDeviceType::Keyboard)
         {
-            for (int key = 0; key < SJoystickKeysOffset; key++)
+            for (int key = 0; key < SConst::JoystickKeysOffset; key++)
             {
                 bool bIsPressed = device->GetState().keys[key] && !device->GetPrevState().keys[key];
                 bool bIsReleased = !device->GetState().keys[key] && device->GetPrevState().keys[key];
@@ -88,7 +98,7 @@ void SDefaultInputSystem::Update(float deltaSeconds, SAppContext context)
                 static_cast<int>(std::round(mousePos.y) + 0.1f)
             };
 
-            for (int button = 0; button < SMouseKeysCount; button++)
+            for (int button = 0; button < SConst::MouseKeysCount; button++)
             {
                 bool bIsPressed = device->GetState().keys[button] && !device->GetPrevState().keys[button];
                 bool bIsReleased = !device->GetState().keys[button] && device->GetPrevState().keys[button];
@@ -165,12 +175,12 @@ bool SKeyboardInputDevice::Pressed(const std::string& actionName) const
     {
         if (action.Name == actionName)
         {
-            if (action.Key >= 0 && action.Key < SJoystickKeysOffset && (keys.keys[action.Key] != 0))
+            if (action.Key >= 0 && action.Key < SConst::JoystickKeysOffset && (keys.keys[action.Key] != 0))
             {
                 return true;
             }
 
-            if (action.JoyKey >= SJoystickKeysOffset && action.JoyKey < SKeysCount && (keys.keys[action.JoyKey] != 0))
+            if (action.JoyKey >= SConst::JoystickKeysOffset && action.JoyKey < SConst::KeysCount && (keys.keys[action.JoyKey] != 0))
             {
                 return true;
             }
@@ -196,7 +206,7 @@ bool SMouseInputDevice::Pressed(const std::string& actionName) const
     {
         if (action.Name == actionName)
         {
-            if (action.MouseBtn >= 0 && action.MouseBtn < SMouseKeysCount && (buttons.keys[action.MouseBtn] != 0))
+            if (action.MouseBtn >= 0 && action.MouseBtn < SConst::MouseKeysCount && (buttons.keys[action.MouseBtn] != 0))
             {
                 return true;
             }
@@ -215,13 +225,7 @@ KEYS::KEYS()
 
 uint8_t& KEYS::at(int index)
 {
-    if (index < 0 || index >= SKeysCount) throw SException("KEYS::operator[]: Invalid index");
+    if (index < 0 || index >= SConst::KeysCount) throw SException("KEYS::operator[]: Invalid index");
 
     return keys[index];
-}
-
-
-TInputSystemPtr CreateDefaultInputSystem()
-{
-    return std::make_unique<SDefaultInputSystem>();
 }

@@ -29,7 +29,10 @@ public:
 	* Virtual destructor */
 	virtual ~IRenderSystem() {}
 	/**
-	* Load texture */
+	* Request async texture loading and return id.
+	* Loading may take some time, after that texture will be available at this id.
+	* Render system skip rendering if texture not loaded yet.
+	*/
 	virtual STexID LoadTexture(const std::filesystem::path& texturePath) = 0;
 	/**
 	* Load textures and call delegate */

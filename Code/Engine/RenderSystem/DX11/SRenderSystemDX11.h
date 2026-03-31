@@ -9,8 +9,10 @@
 #include "RenderSystem/Windows/SWindowsUtils.h"
 #include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
-#include "RenderSystem/DX11/SColoredSpriteRendererDX11.h"
-#include "RenderSystem/DX11/STexturedSpriteRendererDX11.h"
+#include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
+#include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
+#include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
+#include "RenderSystem/DX11/STextRenderSystemDX11.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_4.h>
@@ -33,7 +35,7 @@ public:
 	//
 	const SShaderDataDX11* FindShader(const std::string& name) const;
 
-	ID3D11ShaderResourceView* FindTexture(STexID id) const;
+	std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const;
 	//
 	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
 	//
@@ -103,15 +105,19 @@ protected:
 
 protected:
 	//
-	SColoredSpriteRendererDX11 coloredSpriteRendererDX11;
+	SColoredSpriteRenderSystemDX11 coloredSpriteRender;
 	//
-	STexturedSpriteRendererDX11 texturedSpriteRendererDX11;
+	STexturedSpriteRenderSystemDX11 texturedSpriteRender;
+	//
+	SFrameAnimSpriteRenderSystemDX11 frameAnimSpriteRender;
+	//
+	STextRenderSystemDX11 textRenderSystem;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
-	SDXShaderManager shaderManager;
-	//
 	STextureManagerDX11 textureManager;
+	//
+	SDXShaderManager shaderManager;
 	//
 	ComPtr<IDXGISwapChain4> swapChain;
 	//
@@ -136,9 +142,9 @@ protected:
 	//
 	std::unordered_map<std::string, SShaderDataDX11> shaders;
 	//
-	IWorld* world{};
-	//
 	std::uint32_t drawCalls = 0;
+	//
+	IWorld* world{};
 
 
 protected:

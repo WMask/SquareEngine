@@ -58,6 +58,21 @@ SWindowsApplication::~SWindowsApplication()
         threadPool.reset();
     }
 
+    if (world)
+    {
+        world.reset();
+    }
+
+    if (guiSystem)
+    {
+        guiSystem.reset();
+    }
+
+    if (localization)
+    {
+        localization.reset();
+    }
+
     if (inputSystem)
     {
         inputSystem->Shutdown();
@@ -114,8 +129,6 @@ void SWindowsApplication::Run()
     context.app = this;
     context.pool = threadPool.get();
     context.render = renderSystem.get();
-    world = CreateWorld(context);
-    context.world = world.get();
 
     // get window size
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -153,6 +166,18 @@ void SWindowsApplication::Run()
     UpdateWindow(hWnd);
 
     // create game systems
+    world = CreateWorld(context);
+    context.world = world.get();
+
+    inputSystem = SApplication::CreateDefaultInputSystem(context);
+    context.input = inputSystem.get();
+
+    localization = SApplication::CreateLocalization(context);
+    context.text = localization.get();
+
+    guiSystem = CreateGuiSystem(context);
+    context.gui = guiSystem.get();
+
     if (renderSystem)
     {
         renderSystem->Subscribe(context);
@@ -160,10 +185,6 @@ void SWindowsApplication::Run()
         renderSystem->LoadShaders("../../Code/Shaders/HLSL/");
         context.render = renderSystem.get();
     }
-
-    inputSystem = CreateDefaultInputSystem();
-    context.input = inputSystem.get();
-    inputSystem->Init(context);
 
     // set WndProc handles
     SWin32Handles handles{
@@ -196,7 +217,7 @@ void SWindowsApplication::Run()
     {
         S_TRY
 
-            initHandler(context);
+        initHandler(context);
 
         S_CATCH{ S_THROW("SWindowsApplication::Run(onInitHandler)") }
     }
@@ -309,6 +330,7 @@ std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     SWin32Handles* handles = reinterpret_cast<SWin32Handles*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    IGuiSystem* guiSystem = static_cast<IGuiSystem*>(handles ? handles->appContext.gui : nullptr);
     IInputSystem* inputSystem = handles ? handles->appContext.input : nullptr;
     IInputDevice* activeKeyboard = nullptr;
     IInputDevice* activeMouse = nullptr;
@@ -358,16 +380,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             break;
         case WM_KEYDOWN:
-            if (activeKeyboard) activeKeyboard->SetState(static_cast<int>(wParam), true);
+            if (activeKeyboard) activeKeyboard->SetState(static_cast<std::int32_t>(wParam), true);
+            if (guiSystem) guiSystem->OnKeys(static_cast<std::int32_t>(wParam), SKeyState::Down, handles->appContext);
             break;
         case WM_KEYUP:
-            if (activeKeyboard) activeKeyboard->SetState(static_cast<int>(wParam), false);
+            if (activeKeyboard) activeKeyboard->SetState(static_cast<std::int32_t>(wParam), false);
+            if (guiSystem) guiSystem->OnKeys(static_cast<std::int32_t>(wParam), SKeyState::Up, handles->appContext);
             break;
         case WM_MOUSEMOVE:
+            if (guiSystem) guiSystem->OnMouseMove(x, y, handles->appContext);
             break;
         case WM_LBUTTONDOWN:
+            if (guiSystem) guiSystem->OnMouseButton(SMouseBtn::Left, SKeyState::Down, x, y, handles->appContext);
             break;
         case WM_LBUTTONUP:
+            if (guiSystem) guiSystem->OnMouseButton(SMouseBtn::Left, SKeyState::Up, x, y, handles->appContext);
             break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);

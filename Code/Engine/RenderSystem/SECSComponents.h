@@ -4,20 +4,68 @@
 
 #pragma once
 
+#include "Application/SLocalizationInterface.h"
 #include "RenderSystem/SRenderSystemInterface.h"
 
 
-/** Colored sprite component */
-struct SColoredSpriteComponent
+/** Sprite component */
+struct SSpriteComponent
 {
+	bool bVisible = true;
+	//
 	float rotation = 0.0f;
 	//
 	SVector3 position;
 	//
 	SSize2F size;
-	//
-	SColor4F colors[4];
+};
 
+
+/** Sprite UV component */
+struct SSpriteUVComponent
+{
+	SVector2 uvs[4];
+
+public:
+	//
+	inline void SetDefaultUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetTopHalfUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 0.5f };
+		uvs[3] = SVector2{ 0.0f, 0.5f };
+	}
+	//
+	inline void SetBottomHalfUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.5f };
+		uvs[1] = SVector2{ 0.0f, 0.5f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
+	{
+		uvs[0] = rt;
+		uvs[1] = lt;
+		uvs[2] = rb;
+		uvs[3] = lb;
+	}
+};
+
+
+/** Colored sprite component */
+struct SColoredComponent
+{
+	SColor4F colors[4];
 
 public:
 	//
@@ -54,7 +102,7 @@ public:
 };
 
 
-/** Texture component */
+/** Textured component */
 struct STexturedComponent
 {
 	// id in texture manager
@@ -62,27 +110,105 @@ struct STexturedComponent
 };
 
 
-/** Sprite UV component */
-struct SSpriteUVComponent
+/** Sprite frame animation component */
+struct SSpriteFrameAnimComponent
 {
-	SVector2 uvs[4];
+	// start offset on frames sheet
+	std::int32_t frameOffset;
+	//
+	std::int32_t framesCount;
+	//
+	std::int32_t framesPerSecond;
+	// in pixels
+	SSize2F frameSize;
+	//
+	float startTime;
 
 
 public:
 	//
-	inline void SetDefaultUV()
+	inline void SetAnim(std::int32_t inFrameOffset, std::int32_t inFramesCount,
+		std::int32_t inFramesPerSecond, SSize2 inFrameSize, float inStartTime)
 	{
-		uvs[0] = SVector2{ 1.0f, 0.0f };
-		uvs[1] = SVector2{ 0.0f, 0.0f };
-		uvs[2] = SVector2{ 1.0f, 1.0f };
-		uvs[3] = SVector2{ 0.0f, 1.0f };
+		frameOffset = inFrameOffset;
+		framesCount = inFramesCount;
+		framesPerSecond = inFramesPerSecond;
+		frameSize = SConvert::ToSize2F(inFrameSize);
+		startTime = inStartTime;
 	}
 	//
-	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
+	inline void GenerateFrameUV(float gameTime, SSize2 texSize, SSpriteUVComponent& outUV) const
 	{
-		uvs[0] = rt;
-		uvs[1] = lt;
-		uvs[2] = rb;
-		uvs[3] = lb;
+		const float frameTime = (1.0f / framesPerSecond);
+		std::uint32_t frameId = frameOffset + (static_cast<std::uint32_t>((gameTime - startTime) / frameTime) % framesCount);
+		if (frameId >= (frameOffset + framesCount)) frameId = frameOffset;
+
+		const std::uint32_t columns = texSize.width / frameSize.width;
+		if (columns > 0)
+		{
+			const std::uint32_t x = frameId % columns;
+			const std::uint32_t y = frameId / columns;
+			const float xs = frameSize.width / static_cast<float>(texSize.width);
+			const float ys = frameSize.height / static_cast<float>(texSize.height);
+			const float xf = static_cast<float>(x * frameSize.width) / static_cast<float>(texSize.width);
+			const float yf = static_cast<float>(y * frameSize.height) / static_cast<float>(texSize.height);
+
+			outUV.uvs[0] = SVector2{ xf + xs, yf }; // rt
+			outUV.uvs[1] = SVector2{ xf,      yf }; // lt
+			outUV.uvs[2] = SVector2{ xf + xs, yf + ys }; // rb
+			outUV.uvs[3] = SVector2{ xf,      yf + ys }; // lb
+		}
 	}
+};
+
+
+using SWidgetID = std::uint32_t;
+
+/** Widget component */
+struct SWidgetComponent
+{
+	SWidgetID id;
+	//
+	bool bVisible = true;
+	//
+	bool bHovered = false;
+	//
+	bool bPressed = false;
+	//
+	float opacity = 1.0f;
+};
+
+
+enum class STextAlign
+{
+	Begin, Middle, End
+};
+
+/** Text component */
+struct STextComponent
+{
+	SColor4F color;
+	// text id in localization system
+	STextID textId;
+	// font id in font system
+	SFontID fontId;
+	//
+	STextAlign align = STextAlign::Middle;
+
+
+public:
+	//
+	inline void GenerateGlyphUV(SGlyph glyph, SSize2F texSize, SSpriteUVComponent& outUV) const
+	{
+		const float xx = glyph.pos.x / texSize.width;
+		const float yy = glyph.pos.y / texSize.height;
+		const float ww = glyph.size.width / texSize.width;
+		const float hh = glyph.size.height / texSize.height;
+
+		outUV.uvs[0] = SVector2{ xx + ww, yy };      // rt
+		outUV.uvs[1] = SVector2{ xx,      yy };      // lt
+		outUV.uvs[2] = SVector2{ xx + ww, yy + hh }; // rb
+		outUV.uvs[3] = SVector2{ xx,      yy + hh }; // lb
+	}
+
 };

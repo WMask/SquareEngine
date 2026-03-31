@@ -1,5 +1,5 @@
 /***************************************************************************
-* SColoredSpriteRendererDX11.h
+* STexturedSpriteRenderSystemDX11.h
 */
 
 #pragma once
@@ -13,32 +13,33 @@
 using Microsoft::WRL::ComPtr;
 
 
-struct DX11COLOREDSPRITEINSTANCE
+struct DX11TEXTUREDSPRITEINSTANCE
 {
 	SVector3 pos;
 	float    rotation;
 	SVector2 scale;
 	SColor4F colors[4];
+	SVector2 uvs[4];
 };
 
 /***************************************************************************
-* Colored sprite renderer
+* Textured sprite render system
 */
-class SColoredSpriteRendererDX11 : public SUncopyable
+class STexturedSpriteRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	SColoredSpriteRendererDX11(class SRenderSystemDX11& renderSystem);
+	STexturedSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem);
 	//
-	~SColoredSpriteRendererDX11();
+	~STexturedSpriteRenderSystemDX11();
+	//
+	void Shutdown();
 	//
 	bool CheckShaderName(const std::string& shaderName);
 	//
 	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	void Render();
-	//
-	void Shutdown();
+	virtual void Render(float deltaSeconds, float gameTime);
 
 
 protected:
@@ -48,7 +49,7 @@ protected:
 
 protected:
 	//
-	SRenderSystemDX11& renderSystemDX11;
+	class SRenderSystemDX11& renderSystemDX11;
 	//
 	struct ID3D11DeviceContext* d3dDeviceContext;
 	//
@@ -56,14 +57,21 @@ protected:
 	//
 	struct ID3D11Buffer* spriteIndexBuffer;
 	//
-	ComPtr<ID3D11Buffer> instanceBuffer;
+	ComPtr<struct ID3D11Buffer> instanceBuffer;
 	//
 	std::string shaderName;
+
+
+protected:
+	//
+	std::vector<DX11TEXTUREDSPRITEINSTANCE> batchData;
+	//
+	ID3D11ShaderResourceView* cachedTexView;
+	//
+	STexID cachedTexId;
 	//
 	std::uint32_t numSprites;
 	//
 	std::uint32_t batchesRendered;
-	//
-	std::vector<DX11COLOREDSPRITEINSTANCE> batchData;
 
 };

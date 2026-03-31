@@ -5,6 +5,7 @@
 #pragma once
 
 #include "World/WorldModule.h"
+#include "World/SFontSystem.h"
 #include "World/SWorldInterface.h"
 #include "Application/SApplicationTypes.h"
 
@@ -35,9 +36,13 @@ public:// IWorld interface implementation
 	//
 	virtual SWorldScale& GetScale() { return worldScale; }
 	//
-	virtual const class SCamera& GetCamera() const { return camera; }
+	virtual const SCamera& GetCamera() const { return camera; }
 	//
-	virtual class SCamera& GetCamera() override { return camera; }
+	virtual SCamera& GetCamera() override { return camera; }
+	//
+	virtual const IFontSystem& GetFonts() const override { return fonts; }
+	//
+	virtual IFontSystem& GetFonts() override { return fonts; }
 	//
 	virtual void SetGlobalTint(const std::optional<SColor3>& tint) override;
 	//
@@ -46,13 +51,15 @@ public:// IWorld interface implementation
 
 protected:
 	//
-	SAppContext context;
+	const SAppContext* context;
 	//
 	entt::registry entities;
 	//
 	SWorldScale worldScale{};
 	//
 	SCamera camera{};
+	//
+	SFontSystem fonts;
 	//
 	std::optional<SColor3> globalTint;
 

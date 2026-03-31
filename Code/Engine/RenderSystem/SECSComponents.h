@@ -8,8 +8,8 @@
 #include "RenderSystem/SRenderSystemInterface.h"
 
 
-/** Colored sprite component */
-struct SColoredSpriteComponent
+/** Sprite component */
+struct SSpriteComponent
 {
 	bool bVisible = true;
 	//
@@ -18,9 +18,54 @@ struct SColoredSpriteComponent
 	SVector3 position;
 	//
 	SSize2F size;
-	//
-	SColor4F colors[4];
+};
 
+
+/** Sprite UV component */
+struct SSpriteUVComponent
+{
+	SVector2 uvs[4];
+
+public:
+	//
+	inline void SetDefaultUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetTopHalfUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 0.5f };
+		uvs[3] = SVector2{ 0.0f, 0.5f };
+	}
+	//
+	inline void SetBottomHalfUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.5f };
+		uvs[1] = SVector2{ 0.0f, 0.5f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
+	{
+		uvs[0] = rt;
+		uvs[1] = lt;
+		uvs[2] = rb;
+		uvs[3] = lb;
+	}
+};
+
+
+/** Colored sprite component */
+struct SColoredComponent
+{
+	SColor4F colors[4];
 
 public:
 	//
@@ -57,37 +102,11 @@ public:
 };
 
 
-/** Texture component */
+/** Textured component */
 struct STexturedComponent
 {
 	// id in texture manager
 	STexID texId;
-};
-
-
-/** Sprite UV component */
-struct SSpriteUVComponent
-{
-	SVector2 uvs[4];
-
-
-public:
-	//
-	inline void SetDefaultUV()
-	{
-		uvs[0] = SVector2{ 1.0f, 0.0f };
-		uvs[1] = SVector2{ 0.0f, 0.0f };
-		uvs[2] = SVector2{ 1.0f, 1.0f };
-		uvs[3] = SVector2{ 0.0f, 1.0f };
-	}
-	//
-	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
-	{
-		uvs[0] = rt;
-		uvs[1] = lt;
-		uvs[2] = rb;
-		uvs[3] = lb;
-	}
 };
 
 
@@ -143,29 +162,38 @@ public:
 };
 
 
+using SWidgetID = std::uint32_t;
+
 /** Widget component */
 struct SWidgetComponent
 {
+	SWidgetID id;
+	//
 	bool bVisible = true;
 	//
 	bool bHovered = false;
+	//
+	bool bPressed = false;
 	//
 	float opacity = 1.0f;
 };
 
 
+enum class STextAlign
+{
+	Begin, Middle, End
+};
+
 /** Text component */
 struct STextComponent
 {
-	SVector3 position;
-	//
-	SSize2F size;
-	//
 	SColor4F color;
 	// text id in localization system
 	STextID textId;
 	// font id in font system
 	SFontID fontId;
+	//
+	STextAlign align = STextAlign::Middle;
 
 
 public:

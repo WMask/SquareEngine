@@ -129,9 +129,11 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 	// render sprites
 	const auto& registry = world->GetEntities();
 	const auto& textView = registry.view<
+		const SSpriteComponent,
 		const SWidgetComponent,
 		const STextComponent>();
 	textView.each([this, fonts, locale](
+		const SSpriteComponent& spriteComponent,
 		const SWidgetComponent& widgetComponent,
 		const STextComponent& textComponent)
 	{
@@ -154,8 +156,28 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 			cachedTexView = view;
 		}
 
-		glyphOffset = 0.0f;
+		// compute text align
+		SSize2F textSize;
+		if (!fonts->FindGlyphs(textComponent.fontId, text, nullptr, &textSize))
+		{
+			DebugMsg("[%s] STextRenderSystemDX11::Render(): cannot get text size\n",
+				GetTimeStamp(std::chrono::system_clock::now()).c_str(), textComponent.textId);
+			return;
+		}
 
+		glyphOffset = 0.0f;
+		float alignOffset = (textSize.width / -2.0f);
+		switch (textComponent.align)
+		{
+		case STextAlign::Begin:
+			alignOffset = (spriteComponent.size.width / -2.0f);
+			break;
+		case STextAlign::End:
+			alignOffset = (spriteComponent.size.width / 2.0f) - textSize.width;
+			break;
+		}
+
+		// render glyphs
 		for (wchar_t entry : text)
 		{
 			float lineHeight;
@@ -168,8 +190,8 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 
 			// store instance data
 			DX11TEXTGLYPHINSTANCE instance{};
-			instance.pos = textComponent.position;
-			instance.pos.x += glyphOffset + glyph.size.width / 2.0f;
+			instance.pos = spriteComponent.position;
+			instance.pos.x += glyphOffset + alignOffset + glyph.size.width / 2.0f;
 			instance.scale = SConvert::ToVector2(glyph.size);
 			instance.color = textComponent.color;
 			memcpy(instance.uvs, tmpUV.uvs, sizeof(SVector2) * 4);
@@ -187,7 +209,7 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 
 		if (!batchData.empty())
 		{
-			// render full text string
+			// render full string
 			RenderBatch();
 		}
 	});

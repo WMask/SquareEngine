@@ -36,7 +36,10 @@ public:
 	virtual std::pair<STexID, bool> GetTextureId(SFontID fontId, const std::string& culture) const = 0;
 	//
 	virtual std::pair<SGlyph, bool> FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const = 0;
-	// outTextSize - full string size in pixels
-	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>& outGlyphs, SSize2F* outTextSize) const = 0;
+	/*
+	* Store glyphs or text string size in pixels.
+	* outGlyphs or outTextSize can be nullptr when not required.
+	*/
+	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const = 0;
 
 };

@@ -11,9 +11,8 @@ TWorldPtr CreateWorld(const SAppContext& context)
 	return std::make_unique<SWorld>(context);
 }
 
-SWorld::SWorld(const SAppContext& inContext) : context(inContext)
+SWorld::SWorld(const SAppContext& inContext) : context(&inContext), fonts(&inContext)
 {
-	context.world = this;
 }
 
 SWorld::~SWorld()

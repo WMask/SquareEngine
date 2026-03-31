@@ -91,6 +91,7 @@ int main(int argc, const char* argv[])
     }
 
     std::vector<std::uint32_t> base = {
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
         ' ', '!', '?', '"', '\'', '#', '$', '%', '&',
         '(', ')', '[', ']', '{', '}', '<', '>', '|', '_',
         '*', '+', '-', '/', '\\', '=', '.', ',', ':', ';', '@'
@@ -160,14 +161,14 @@ int main(int argc, const char* argv[])
         // add kerning
         int kern;
         kern = stbtt_GetCodepointKernAdvance(&info, i, i + 1);
-        x += static_cast<int>(roundf(kern * scale));
+        x += static_cast<int>(roundf(kern * scale)) + 1;
 
         const float ww = posx * scale;
         const float hh = static_cast<float>(y2 - y1);
         letters.emplace_back(LETTER {
-            static_cast<float>(x) - ww,
+            static_cast<float>(x) - ww - 0.5f,
             static_cast<float>(y),
-            ww, hh
+            ww + 0.5f, hh
         });
     }
 

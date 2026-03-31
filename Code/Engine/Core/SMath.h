@@ -308,6 +308,30 @@ namespace SMath
 
 namespace SMath
 {
+	inline SColor3F LerpColor3(const SColor3F& from, const SColor3F& to, float alpha)
+	{
+		DirectX::XMVECTOR xFrom = SConvert::ToXVector4(from);
+		DirectX::XMVECTOR xTo = SConvert::ToXVector4(to);
+		DirectX::XMVECTOR xVec = DirectX::XMVectorLerp(xFrom, xTo, alpha);
+		return SConvert::ToColor3(xVec);
+	}
+
+	inline SColor4F LerpColor4(const SColor4F& from, const SColor4F& to, float alpha)
+	{
+		DirectX::XMVECTOR xFrom = SConvert::ToXVector4(from);
+		DirectX::XMVECTOR xTo = SConvert::ToXVector4(to);
+		DirectX::XMVECTOR xVec = DirectX::XMVectorLerp(xFrom, xTo, alpha);
+		return SConvert::ToColor4(xVec);
+	}
+
+	inline SVector3 LerpVector3(const SVector3& from, const SVector3& to, float alpha)
+	{
+		DirectX::XMVECTOR xFrom = SConvert::ToXVector4(from);
+		DirectX::XMVECTOR xTo = SConvert::ToXVector4(to);
+		DirectX::XMVECTOR xVec = DirectX::XMVectorLerp(xFrom, xTo, alpha);
+		return SConvert::ToVector3(xVec);
+	}
+
 	inline SMatrix3 InverseM3(const SMatrix3& m)
 	{
 		DirectX::XMVECTOR determinant;

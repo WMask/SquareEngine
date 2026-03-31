@@ -44,10 +44,10 @@ void SLocalization::Load(const std::filesystem::path& filePath)
     }
 }
 
-void SLocalization::Set(const std::string& key, const std::wstring& value)
+void SLocalization::Set(const std::string_view& key, const std::wstring& value)
 {
-    STextID id = hasher(key);
-    entries.emplace(id, value);
+    STextID id = hasher(key.data());
+    entries.insert_or_assign(id, value);
 }
 
 std::pair<std::wstring, bool> SLocalization::Get(STextID key) const
@@ -110,7 +110,7 @@ bool SLocalizationManager::SetCulture(const std::string& inCulture)
     return false;
 }
 
-void SLocalizationManager::Set(const std::string& key, const std::wstring& value)
+void SLocalizationManager::Set(const std::string_view& key, const std::wstring& value)
 {
     auto it = cultures.find(curCulture);
     if (it != cultures.end())

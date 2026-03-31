@@ -260,11 +260,71 @@ std::wstring FromUtf8(const std::string& str)
 	return wideChars;
 }
 
-void DebugMsg(const char* fmt, ...)
+std::string ToLower(const char* str)
 {
+	std::string src(str);
+	std::string dst;
+	dst.resize(src.size());
+
+	std::transform(src.begin(), src.end(), dst.begin(), ::tolower);
+
+	return dst;
+}
+
+std::string ToUpper(const char* str)
+{
+	std::string src(str);
+	std::string dst;
+	dst.resize(src.size());
+
+	std::transform(src.begin(), src.end(), dst.begin(), ::toupper);
+
+	return dst;
+}
+
+std::string ToString(std::int32_t value)
+{
+	std::stringstream ss;
+	ss << value;
+	return ss.str();
+}
+
+std::string ToString(float value)
+{
+	std::stringstream ss;
+	ss << value;
+	return ss.str();
+}
+
+std::wstring ToStringW(std::int32_t value)
+{
+	std::wstringstream ss;
+	ss << value;
+	return ss.str();
+}
+
+std::wstring ToStringW(float value)
+{
+	std::wstringstream ss;
+	ss << value;
+	return ss.str();
+}
+
+std::wstring Localize(const wchar_t* fmt, ...)
+{
+	static wchar_t localize_out[4096];
 	va_list argp;
 	va_start(argp, fmt);
-	char dbg_out[4096];
+	vswprintf_s(localize_out, fmt, argp);
+	va_end(argp);
+	return std::wstring(localize_out);
+}
+
+void DebugMsg(const char* fmt, ...)
+{
+	static char dbg_out[4096];
+	va_list argp;
+	va_start(argp, fmt);
 	vsprintf_s(dbg_out, fmt, argp);
 	va_end(argp);
 	OutputDebugStringA(dbg_out);
@@ -272,9 +332,9 @@ void DebugMsg(const char* fmt, ...)
 
 void DebugMsgW(const wchar_t* fmt, ...)
 {
+	static wchar_t dbg_out[4096];
 	va_list argp;
 	va_start(argp, fmt);
-	wchar_t dbg_out[4096];
 	vswprintf_s(dbg_out, fmt, argp);
 	va_end(argp);
 	OutputDebugStringW(dbg_out);

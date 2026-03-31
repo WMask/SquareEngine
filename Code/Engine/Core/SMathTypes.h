@@ -126,6 +126,16 @@ namespace SConvert
 	{
 		return SVector4{ DirectX::XMVectorGetX(v), DirectX::XMVectorGetY(v), DirectX::XMVectorGetZ(v), DirectX::XMVectorGetW(v) };
 	}
+
+	inline DirectX::XMVECTOR ToXVector4(const SVector3& v)
+	{
+		return DirectX::XMVectorSet(v.x, v.y, v.z, 1.0f);
+	}
+
+	inline DirectX::XMVECTOR ToXVector4(const SVector4& v)
+	{
+		return DirectX::XMVectorSet(v.x, v.y, v.z, v.w);
+	}
 }
 
 namespace SConst

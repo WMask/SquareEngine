@@ -33,7 +33,7 @@ public:
 	// culture like "en", "es", "fr"
 	virtual bool SetCulture(const std::string& culture) = 0;
 	// set value
-	virtual void Set(const std::string& key, const std::wstring& value) = 0;
+	virtual void Set(const std::string_view& key, const std::wstring& value) = 0;
 	// get localized string by key name
 	virtual std::pair<std::wstring, bool> Get(const std::string_view& key) const = 0;
 	// get localized string by key id

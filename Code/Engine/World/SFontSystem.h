@@ -5,6 +5,7 @@
 #pragma once
 
 #include "World/SFontInterface.h"
+#include "Application/SApplicationTypes.h"
 
 #include <map>
 
@@ -62,7 +63,7 @@ class SFontSystem : public IFontSystem
 {
 public:
 	//
-	SFontSystem() {}
+	SFontSystem(const SAppContext* inContext) : context(inContext) {}
 
 
 public:
@@ -75,10 +76,12 @@ public:
 	//
 	virtual std::pair<SGlyph, bool> FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const override;
 	// outTextSize - full string size in pixels
-	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>& outGlyphs, SSize2F* outTextSize) const override;
+	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const override;
 
 
 protected:
+	//
+	const SAppContext* context;
 	//
 	std::multimap<SFontID, SFont> fonts;
 	//

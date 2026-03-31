@@ -6,6 +6,7 @@
 #include "Core/SCoreModule.h"
 #include "RenderSystem/SRenderSystemModule.h"
 #include "Application/SInputInterface.h"
+#include "World/SGuiInterface.h"
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
@@ -34,61 +35,39 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			auto& registry = context.world->GetEntities();
+			auto treeTex = context.render->LoadTexture("../../Assets/Tree1.png");
+			auto boomTex = context.render->LoadTexture("../../Assets/Boom1.png");
 
-			// moving entity
-			movingEntity = registry.create();
-			auto& sprite1 = registry.emplace<SColoredSpriteComponent>(
-				movingEntity, true, 0.0f,
-				SVector3{ 300.0f, 300.0f, 0.0f },
-				SSize2F{ 256.0f, 256.0f }
+			movingEntity = context.gui->MakeColoredSprite(registry,
+				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
+				SColor3(255, 0, 0), SColor3(0, 255, 0),
+				SColor3(0, 0, 255), SColor3(255, 255, 255)
 			);
-			sprite1.SetColors(SColor3(255, 0, 0), SColor3(0, 255, 0),
-				SColor3(0, 0, 255), SColor3(255, 255, 255));
 
-			// rotating entity
-			rotatingEntity = registry.create();
-			auto& sprite2 = registry.emplace<SColoredSpriteComponent>(
-				rotatingEntity, true, 0.0f,
-				SVector3{ 750.0f, 300.0f, 0.0f },
-				SSize2F{ 256.0f, 256.0f }
+			rotatingEntity = context.gui->MakeColoredSprite(registry,
+				SVector3{ 750.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
+				SColor3(0, 255, 0), SColor3(255, 255, 255),
+				SColor3(255, 255, 0), SColor3(255, 255, 255)
 			);
-			sprite2.SetColors(SColor3(0, 255, 0), SColor3(255, 255, 255),
-				SColor3(255, 255, 0), SColor3(255, 255, 255));
 
-			// textured entity
-			texturedEntity = registry.create();
-			auto& sprite3 = registry.emplace<SColoredSpriteComponent>(
-				texturedEntity, true, 0.0f,
-				SVector3{ 300.0f, 700.0f, 0.0f },
-				SSize2F{ 256.0f, 256.0f }
+			texturedEntity = context.gui->MakeTexturedSprite(registry, treeTex,
+				SVector3{ 300.0f, 700.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
+				SConst::OneSColor4F
 			);
-			sprite3.SetWhiteColors();
-			auto& texUV3 = registry.emplace<SSpriteUVComponent>(texturedEntity);
-			texUV3.SetDefaultUV();
-			auto texId1 = context.render->LoadTexture("../../Assets/Tree1.png");
-			registry.emplace<STexturedComponent>(texturedEntity, texId1);
 
-			// animated entity
-			animatedEntity = registry.create();
-			auto& sprite4 = registry.emplace<SColoredSpriteComponent>(
-				animatedEntity, true, 0.0f,
-				SVector3{ 750.0f, 680.0f, 0.0f },
-				SSize2F{ 256.0f, 256.0f }
+			animatedEntity = context.gui->MakeAnimatedSprite(registry, boomTex,
+				SVector3{ 750.0f, 680.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
+				SConst::OneSColor4F, 0, 50, 25, SSize2{ 100, 100 }, context.gameTime
 			);
-			sprite4.SetWhiteColors();
-			auto texId2 = context.render->LoadTexture("../../Assets/Boom1.png");
-			registry.emplace<STexturedComponent>(animatedEntity, texId2);
-			auto& anim4 = registry.emplace<SSpriteFrameAnimComponent>(animatedEntity);
-			anim4.SetAnim(0, 50, 25, SSize2{ 100, 100 }, context.gameTime);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
 		{
 			auto& registry = context.world->GetEntities();
-			auto view = registry.view<SColoredSpriteComponent>();
+			auto view = registry.view<SSpriteComponent>();
 
 			// move
-			auto& sprite1 = view.get<SColoredSpriteComponent>(movingEntity);
+			auto& sprite1 = view.get<SSpriteComponent>(movingEntity);
 			sprite1.position = SVector3 {
 				300.0f + sin(context.gameTime) * 32.0f,
 				300.0f + cos(context.gameTime) * 32.0f,
@@ -96,7 +75,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			};
 
 			// rotate
-			auto& sprite2 = view.get<SColoredSpriteComponent>(rotatingEntity);
+			auto& sprite2 = view.get<SSpriteComponent>(rotatingEntity);
 			sprite2.rotation += deltaSeconds;
 
 			// check input

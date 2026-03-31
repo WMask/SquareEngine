@@ -133,11 +133,13 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	const auto& registry = world->GetEntities();
 	const auto& spritesView = registry.view<
 		const STexturedComponent,
-		const SColoredSpriteComponent,
+		const SColoredComponent,
+		const SSpriteComponent,
 		const SSpriteUVComponent>(entt::exclude<SSpriteFrameAnimComponent>);
 	spritesView.each([this](
 		const STexturedComponent& texturedComponent,
-		const SColoredSpriteComponent& spriteComponent,
+		const SColoredComponent& coloredComponent,
+		const SSpriteComponent& spriteComponent,
 		const SSpriteUVComponent& uvComponent)
 	{
 		if (!spriteComponent.bVisible) return;
@@ -166,7 +168,7 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		instance.pos = spriteComponent.position;
 		instance.rotation = spriteComponent.rotation;
 		instance.scale = SConvert::ToVector2(spriteComponent.size);
-		memcpy(instance.colors, spriteComponent.colors, sizeof(SColor4F) * 4);
+		memcpy(instance.colors, coloredComponent.colors, sizeof(SColor4F) * 4);
 		memcpy(instance.uvs, uvComponent.uvs, sizeof(SVector2) * 4);
 		batchData.push_back(instance);
 

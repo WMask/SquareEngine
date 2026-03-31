@@ -51,7 +51,7 @@ public:// IWorld interface implementation
 
 protected:
 	//
-	SAppContext context;
+	const SAppContext* context;
 	//
 	entt::registry entities;
 	//

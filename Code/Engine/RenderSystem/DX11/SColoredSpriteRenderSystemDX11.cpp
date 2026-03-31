@@ -124,9 +124,11 @@ void SColoredSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	numSprites = 0;
 
 	const auto& spritesView = world->GetEntities().view<
-		const SColoredSpriteComponent>(entt::exclude<STexturedComponent>);
+		const SColoredComponent,
+		const SSpriteComponent>(entt::exclude<STexturedComponent>);
 	spritesView.each([this](
-		const SColoredSpriteComponent& spriteComponent)
+		const SColoredComponent& coloredComponent,
+		const SSpriteComponent& spriteComponent)
 	{
 		if (!spriteComponent.bVisible) return;
 
@@ -135,7 +137,7 @@ void SColoredSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		instance.pos = spriteComponent.position;
 		instance.rotation = spriteComponent.rotation;
 		instance.scale = SConvert::ToVector2(spriteComponent.size);
-		memcpy(instance.colors, spriteComponent.colors, sizeof(SColor4F) * 4);
+		memcpy(instance.colors, coloredComponent.colors, sizeof(SColor4F) * 4);
 		batchData.push_back(instance);
 
 		if (batchData.size() == MaxInstancedSpritesCount)

@@ -3,6 +3,7 @@
 */
 
 #include "World/SFontSystem.h"
+#include "Application/SLocalizationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
@@ -105,35 +106,43 @@ std::pair<STexID, bool> SFontSystem::GetTextureId(SFontID fontId, const std::str
 
 std::pair<SGlyph, bool> SFontSystem::FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const
 {
+	const auto culture = context->text->GetCulture();
 	auto allCultures = fonts.equal_range(fontId);
 	for (auto it = allCultures.first; it != allCultures.second; ++it)
 	{
-		auto [glyph, bGlyphFound] = it->second.FindGlyph(glyphCode);
-		if (bGlyphFound)
+		if (it->second.GetCulture() == culture)
 		{
-			if (outLineHeight) *outLineHeight = static_cast<float>(it->second.GetSize());
-			return { glyph, true };
+			auto [glyph, bGlyphFound] = it->second.FindGlyph(glyphCode);
+			if (bGlyphFound)
+			{
+				if (outLineHeight) *outLineHeight = static_cast<float>(it->second.GetSize());
+				return { glyph, true };
+			}
 		}
 	}
 
 	return { SGlyph{}, false };
 }
 
-bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>& outGlyphs, SSize2F* outTextSize) const
+bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const
 {
-	if (text.empty()) return false;
+	if (text.empty() || (!outGlyphs && !outTextSize)) return false;
 
 	S_TRY
 
+	const auto culture = context->text->GetCulture();
 	const SFont* fontPtr = nullptr;
 	auto allCultures = fonts.equal_range(fontId);
 	for (auto it = allCultures.first; it != allCultures.second; ++it)
 	{
-		auto [glyph, bGlyphFound] = it->second.FindGlyph(text[0]);
-		if (bGlyphFound)
+		if (it->second.GetCulture() == culture)
 		{
-			fontPtr = &it->second;
-			break;
+			auto [glyph, bGlyphFound] = it->second.FindGlyph(text[0]);
+			if (bGlyphFound)
+			{
+				fontPtr = &it->second;
+				break;
+			}
 		}
 	}
 
@@ -142,8 +151,11 @@ bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vect
 		throw std::exception("Cannot find font");
 	}
 
-	outGlyphs.clear();
-	outGlyphs.reserve(text.length());
+	if (outGlyphs)
+	{
+		outGlyphs->clear();
+		outGlyphs->reserve(text.length());
+	}
 
 	float width = 0.0f;
 	float height = static_cast<float>(fontPtr->GetSize());
@@ -157,14 +169,13 @@ bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vect
 		}
 
 		width += glyph.size.width;
-		outGlyphs.push_back(glyph);
+
+		if (outGlyphs) outGlyphs->push_back(glyph);
 	}
 
 	if (outTextSize) *outTextSize = { width, height };
 
-	return outGlyphs.size() == text.length();
-
 	S_CATCH{ S_THROW("SFontSystem::FindGlyphs()") }
 
-	return false;
+	return true;
 }

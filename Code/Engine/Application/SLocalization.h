@@ -26,7 +26,7 @@ public:
 	//
 	void Load(const std::filesystem::path& filePath);
 	//
-	void Set(const std::string& key, const std::wstring& value);
+	void Set(const std::string_view& key, const std::wstring& value);
 	//
 	std::pair<std::wstring, bool> Get(STextID key) const;
 	//
@@ -63,7 +63,7 @@ public:
 	//
 	virtual bool SetCulture(const std::string& culture) override;
 	//
-	virtual void Set(const std::string& key, const std::wstring& value) override;
+	virtual void Set(const std::string_view& key, const std::wstring& value) override;
 	//
 	virtual std::pair<std::wstring, bool> Get(STextID key) const override;
 	//

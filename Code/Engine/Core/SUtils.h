@@ -47,6 +47,27 @@ S_CORE_API std::string ToUtf8(const std::wstring& str);
 /**
 * From Utf8 string char array */
 S_CORE_API std::wstring FromUtf8(const std::string& str);
+/**
+* To lower case */
+S_CORE_API std::string ToLower(const char* str);
+/**
+* To upper case */
+S_CORE_API std::string ToUpper(const char* str);
+/**
+* To string */
+S_CORE_API std::string ToString(std::int32_t value);
+/**
+* To string */
+S_CORE_API std::string ToString(float value);
+/**
+* To string */
+S_CORE_API std::wstring ToStringW(std::int32_t value);
+/**
+* To string */
+S_CORE_API std::wstring ToStringW(float value);
+/**
+* Localize string */
+S_CORE_API std::wstring Localize(const wchar_t* fmt, ...);
 
 
 /**

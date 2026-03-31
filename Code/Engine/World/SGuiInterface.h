@@ -6,6 +6,9 @@
 
 #include "Core/STypes.h"
 #include "Application/SApplicationTypes.h"
+#include "Application/SLocalizationInterface.h"
+#include "RenderSystem/SRenderSystemTypes.h"
+#include "RenderSystem/SECSComponents.h"
 
 #include <entt/entt.hpp>
 
@@ -64,9 +67,36 @@ public:
 	//
 	virtual void OnKeys(std::int32_t btn, SKeyState state, const SAppContext& context) = 0;
 	//
-	virtual void OnMouseButton(SMouseBtn btn, SKeyState state, std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
+	virtual void OnMouseButton(SMouseBtn btn, SKeyState state,
+		std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
 	//
 	virtual void OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
+
+
+public:
+	//
+	virtual entt::entity MakeColoredSprite(entt::registry& registry,
+		const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
+	//
+	virtual entt::entity MakeColoredSprite(
+		entt::registry& registry, const SVector3& pos, const SSize2F& size,
+		const SColor3& lt, const SColor3& rt, const SColor3& rb, const SColor3& lb) = 0;
+	//
+	virtual entt::entity MakeTexturedSprite(entt::registry& registry,
+		STexID texture, const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
+	//
+	virtual entt::entity MakeAnimatedSprite(entt::registry& registry,
+		STexID texture, const SVector3& pos, const SSize2F& size, SColor4F color,
+		std::int32_t frameOffset, std::int32_t framesCount,
+		std::int32_t framesPerSecond, SSize2 frameSize, float startTime) = 0;
+	//
+	virtual entt::entity MakeText(entt::registry& registry,
+		SWidgetID widgetId, STextID text, SFontID font,
+		const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
+	//
+	virtual std::pair<entt::entity, entt::entity> MakeButtonWithText(entt::registry& registry,
+		STexID texture, STextID text, SFontID font, SWidgetID btnWidget, SWidgetID textWidget,
+		const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
 
 };
 

@@ -29,12 +29,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		{
 			GuiListener()
 			{
-				toggleTextId = MakeWidgetId(toggleTextWidget);
-				toggleButtonId = MakeWidgetId(toggleButtonWidget);
-				applyButtonId = MakeWidgetId(applyButtonWidget);
-				applyTextId = MakeWidgetId(applyTextWidget);
-				fpsTextId = MakeWidgetId(fpsTextWidget);
+				toggleTextId = ResourceID<SWidgetID>(toggleTextWidget);
+				toggleButtonId = ResourceID<SWidgetID>(toggleButtonWidget);
+				applyButtonId = ResourceID<SWidgetID>(applyButtonWidget);
+				applyTextId = ResourceID<SWidgetID>(applyTextWidget);
+				fpsTextId = ResourceID<SWidgetID>(fpsTextWidget);
 			}
+			//
 			void onMouseButtonEvent(const SMouseButtonEvent& event)
 			{
 				if (!registry || !locale) return;
@@ -100,11 +101,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 			}
 			//
-			SWidgetID MakeWidgetId(const std::string_view& name)
-			{
-				return hasher(name.data());
-			}
-			//
 			entt::registry* registry{};
 			ILocalization* locale{};
 			SWidgetID toggleButtonId;
@@ -112,9 +108,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			SWidgetID applyButtonId;
 			SWidgetID applyTextId;
 			SWidgetID fpsTextId;
-			std::hash<std::string> hasher;
-			SColor4F tint = SConst::OneSColor4F;
-			SColor4F targetTint = SConst::OneSColor4F;
+			SColor4F tint = SConst::White4F;
+			SColor4F targetTint = SConst::White4F;
 			float lerp = 1.0f;
 			bool bUseGreen = true;
 		};
@@ -160,34 +155,34 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// tree entity
 			treeEntity = context.gui->MakeTexturedSprite(registry, treeTex,
 				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
-				SConst::OneSColor4F
+				SConst::White4F
 			);
 
 			// toggle button
-			auto toggleText = context.text->MakeId(toggleTextKey);
+			auto toggleText = ResourceID<STextID>(toggleTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
 				listener.toggleButtonId, listener.toggleTextId,
 				SVector3{ 300.0f, 500.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
-				SConst::OneSColor4F
+				SConst::White4F
 			);
 
 			// apply button
-			auto applyText = context.text->MakeId(applyTextKey);
+			auto applyText = ResourceID<STextID>(applyTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId,
 				listener.applyButtonId, listener.applyTextId,
 				SVector3{ 700.0f, 500.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
-				SConst::OneSColor4F
+				SConst::White4F
 			);
 
 			// fps text
-			auto fpsText = context.text->MakeId(fpsTextKey);
+			auto fpsText = ResourceID<STextID>(fpsTextKey);
 			context.gui->MakeText(registry,
 				listener.fpsTextId, fpsText, fontId,
 				SVector3{ 700.0f, 300.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
-				SConst::OneSColor4F
+				SConst::White4F
 			);
 		};
 

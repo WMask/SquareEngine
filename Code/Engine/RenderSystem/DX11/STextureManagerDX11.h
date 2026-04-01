@@ -14,8 +14,6 @@
 #include <d3d11.h>
 #include <wrl.h>
 #include <cstdint>
-#include <filesystem>
-#include <functional>
 #include <map>
 
 using Microsoft::WRL::ComPtr;
@@ -38,14 +36,14 @@ public:
 	//
 	STexID LoadTexture(const std::filesystem::path& path);
 	//
-	void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate);
+	void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate);
 	//
 	bool FindTexture(STexID id, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView, SSize2* outTexSize = nullptr) const;
 	/**
 	* If world is not null - only unused textures removed. If null - all textures removed. */
 	void ClearCache(IWorld* world);
 	//
-	inline int GetNumTextures() const { return (int)texturesCache.size(); }
+	inline std::uint32_t GetNumTextures() const { return texturesCache.size(); }
 
 
 protected:
@@ -68,18 +66,18 @@ protected:
 		SSize2 texSize{};
 	};
 	//
-	STexID GenerateTexID(const std::filesystem::path& path) const;
-	//
 	bool LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize);
 	//
 	bool CreateTexture(ID3D11Device* device, const STextureData& textureData, STextureDataDX11& outTexture);
 	//
-	void CheckPreLoadFinished();
+	void CheckPreloadFinished();
 
 
 protected:
 	//
-	using TPreLoadDelegatesCache = std::list<std::pair<TTexIDList, OnPreLoadTexturesDelegate>>;
+	using TPathList = std::vector<std::filesystem::path>;
+	//
+	using TPreLoadDelegatesCache = std::list<std::pair<TPathList, OnTexturesLoadedDelegate>>;
 	//
 	using TCircularFIFOTextureQueue = Fifo4<STextureData>;
 	//
@@ -88,8 +86,6 @@ protected:
 	std::shared_ptr<TCircularFIFOTextureQueue> loadedTextures;
 	//
 	TPreLoadDelegatesCache preLoadDelegatesCache;
-	//
-	std::hash<std::string> hasher;
 	//
 	IThreadPool* threadPool;
 

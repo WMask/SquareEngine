@@ -52,12 +52,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			texturedEntity = context.gui->MakeTexturedSprite(registry, treeTex,
 				SVector3{ 300.0f, 700.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
-				SConst::OneSColor4F
+				SConst::White4F
 			);
 
 			animatedEntity = context.gui->MakeAnimatedSprite(registry, boomTex,
 				SVector3{ 750.0f, 680.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
-				SConst::OneSColor4F, 0, 50, 25, SSize2{ 100, 100 }, context.gameTime
+				SConst::White4F, 0, 50, 25, SSize2{ 100, 100 }, context.gameTime
 			);
 		};
 

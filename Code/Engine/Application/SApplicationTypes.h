@@ -88,7 +88,7 @@ inline std::pair<SColor3, bool> GetFeatureColor(const SAppFeaturesMap& features,
 		return { std::any_cast<SColor3>(colorIt->second), true };
 	}
 
-	return { SConst::OneSColor3, false };
+	return { SConst::White3, false };
 }
 
 /** Application context */

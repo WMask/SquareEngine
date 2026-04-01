@@ -9,6 +9,8 @@
 #include <string>
 #include <optional>
 #include <algorithm>
+#include <functional>
+#include <filesystem>
 #include <vector>
 
 
@@ -76,6 +78,59 @@ constexpr bool InRange(T value, T minValue, T maxValue)
 
 
 /***************************************************************************
+* Mesh
+*/
+
+/** Static mesh vertex */
+struct SVertex
+{
+	SVector3 pos;
+	SVector3 norm;
+	SVector2 uv;
+};
+
+/** Mesh material */
+struct SMaterial
+{
+	std::filesystem::path texture;
+	// 
+	std::uint16_t firstIndex;
+	//
+	std::uint16_t numIndices;
+};
+
+/** Id in mesh manager */
+using SMeshID = std::uint32_t;
+using TMeshIdGenerator = std::function<SMeshID(const std::string&)>;
+
+/** Static mesh */
+struct SMesh
+{
+	// generated from mesh name
+	SMeshID id{};
+	//
+	std::vector<SMaterial> materials;
+	//
+	std::vector<SVertex> vertices;
+	//
+	std::vector<std::uint16_t> indices;
+};
+
+/** Meshes group id in mesh manager */
+using SGroupID = std::uint32_t;
+
+/** Mesh instance */
+struct SMeshInstance
+{
+	SMeshID id;
+	//
+	SGroupID group;
+	//
+	STransform transform;
+};
+
+
+/***************************************************************************
 * Color
 */
 
@@ -110,9 +165,9 @@ struct SColor4F : public SColor3F
 
 namespace SConst
 {
-	static const SColor3 OneSColor3 = SColor3{ 255, 255, 255 };
-	static const SColor3F OneSColor3F = SColor3F{ 1.0f, 1.0f, 1.0f };
-	static const SColor4F OneSColor4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+	static const SColor3 White3 = SColor3{ 255, 255, 255 };
+	static const SColor3F White3F = SColor3F{ 1.0f, 1.0f, 1.0f };
+	static const SColor4F White4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
 }
 
 namespace SConvert

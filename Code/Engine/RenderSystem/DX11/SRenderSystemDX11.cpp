@@ -17,7 +17,7 @@ SRenderSystemDX11::SRenderSystemDX11()
 	: coloredSpriteRender(*this)
 	, texturedSpriteRender(*this)
 	, frameAnimSpriteRender(*this)
-	, textRenderSystem(*this)
+	, textRender(*this)
 {
 }
 
@@ -190,6 +190,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	// init managers
 	shaderManager.Init(context.pool);
 	textureManager.Init(context.pool);
+	meshManager.Init(context.pool);
 
 	cachedCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
 	cachedCameraTarget = SVector3{ cachedCameraPos.x, cachedCameraPos.y, 0.0f };
@@ -301,12 +302,13 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
-	textRenderSystem.Shutdown();
+	textRender.Shutdown();
 	frameAnimSpriteRender.Shutdown();
 	texturedSpriteRender.Shutdown();
 	coloredSpriteRender.Shutdown();
 	constantBuffers.Shutdown();
 	textureManager.Shutdown();
+	meshManager.Shutdown();
 	shaderManager.Shutdown();
 	rasterizerState.Reset();
 	blendState.Reset();
@@ -371,9 +373,9 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 			frameAnimSpriteRender.Setup(shader);
 			frameAnimSpriteRender.CheckShaderName(shaderData.name);
 		}
-		else if (textRenderSystem.CheckShaderName(shaderData.name))
+		else if (textRender.CheckShaderName(shaderData.name))
 		{
-			textRenderSystem.Setup(shader);
+			textRender.Setup(shader);
 		}
 		shader.vsCode = nullptr;
 
@@ -388,9 +390,9 @@ STexID SRenderSystemDX11::LoadTexture(const std::filesystem::path& texturePath)
 	return textureManager.LoadTexture(texturePath);
 }
 
-void SRenderSystemDX11::PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate)
+void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
 {
-	textureManager.PreLoadTextures(paths, delegate);
+	textureManager.PreloadTextures(paths, delegate);
 }
 
 const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) const
@@ -398,7 +400,6 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 	auto shaderIt = shaders.find(name);
 	return (shaderIt == shaders.end()) ? nullptr : &shaderIt->second;
 }
-
 
 std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
 {
@@ -419,6 +420,7 @@ void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
 
 	shaderManager.Update();
 	textureManager.Update(d3dDevice.Get());
+	meshManager.Update(d3dDevice.Get());
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Update()") }
 }
@@ -429,7 +431,7 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	if (!deviceContext || !swapChain || !world)
 	{
-		throw std::exception("Invalid render device");
+		throw std::exception("Wrong context");
 	}
 
 	// setup device
@@ -448,7 +450,7 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	coloredSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	frameAnimSpriteRender.Render(context.deltaSeconds, context.gameTime);
-	textRenderSystem.Render(context.deltaSeconds, context.gameTime, context.text);
+	textRender.Render(context.deltaSeconds, context.gameTime);
 
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
 	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);

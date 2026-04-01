@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Core/SMathTypes.h"
+#include "Core/STypes.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -16,8 +16,12 @@ static const std::uint32_t MaxInstancedSpritesCount = 512u;
 
 /** Id in texture manager */
 using STexID = std::uint32_t;
-using TTexIDList = std::unordered_map<std::filesystem::path, STexID>;
-using OnPreLoadTexturesDelegate = std::function<void(TTexIDList&)>;
+/** Textures delegate */
+using OnTexturesLoadedDelegate = std::function<void(std::vector<std::filesystem::path>&)>;
+/** Mesh instances delegate */
+using OnMeshInstancesLoadedDelegate = std::function<void(std::filesystem::path, const std::vector<SMeshInstance>&)>;
+/** Meshes delegate */
+using OnMeshesLoadedDelegate = std::function<void(std::filesystem::path)>;
 
 /** Render system stats */
 struct SRSStats

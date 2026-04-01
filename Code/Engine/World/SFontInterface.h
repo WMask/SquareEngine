@@ -41,5 +41,7 @@ public:
 	* outGlyphs or outTextSize can be nullptr when not required.
 	*/
 	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const = 0;
+	//
+	virtual class ILocalization* GetLocale() const = 0;
 
 };

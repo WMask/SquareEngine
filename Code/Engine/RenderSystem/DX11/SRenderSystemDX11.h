@@ -7,6 +7,7 @@
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "RenderSystem/Windows/SDXShaderManager.h"
 #include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/DX11/SMeshManagerDX11.h"
 #include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
@@ -54,7 +55,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
 	//
-	virtual void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate) override;
+	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
@@ -111,11 +112,13 @@ protected:
 	//
 	SFrameAnimSpriteRenderSystemDX11 frameAnimSpriteRender;
 	//
-	STextRenderSystemDX11 textRenderSystem;
+	STextRenderSystemDX11 textRender;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
 	STextureManagerDX11 textureManager;
+	//
+	SMeshManagerDX11 meshManager;
 	//
 	SDXShaderManager shaderManager;
 	//

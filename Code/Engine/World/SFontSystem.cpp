@@ -104,7 +104,7 @@ std::pair<STexID, bool> SFontSystem::GetTextureId(SFontID fontId, const std::str
 	return { 0u, false };
 }
 
-std::pair<SGlyph, bool> SFontSystem::FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const
+std::pair<SGlyph, bool> SFontSystem::FindGlyph(SFontID fontId, wchar_t charCode, float* outLineHeight) const
 {
 	const auto culture = context->text->GetCulture();
 	auto allCultures = fonts.equal_range(fontId);
@@ -112,7 +112,7 @@ std::pair<SGlyph, bool> SFontSystem::FindGlyph(SFontID fontId, wchar_t glyphCode
 	{
 		if (it->second.GetCulture() == culture)
 		{
-			auto [glyph, bGlyphFound] = it->second.FindGlyph(glyphCode);
+			auto [glyph, bGlyphFound] = it->second.FindGlyph(charCode);
 			if (bGlyphFound)
 			{
 				if (outLineHeight) *outLineHeight = static_cast<float>(it->second.GetSize());
@@ -160,10 +160,10 @@ bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vect
 	float width = 0.0f;
 	float height = static_cast<float>(fontPtr->GetSize());
 
-	for (auto it(text.cbegin()); it != text.cend(); ++it)
+	for (auto it = text.cbegin(); it != text.cend(); ++it)
 	{
-		auto [glyph, bFound] = fontPtr->FindGlyph(*it);
-		if (!bFound)
+		auto [glyph, bGlyphFound] = fontPtr->FindGlyph(*it);
+		if (!bGlyphFound)
 		{
 			throw std::exception("Cannot find glyph");
 		}

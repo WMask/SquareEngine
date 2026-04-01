@@ -51,9 +51,10 @@ void STextRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderData)
 	spriteIndexBuffer = renderSystemDX11.GetConstantBuffers().spriteIndexBuffer.Get();
 	auto& shaderDataDX11 = static_cast<SShaderDataDX11&>(shaderData);
 	auto d3dDevice = renderSystemDX11.GetD3D11Device();
+	world = renderSystemDX11.GetWorld();
 	if (!d3dDevice)
 	{
-		throw std::exception("Invalid render device");
+		throw std::exception("Wrong context");
 	}
 
 	// create input layouts
@@ -91,14 +92,12 @@ void STextRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderData)
 	S_CATCH{ S_THROW("STextRenderSystemDX11::Setup()") }
 }
 
-void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILocalization* locale)
+void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 
 	auto shader = renderSystemDX11.FindShader(shaderName);
-	auto world = renderSystemDX11.GetWorld();
-	auto fonts = world ? &world->GetFonts() : nullptr;
-	if (!shader || !world || !fonts || !locale || !d3dDeviceContext || !spriteVertexBuffer || !spriteIndexBuffer || !instanceBuffer)
+	if (!shader || !world || !d3dDeviceContext || !spriteVertexBuffer || !spriteIndexBuffer || !instanceBuffer)
 	{
 		if (renderSystemDX11.IsNeedDebugTrace())
 		{
@@ -110,8 +109,8 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 
 	// setup context
 	ID3D11Buffer* buffers[2] = { spriteVertexBuffer, instanceBuffer.Get() };
-	static UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11TEXTGLYPHINSTANCE) };
-	static UINT offsets[2] = { 0, 0 };
+	static const UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11TEXTGLYPHINSTANCE) };
+	static const UINT offsets[2] = { 0, 0 };
 	d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
 	d3dDeviceContext->IASetIndexBuffer(spriteIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 	d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -122,8 +121,8 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 	// prepare cached state
 	if (batchData.capacity() < MaxInstancedSpritesCount) batchData.reserve(MaxInstancedSpritesCount);
 	cachedTexView = nullptr;
-	numGlyphs = 0u;
 	batchesRendered = 0u;
+	numGlyphs = 0u;
 	cachedTexId = 0u;
 
 	// render sprites
@@ -132,14 +131,15 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 		const SSpriteComponent,
 		const SWidgetComponent,
 		const STextComponent>();
-	textView.each([this, fonts, locale](
+	textView.each([this](
 		const SSpriteComponent& spriteComponent,
 		const SWidgetComponent& widgetComponent,
 		const STextComponent& textComponent)
 	{
 		if (!widgetComponent.bVisible) return;
 
-		auto [text, bTextFound] = locale->Get(textComponent.textId);
+		const IFontSystem& fonts = world->GetFonts();
+		auto [text, bTextFound] = fonts.GetLocale()->Get(textComponent.textId);
 		if (!bTextFound)
 		{
 			DebugMsg("[%s] STextRenderSystemDX11::Render(): cannot find text id=%d\n",
@@ -147,7 +147,7 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 			return;
 		}
 
-		auto [texId, bTexFound] = fonts->GetTextureId(textComponent.fontId, locale->GetCulture());
+		auto [texId, bTexFound] = fonts.GetTextureId(textComponent.fontId, fonts.GetLocale()->GetCulture());
 		if (!cachedTexView)
 		{
 			auto [view, texSize] = renderSystemDX11.FindTexture(texId);
@@ -156,15 +156,18 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 			cachedTexView = view;
 		}
 
-		// compute text align
+		// get glyphs
 		SSize2F textSize;
-		if (!fonts->FindGlyphs(textComponent.fontId, text, nullptr, &textSize))
+		std::vector<SGlyph> glyphs;
+		glyphs.reserve(text.length());
+		if (!fonts.FindGlyphs(textComponent.fontId, text, &glyphs, &textSize))
 		{
-			DebugMsg("[%s] STextRenderSystemDX11::Render(): cannot get text size\n",
+			DebugMsg("[%s] STextRenderSystemDX11::Render(): cannot load string glyphs\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str(), textComponent.textId);
 			return;
 		}
 
+		// compute text align
 		glyphOffset = 0.0f;
 		float alignOffset = (textSize.width / -2.0f);
 		switch (textComponent.align)
@@ -178,13 +181,10 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime, const ILo
 		}
 
 		// render glyphs
-		for (wchar_t entry : text)
+		for (SGlyph& glyph : glyphs)
 		{
-			float lineHeight;
-			auto [glyph, bGlyphFound] = fonts->FindGlyph(textComponent.fontId, entry, &lineHeight);
-			glyph.size.height = lineHeight;
-
 			// generate glyph uv
+			glyph.size.height = textSize.height;
 			SSpriteUVComponent tmpUV;
 			textComponent.GenerateGlyphUV(glyph, SConvert::ToSize2F(cachedTexSize), tmpUV);
 

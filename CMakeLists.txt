@@ -57,6 +57,12 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+	ufbx
+	GIT_REPOSITORY https://github.com/ufbx/ufbx.git
+	GIT_TAG        v0.21.3
+)
+
+FetchContent_Declare(
 	zlib
 	GIT_REPOSITORY https://github.com/madler/zlib.git
 	GIT_TAG        v1.3.2
@@ -93,6 +99,11 @@ message("--\n-- Downloading stb/truetype ...\n--")
 FetchContent_MakeAvailable(stb)
 FetchContent_GetProperties(stb)
 
+message("--\n-- Downloading ufbx 0.21.3 ...\n--")
+
+FetchContent_MakeAvailable(ufbx)
+FetchContent_GetProperties(ufbx)
+
 message("--\n-- Downloading zlib 1.3.2 ...\n--")
 
 FetchContent_MakeAvailable(zlib)
@@ -113,6 +124,17 @@ find_package(PNG REQUIRED)
 
 
 ## Add Engine libs ##
+
+add_library(ufbx STATIC
+    ${ufbx_SOURCE_DIR}/ufbx.h
+    ${ufbx_SOURCE_DIR}/ufbx.c
+)
+target_include_directories(ufbx
+	PUBLIC
+		${ufbx_SOURCE_DIR}
+)
+target_compile_features(ufbx PUBLIC cxx_std_20)
+
 
 add_library(SCore SHARED
     ${ENGINE_SOURCE_DIR}/SConfig.h
@@ -139,6 +161,7 @@ target_include_directories(SCore
 		${eigen_SOURCE_DIR}
 		${entt_SOURCE_DIR}/src
 		${json_SOURCE_DIR}/include
+		${ufbx_SOURCE_DIR}
 		${zlib_SOURCE_DIR}
 		${png_SOURCE_DIR}
 		${png_BINARY_DIR}
@@ -149,10 +172,10 @@ target_link_directories(SCore PRIVATE
     ${png_BINARY_DIR}
 )
 target_link_libraries(SCore PRIVATE
-    $<$<CONFIG:Debug>:zd libpng16d>
-    $<$<CONFIG:Release>:z libpng16>
+    $<$<CONFIG:Debug>:ufbx zd libpng16d>
+    $<$<CONFIG:Release>:ufbx z libpng16>
 )
-add_dependencies(SCore zlib PNG::PNG)
+add_dependencies(SCore ufbx zlib PNG::PNG)
 
 
 add_library(SWorld SHARED
@@ -230,6 +253,8 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 )
@@ -366,6 +391,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
@@ -375,6 +401,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)
 endif()

@@ -40,8 +40,6 @@ public:
 	virtual std::pair<std::wstring, bool> Get(STextID key) const = 0;
 	// get current culture's name
 	virtual const std::string& GetCulture() const = 0;
-	// make text key id from key name
-	virtual STextID MakeId(const std::string_view& key) const = 0;
 };
 
 using TLocalizationPtr = std::unique_ptr<ILocalization>;

@@ -39,7 +39,7 @@ public:
 	//
 	void Setup(IRenderSystem::SShaderData& shaderData);
 	//
-	void Render(float deltaSeconds, float gameTime, const ILocalization* text);
+	void Render(float deltaSeconds, float gameTime);
 
 
 protected:
@@ -67,6 +67,8 @@ protected:
 	std::vector<DX11TEXTGLYPHINSTANCE> batchData;
 	//
 	ID3D11ShaderResourceView* cachedTexView;
+	//
+	const class IWorld* world;
 	//
 	SSize2 cachedTexSize;
 	//

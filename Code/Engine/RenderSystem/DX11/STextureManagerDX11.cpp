@@ -9,7 +9,6 @@
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
-#include <wrl.h>
 #include <vector>
 #include <cmath>
 
@@ -61,10 +60,10 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 
     if (d3dDevice && loadedTextures)
     {
-        STextureData data{};
         for (std::uint32_t i = 0; i < SConst::MaxTexturesPerFrame; i++)
         {
             // read in game thread space
+            STextureData data{};
             if (loadedTextures->pop(data))
             {
                 STextureDataDX11 texture{};
@@ -80,7 +79,7 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 
                 if (!preLoadDelegatesCache.empty())
                 {
-                    CheckPreLoadFinished();
+                    CheckPreloadFinished();
                 }
             }
             else
@@ -95,7 +94,7 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 
 STexID STextureManagerDX11::LoadTexture(const std::filesystem::path& path)
 {
-    STexID id = GenerateTexID(path.string());
+    STexID id = ResourceID<STexID>(path.string());
 
     DebugMsg("[%s] STextureManagerDX11::LoadTexture(): begin loading texture '%s', id=%d\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
@@ -122,39 +121,32 @@ STexID STextureManagerDX11::LoadTexture(const std::filesystem::path& path)
     return id;
 }
 
-void STextureManagerDX11::PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate)
+void STextureManagerDX11::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
 {
-    TTexIDList ids;
-    ids.reserve(paths.size());
-    for (auto& path : paths)
-    {
-        ids.emplace(path, GenerateTexID(path.string()));
-    }
+    preLoadDelegatesCache.emplace_back(paths, delegate);
 
-    preLoadDelegatesCache.emplace_back(ids, delegate);
-
-    auto PreLoadTexturesTask = [this, ids]()
+    auto PreloadTexturesTask = [this, paths]()
     {
-        for (auto& entry : ids)
+        for (auto& entry : paths)
         {
             STextureData texture{};
-            if (LoadTextureData(entry.first, &texture.data, &texture.texSize))
+            if (LoadTextureData(entry, &texture.data, &texture.texSize))
             {
-                texture.id = entry.second;
+                texture.id = ResourceID<STexID>(entry.string());
 
                 // write in thread pool space
                 loadedTextures->push(texture);
             }
             else
             {
-                DebugMsg("[%s] STextureManagerDX11::PreLoadTextures(): cannot load '%s'\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), entry.first.string().c_str());
+                DebugMsg("[%s] STextureManagerDX11::PreloadTextures(): cannot load '%s'\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), entry.string().c_str());
             }
         }
     };
 
     // send task to thread pool
-    threadPool->AddTask(PreLoadTexturesTask, "PreLoad texture list");
+    threadPool->AddTask(PreloadTexturesTask, "Preload texture list");
 }
 
 bool STextureManagerDX11::LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize)
@@ -172,6 +164,8 @@ bool STextureManagerDX11::LoadTextureData(const std::filesystem::path& path, SBy
     }
     catch (const std::exception& ex)
     {
+        DebugMsg("[%s] STextureManagerDX11::LoadTextureData(): %s\n",
+            GetTimeStamp(std::chrono::system_clock::now()).c_str(), ex.what());
         return false;
     }
 
@@ -180,7 +174,11 @@ bool STextureManagerDX11::LoadTextureData(const std::filesystem::path& path, SBy
 
 bool STextureManagerDX11::CreateTexture(ID3D11Device* d3dDevice, const STextureData& textureData, STextureDataDX11& outTexture)
 {
-    D3D11_SUBRESOURCE_DATA initData = { textureData.data.data(), static_cast<UINT>(textureData.texSize.width * 4), static_cast<UINT>(textureData.data.size())};
+    D3D11_SUBRESOURCE_DATA initData = {
+        textureData.data.data(),
+        static_cast<UINT>(textureData.texSize.width * 4),
+        static_cast<UINT>(textureData.data.size())
+    };
 
     // create texture
     D3D11_TEXTURE2D_DESC desc{};
@@ -213,7 +211,7 @@ bool STextureManagerDX11::CreateTexture(ID3D11Device* d3dDevice, const STextureD
     return false;
 }
 
-void STextureManagerDX11::CheckPreLoadFinished()
+void STextureManagerDX11::CheckPreloadFinished()
 {
     std::forward_list<TPreLoadDelegatesCache::const_iterator> eraseList;
 
@@ -221,9 +219,10 @@ void STextureManagerDX11::CheckPreLoadFinished()
     {
         bool bAllLoaded = true;
 
-        for (auto idData : it->first)
+        for (auto path : it->first)
         {
-            if (!texturesCache.contains(idData.second))
+            auto id = ResourceID<STexID>(path.string());
+            if (!texturesCache.contains(id))
             {
                 bAllLoaded = false;
                 break;
@@ -282,17 +281,6 @@ void STextureManagerDX11::ClearCache(IWorld* world)
     }
 
     S_CATCH{ S_THROW("STextureManagerDX11::ClearCache()") }
-}
-
-STexID STextureManagerDX11::GenerateTexID(const std::filesystem::path& texPath) const
-{
-    std::string name = texPath.string();
-    size_t dotsPos = name.rfind("..");
-    if (dotsPos != std::string::npos)
-    {
-        name = name.substr(dotsPos + 2);
-    }
-    return hasher(name);
 }
 
 #endif // WIN32

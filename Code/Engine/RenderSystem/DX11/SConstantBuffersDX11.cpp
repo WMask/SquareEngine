@@ -70,10 +70,10 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	}
 
 	subResData.pSysMem = &colorsData;
-	colorsData.colors[0] = SConst::OneSColor4F;
-	colorsData.colors[1] = SConst::OneSColor4F;
-	colorsData.colors[2] = SConst::OneSColor4F;
-	colorsData.colors[3] = SConst::OneSColor4F;
+	colorsData.colors[0] = SConst::White4F;
+	colorsData.colors[1] = SConst::White4F;
+	colorsData.colors[2] = SConst::White4F;
+	colorsData.colors[3] = SConst::White4F;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, colorsBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");

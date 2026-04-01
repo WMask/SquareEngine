@@ -36,7 +36,7 @@ public:
 	virtual STexID LoadTexture(const std::filesystem::path& texturePath) = 0;
 	/**
 	* Load textures and call delegate */
-	virtual void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate) = 0;
+	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
 	/**
 	* Remove all graphics objects: textures, fonts etc. */
 	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;

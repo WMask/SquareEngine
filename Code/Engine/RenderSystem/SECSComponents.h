@@ -71,7 +71,7 @@ public:
 	//
 	inline void SetWhiteColors()
 	{
-		colors[0] = colors[1] = colors[2] = colors[3] = SConst::OneSColor4F;
+		colors[0] = colors[1] = colors[2] = colors[3] = SConst::White4F;
 	}
 	//
 	inline void SetColors(const SColor4F& color)
@@ -211,4 +211,11 @@ public:
 		outUV.uvs[3] = SVector2{ xx,      yy + hh }; // lb
 	}
 
+};
+
+/** Static mesh component */
+struct SStaticMeshComponent
+{
+	// id in mesh manager
+	SMeshID meshId;
 };

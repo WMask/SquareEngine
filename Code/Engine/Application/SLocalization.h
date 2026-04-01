@@ -20,7 +20,7 @@ class SLocalization : public SUncopyable
 {
 public:
 	//
-	SLocalization(std::hash<std::string>& inHasher) : hasher(inHasher) {}
+	SLocalization() {}
 	//
 	~SLocalization() {}
 	//
@@ -40,8 +40,6 @@ protected:
 	std::string culture;
 	//
 	std::map<STextID, std::wstring> entries;
-	//
-	std::hash<std::string>& hasher;
 
 };
 
@@ -70,8 +68,6 @@ public:
 	virtual std::pair<std::wstring, bool> Get(const std::string_view& key) const override;
 	//
 	virtual const std::string& GetCulture() const override { return curCulture; }
-	//
-	virtual STextID MakeId(const std::string_view& key) const override;
 
 
 protected:
@@ -81,7 +77,5 @@ protected:
 	std::string curCulture;
 	//
 	const SAppContext* context;
-	//
-	std::hash<std::string> hasher;
 
 };

@@ -46,7 +46,7 @@ void SLocalization::Load(const std::filesystem::path& filePath)
 
 void SLocalization::Set(const std::string_view& key, const std::wstring& value)
 {
-    STextID id = hasher(key.data());
+    STextID id = ResourceID<STextID>(key);
     entries.insert_or_assign(id, value);
 }
 
@@ -63,7 +63,7 @@ std::pair<std::wstring, bool> SLocalization::Get(STextID key) const
 
 std::pair<std::wstring, bool> SLocalization::Get(const std::string_view& key) const
 {
-    STextID id = hasher(key.data());
+    STextID id = ResourceID<STextID>(key);
     auto it = entries.find(id);
     if (it != entries.end())
     {
@@ -77,7 +77,7 @@ void SLocalizationManager::AddCulture(const std::filesystem::path& filePath)
 {
     S_TRY
 
-    auto newCulture = std::make_shared<SLocalization>(hasher);
+    auto newCulture = std::make_shared<SLocalization>();
     newCulture->Load(filePath);
 
     auto newCultureName = newCulture->GetCulture();
@@ -139,9 +139,4 @@ std::pair<std::wstring, bool> SLocalizationManager::Get(const std::string_view& 
     }
 
     return { L"", false };
-}
-
-STextID SLocalizationManager::MakeId(const std::string_view& key) const
-{
-    return hasher(key.data());;
 }

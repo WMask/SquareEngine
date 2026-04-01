@@ -7,7 +7,6 @@
 #include "Core/CoreModule.h"
 #include "Core/STypes.h"
 #include <string_view>
-#include <filesystem>
 #include <chrono>
 
 
@@ -19,6 +18,19 @@ std::string_view GetEngineVersion();
 * Get timestamp string */
 S_CORE_API
 std::string GetTimeStamp(const std::chrono::system_clock::time_point& clock);
+/**
+* Generate resource id */
+template<typename T>
+inline T ResourceID(const std::string& name)
+{
+	static std::hash<std::string> hasher;
+	return hasher(name.c_str());
+}
+template<typename T>
+inline T ResourceID(const std::string_view& name)
+{
+	return ResourceID<T>(std::string(name.data()));
+}
 
 
 /**
@@ -39,6 +51,10 @@ S_CORE_API void WriteTextFile(const std::filesystem::path& filePath, const std::
 */
 S_CORE_API void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth, std::uint32_t* outHeight,
 	std::uint32_t* outBPP, std::uint32_t* outRowBytes, void* outData = nullptr);
+/**
+* Read fbx file */
+S_CORE_API void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
+	std::forward_list<SMeshID>& meshesCacheIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
 
 
 /**

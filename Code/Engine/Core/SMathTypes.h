@@ -39,6 +39,14 @@ struct SVector4 : public SVector3
 	inline operator const float*() const { return &x; }
 };
 
+// Object 3D transform
+struct STransform
+{
+	SVector3 pos;
+	SVector4 quat;
+	SVector3 scale;
+};
+
 namespace SConst
 {
 	static const SVector2 ZeroSVector2 = SVector2{};

@@ -269,8 +269,8 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 		if (node->is_root || !node->mesh) continue;
 
 		SMesh mesh;
-		std::string name = node->mesh->name.data;
-		mesh.id = ResourceID<SMeshID>(name);
+		mesh.name = node->mesh->name.data;
+		mesh.id = ResourceID<SMeshID>(mesh.name);
 
 		// skip if added
 		const bool bAlreadyAdded = std::find(instAdded.begin(), instAdded.end(), mesh.id) != instAdded.end();
@@ -340,6 +340,7 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 					v->pos = ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
 					v->norm = ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
 					v->uv = ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
+					v->uv.y = 1.0f - v->uv.y;
 				}
 			}
 

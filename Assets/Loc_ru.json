@@ -8,6 +8,7 @@
 		{ "key": "btn_fullscreen", "value": "Полный экран" },
 		{ "key": "btn_1080", "value": "1920x1080" },
 		{ "key": "btn_900", "value": "1600x900" },
-		{ "key": "btn_720", "value": "1280x720" }
+		{ "key": "btn_720", "value": "1280x720" },
+		{ "key": "controls_text", "value": "Управление: стрелки Влево/Вправо/Вверх/Вниз" }
 	]
 }

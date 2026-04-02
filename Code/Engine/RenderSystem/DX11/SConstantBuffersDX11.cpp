@@ -10,118 +10,65 @@
 #include <directxmath.h>
 
 
+struct SWVPBuffer
+{
+	SMatrix4 mTrans;
+	SMatrix4 mView;
+	SMatrix4 mProj;
+};
+
 SConstantBuffersDX11::~SConstantBuffersDX11()
 {
 	Shutdown();
 }
 
 void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
-	SVector3 cameraPos, SVector3 cameraTarget, std::uint32_t width, std::uint32_t height)
+	const SCamera& camera, std::uint32_t width, std::uint32_t height)
 {
 	S_TRY
 
-	struct VS_COLORS_BUFFER
-	{
-		SColor4F colors[4];
-	};
-	VS_COLORS_BUFFER colorsData;
-
-	struct VS_CUSTOM_UV_BUFFER
-	{
-		SVector4 uv[4];
-	};
-	VS_CUSTOM_UV_BUFFER uvData;
-
-	struct VS_FRAME_ANIM2D_BUFFER
-	{
-		SVector4 animData;
-	};
-	VS_FRAME_ANIM2D_BUFFER anim2dData;
-
-	SSingleMatrixBuffer matData{};
-	SSettingsBuffer settingsData{};
-	SSpriteFlagsBuffer flagsData{};
-
 	D3D11_BUFFER_DESC cbDesc{};
-	cbDesc.ByteWidth = sizeof(SSingleMatrixBuffer);
+	cbDesc.ByteWidth = Align16<SWVPBuffer>();
 	cbDesc.Usage = D3D11_USAGE_DEFAULT;
 	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
 	D3D11_SUBRESOURCE_DATA subResData{};
-	subResData.pSysMem = &matData;
 
 	// create constant buffers
-	matData.mat = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, projMatrixBuffer.GetAddressOf())))
+	SWVPBuffer wvpData;
+	wvpData.mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
+	wvpData.mView = SMath::LookAtMatrix(
+		camera.GetPosition(SCameraSpace::Camera2D),
+		camera.GetTarget(SCameraSpace::Camera2D), true);
+	wvpData.mTrans = SConst::IdentitySMatrix4;
+	subResData.pSysMem = &wvpData;
+	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, wvpMatrixBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");
 	}
 
-	matData.mat = SMath::LookAtMatrix(cameraPos, cameraTarget);
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, viewMatrixBuffer.GetAddressOf())))
-	{
-		throw std::exception("Cannot create constant buffer");
-	}
-
-	matData.mat = SConst::IdentitySMatrix4;
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, transMatrixBuffer.GetAddressOf())))
-	{
-		throw std::exception("Cannot create constant buffer");
-	}
-
-	subResData.pSysMem = &colorsData;
-	colorsData.colors[0] = SConst::White4F;
-	colorsData.colors[1] = SConst::White4F;
-	colorsData.colors[2] = SConst::White4F;
-	colorsData.colors[3] = SConst::White4F;
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, colorsBuffer.GetAddressOf())))
-	{
-		throw std::exception("Cannot create constant buffer");
-	}
-
-	subResData.pSysMem = &uvData;
-	uvData.uv[1] = SVector4{ 1.0, 0.0, 0.0f, 0.0f };
-	uvData.uv[2] = SVector4{ 1.0, 1.0, 0.0f, 0.0f };
-	uvData.uv[0] = SVector4{ 0.0, 0.0, 0.0f, 0.0f };
-	uvData.uv[3] = SVector4{ 0.0, 1.0, 0.0f, 0.0f };
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, customUvBuffer.GetAddressOf())))
-	{
-		throw std::exception("Cannot create constant buffer");
-	}
-
-	cbDesc.ByteWidth = sizeof(VS_FRAME_ANIM2D_BUFFER);
-	subResData.pSysMem = &anim2dData;
-	anim2dData.animData = SVector4{ 1.0, 1.0, 0.0, 0.0 };
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, frameAnimBuffer.GetAddressOf())))
-	{
-		throw std::exception("Cannot create constant buffer");
-	}
-
-	cbDesc.ByteWidth = sizeof(SSettingsBuffer);
+	SSettingsBuffer settingsData;
+	cbDesc.ByteWidth = Align16<SSettingsBuffer>();
+	settingsData.worldTint = SConvert::ToVector4(SConst::White3);
 	subResData.pSysMem = &settingsData;
-	settingsData.worldTint = SVector4{ 1.0, 1.0, 1.0, 1.0 };
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, settingsBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");
 	}
 
-	cbDesc.ByteWidth = sizeof(SSpriteFlagsBuffer);
-	subResData.pSysMem = &flagsData;
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, flagsBuffer.GetAddressOf())))
+	SLightsBuffer lightsData;
+	cbDesc.ByteWidth = Align16<SLightsBuffer>();
+	lightsData.numLights = 0u;
+	subResData.pSysMem = &lightsData;
+	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, lightsBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");
 	}
 
 	// set buffers
-	d3dDeviceContext->VSSetConstantBuffers(0, 1, projMatrixBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(1, 1, viewMatrixBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(2, 1, transMatrixBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(3, 1, colorsBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(4, 1, customUvBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(5, 1, frameAnimBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(6, 1, settingsBuffer.GetAddressOf());
-	d3dDeviceContext->PSSetConstantBuffers(6, 1, settingsBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(7, 1, flagsBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(0, 1, wvpMatrixBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(2, 1, lightsBuffer.GetAddressOf());
 
 	// create vertex buffer
 	DX11SPRITEVERTEX data[] = {
@@ -156,16 +103,38 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	S_CATCH{ S_THROW("SConstantBuffersDX11::Init()") }
 }
 
+void SConstantBuffersDX11::ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContext,
+	const SCamera& camera, SVector2 worldScale, std::uint32_t width, std::uint32_t height)
+{
+	if (d3dDeviceContext)
+	{
+		SWVPBuffer wvpData;
+		wvpData.mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
+		wvpData.mView = SMath::LookAtMatrix(
+			camera.GetPosition(SCameraSpace::Camera2D),
+			camera.GetTarget(SCameraSpace::Camera2D), true);
+		wvpData.mTrans = SMath::ScaleMatrix2(worldScale);
+		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
+	}
+}
+
+void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera, std::uint32_t width, std::uint32_t height)
+{
+	if (d3dDeviceContext)
+	{
+		SWVPBuffer wvpData;
+		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+		wvpData.mProj = SMath::ProjectionMatrix(camera.GetFOV(), aspectRatio, 0.1f, 10000.0f);
+		wvpData.mView = SMath::LookAtMatrix(
+			camera.GetPosition(SCameraSpace::Camera3D), camera.GetTarget(SCameraSpace::Camera3D));
+		wvpData.mTrans = SMath::ScaleMatrix3(SConst::OneSVector3);
+		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
+	}
+}
+
 void SConstantBuffersDX11::Shutdown()
 {
-	flagsBuffer.Reset();
-	settingsBuffer.Reset();
-	frameAnimBuffer.Reset();
-	customUvBuffer.Reset();
-	colorsBuffer.Reset();
-	transMatrixBuffer.Reset();
-	projMatrixBuffer.Reset();
-	viewMatrixBuffer.Reset();
+	wvpMatrixBuffer.Reset();
 	spriteIndexBuffer.Reset();
 	spriteVertexBuffer.Reset();
 }

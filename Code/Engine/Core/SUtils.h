@@ -26,6 +26,8 @@ inline T ResourceID(const std::string& name)
 	static std::hash<std::string> hasher;
 	return hasher(name.c_str());
 }
+/**
+* Generate resource id */
 template<typename T>
 inline T ResourceID(const std::string_view& name)
 {

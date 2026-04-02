@@ -43,7 +43,7 @@ void SMeshManagerDX11::Shutdown()
     threadPool = nullptr;
 }
 
-bool SMeshManagerDX11::FindMesh(SMeshID id, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
+bool SMeshManagerDX11::FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
 {
     if (meshesCache.contains(id))
     {
@@ -51,6 +51,7 @@ bool SMeshManagerDX11::FindMesh(SMeshID id, ID3D11Buffer** outVB, ID3D11Buffer**
         auto& texData = it->second;
         *outVB = texData.vb.Get();
         *outIB = texData.ib.Get();
+        *outMaterials = texData.materials;
         return true;
     }
 
@@ -144,7 +145,7 @@ void SMeshManagerDX11::PreloadStaticMeshes(const std::filesystem::path& path, On
     };
 
     // send task to thread pool
-    threadPool->AddTask(PreloadMeshesTask, "Preload mesh list");
+    threadPool->AddTask(PreloadMeshesTask, "Preload meshes");
 }
 
 bool SMeshManagerDX11::LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData)
@@ -194,6 +195,11 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
         return false;
     }
 
+    outMesh.materials = meshData.materials;
+
+    DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): mesh '%s' created and added to cache\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.name.c_str());
+
     return true;
 }
 
@@ -213,18 +219,19 @@ void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
 
             if (it->second)
             {
+                // call delegate
                 it->second(it->first, meshData.instances);
-            }
-
-            if (!meshData.instances.empty())
-            {
-                DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): instances from '%s' loaded\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
             }
 
             if (!meshData.meshes.empty())
             {
                 DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
+            }
+
+            if (!meshData.instances.empty())
+            {
+                DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): instances from '%s' loaded\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
             }
         }
@@ -241,6 +248,7 @@ void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
 
             if (it->second)
             {
+                // call delegate
                 it->second(it->first);
             }
 
@@ -266,7 +274,7 @@ void SMeshManagerDX11::ClearCache(IWorld* world)
         const auto& view = registry.view<SStaticMeshComponent>();
 
         view.each([&aliveMeshList](const SStaticMeshComponent& meshComponent) {
-            aliveMeshList.insert(meshComponent.meshId);
+            aliveMeshList.insert(meshComponent.id);
         });
 
         std::set<STexID> eraseTexList;

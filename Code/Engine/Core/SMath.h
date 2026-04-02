@@ -377,12 +377,21 @@ namespace SMath
 		return OrthoMatrix(static_cast<float>(viewportSize.width), static_cast<float>(viewportSize.height), nearPlane, farPlane);
 	}
 
-	inline SMatrix4 LookAtMatrix(const SVector3& from, const SVector3& to)
+	inline SMatrix4 ProjectionMatrix(float fovDegrees, float aspectRatio, float nearPlane, float farPlane)
+	{
+		auto matrix = DirectX::XMMatrixPerspectiveFovLH(
+			DirectX::XMConvertToRadians(fovDegrees),
+			aspectRatio, nearPlane, farPlane
+		);
+		return SConvert::ToMatrix4(matrix);
+	}
+
+	inline SMatrix4 LookAtMatrix(const SVector3& from, const SVector3& to, bool bFlipY = false)
 	{
 		auto matrix = DirectX::XMMatrixLookAtLH(
 			DirectX::XMVectorSet(from.x, from.y, from.z, 0.0f),
 			DirectX::XMVectorSet(to.x, to.y, to.z, 0.0f),
-			DirectX::XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f));
+			DirectX::XMVectorSet(0.0f, bFlipY ? -1.0f : 1.0f, 0.0f, 0.0f));
 		return SConvert::ToMatrix4(matrix);
 	}
 
@@ -401,6 +410,12 @@ namespace SMath
 	inline SMatrix4 ScaleMatrix2(const SVector2& scale)
 	{
 		auto matrix = DirectX::XMMatrixScaling(scale.x, scale.y, 1.0f);
+		return SConvert::ToMatrix4(matrix);
+	}
+
+	inline SMatrix4 ScaleMatrix3(const SVector3& scale)
+	{
+		auto matrix = DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
 		return SConvert::ToMatrix4(matrix);
 	}
 

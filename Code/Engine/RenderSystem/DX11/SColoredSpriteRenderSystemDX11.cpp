@@ -80,7 +80,7 @@ void SColoredSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderDat
 	// create instance buffer
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.ByteWidth = sizeof(DX11COLOREDSPRITEINSTANCE) * MaxInstancedSpritesCount;
+	bufferDesc.ByteWidth = sizeof(DX11COLOREDSPRITEINSTANCE) * SConst::MaxInstancedSpritesCount;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, NULL, instanceBuffer.GetAddressOf())))
@@ -119,7 +119,7 @@ void SColoredSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
 	// prepare cached state
-	if (batchData.capacity() < MaxInstancedSpritesCount) batchData.reserve(MaxInstancedSpritesCount);
+	if (batchData.capacity() < SConst::MaxInstancedSpritesCount) batchData.reserve(SConst::MaxInstancedSpritesCount);
 	batchesRendered = 0;
 	numSprites = 0;
 
@@ -140,7 +140,7 @@ void SColoredSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		memcpy(instance.colors, coloredComponent.colors, sizeof(SColor4F) * 4);
 		batchData.push_back(instance);
 
-		if (batchData.size() == MaxInstancedSpritesCount)
+		if (batchData.size() == SConst::MaxInstancedSpritesCount)
 		{
 			// render if max number reached
 			RenderBatch();

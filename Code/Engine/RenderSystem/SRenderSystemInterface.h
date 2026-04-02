@@ -38,6 +38,14 @@ public:
 	* Load textures and call delegate */
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
 	/**
+	* Load mesh scene instances and call delegate.
+	* Loads meshes with material textures if instance's mesh not loaded yet.
+	*/
+	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) = 0;
+	/**
+	* Load meshes with material textures and call delegate */
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) = 0;
+	/**
 	* Remove all graphics objects: textures, fonts etc. */
 	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;
 	/**
@@ -45,7 +53,7 @@ public:
 	virtual void RequestResize(std::uint32_t width, std::uint32_t height) = 0;
 	/**
 	* Update camera */
-	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) = 0;
+	virtual void UpdateCamera(const SCamera& camera) = 0;
 	/**
 	* Set window mode */
 	virtual void SetMode(SAppMode mode) = 0;

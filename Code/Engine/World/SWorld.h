@@ -30,6 +30,16 @@ public:// IWorld interface implementation
 	//
 	virtual void Clear(bool removeRooted) override;
 	//
+	virtual std::pair<SLightID, bool> AddDirectionalLight(const std::string_view& name, const SVector3& direction, const SColor3& color) override;
+	//
+	virtual std::pair<SLightID, bool> AddPointLight(const std::string_view& name, const SVector3& pos, float distance, const SColor3& color) override;
+	//
+	virtual SLightsBuffer GetLightsData() const override;
+	//
+	virtual bool RemoveLight(SLightID id) override;
+	//
+	virtual std::uint32_t GetNumLights(SLightID) const noexcept override { return lights.size(); }
+	//
 	virtual void UpdateWorldScale(SSize2 newScreenSize) override;
 	//
 	virtual const SWorldScale& GetScale() const { return worldScale; }
@@ -54,6 +64,16 @@ protected:
 	const SAppContext* context;
 	//
 	entt::registry entities;
+	//
+	struct SLight
+	{
+		// w - light type: <0.5 - directional, >0.5 - point
+		SVector4 lightVec;
+		// w - distance if point light type
+		SVector4 lightColor;
+	};
+	//
+	std::unordered_map<SLightID, SLight> lights;
 	//
 	SWorldScale worldScale{};
 	//

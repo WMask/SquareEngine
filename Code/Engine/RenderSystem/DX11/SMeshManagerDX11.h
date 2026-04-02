@@ -38,7 +38,7 @@ public:
 	//
 	void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate);
 	//
-	bool FindMesh(SMeshID id, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const;
+	bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const;
 	/**
 	* If world is not null - only unused meshes removed. If null - all meshes removed. */
 	void ClearCache(IWorld* world);
@@ -60,6 +60,8 @@ protected:
 	//
 	struct SMeshDataDX11
 	{
+		std::vector<SMaterial> materials;
+		//
 		ComPtr<ID3D11Buffer> vb;
 		//
 		ComPtr<ID3D11Buffer> ib;

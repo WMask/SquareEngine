@@ -39,11 +39,14 @@ struct SVector4 : public SVector3
 	inline operator const float*() const { return &x; }
 };
 
+// Quaternion rotation
+using SQuat = SVector4;
+
 // Object 3D transform
 struct STransform
 {
 	SVector3 pos;
-	SVector4 quat;
+	SQuat rotation;
 	SVector3 scale;
 };
 
@@ -53,7 +56,8 @@ namespace SConst
 	static const SVector3 ZeroSVector3 = SVector3{};
 	static const SVector4 ZeroSVector4 = SVector4{};
 	static const SVector4 OneSVector4 = SVector4{ 1.0f, 1.0f, 1.0f, 1.0f };
-	static const SVector2 OneSVector2 = SVector2{1, 1};
+	static const SVector3 OneSVector3 = SVector3{ 1.0f, 1.0f, 1.0f };
+	static const SVector2 OneSVector2 = SVector2{ 1.0f, 1.0f };
 }
 
 namespace SConvert

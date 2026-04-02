@@ -109,6 +109,8 @@ struct SMesh
 	// generated from mesh name
 	SMeshID id{};
 	//
+	std::string name;
+	//
 	std::vector<SMaterial> materials;
 	//
 	std::vector<SVertex> vertices;
@@ -122,6 +124,7 @@ using SGroupID = std::uint32_t;
 /** Mesh instance */
 struct SMeshInstance
 {
+	// mesh id in mesh manager
 	SMeshID id;
 	//
 	SGroupID group;
@@ -182,6 +185,15 @@ namespace SConvert
 		};
 	}
 
+	inline SVector3 ToVector3(const SColor3F& color)
+	{
+		return SVector3 {
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f
+		};
+	}
+
 	inline SVector4 ToVector4(const SColor3& color)
 	{
 		return SVector4 {
@@ -207,6 +219,15 @@ namespace SConvert
 	inline DirectX::XMVECTOR ToXVector4(const SColor4F& c)
 	{
 		return DirectX::XMVectorSet(c.r, c.g, c.b, c.a);
+	}
+
+	inline SColor3F ToColor3(const SColor3& c)
+	{
+		return SColor3F {
+			static_cast<float>(c.r) / 255.0f,
+			static_cast<float>(c.g) / 255.0f,
+			static_cast<float>(c.b) / 255.0f
+		};
 	}
 
 	inline SColor3F ToColor3(DirectX::XMVECTOR v)

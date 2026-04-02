@@ -149,13 +149,12 @@ entt::entity SGuiSystem::MakeAnimatedSprite(entt::registry& registry,
 	return animatedEntity;
 }
 
-entt::entity SGuiSystem::MakeText(entt::registry& registry,
-	SWidgetID widgetId, STextID text, SFontID font,
-	const SVector3& pos, const SSize2F& size, SColor4F color)
+entt::entity SGuiSystem::MakeText(entt::registry& registry, SWidgetID widgetId, STextID text, SFontID font,
+	const SVector3& pos, const SSize2F& size, SColor4F color, STextAlign align)
 {
 	entt::entity textEntity = registry.create();
 	registry.emplace<SSpriteComponent>(textEntity, true, 0.0f, pos, size);
-	registry.emplace<STextComponent>(textEntity, color, text, font);
+	registry.emplace<STextComponent>(textEntity, color, text, font, align);
 	registry.emplace<SWidgetComponent>(textEntity, widgetId);
 
 	return textEntity;

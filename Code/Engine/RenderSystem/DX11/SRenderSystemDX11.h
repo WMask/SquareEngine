@@ -14,6 +14,7 @@
 #include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STextRenderSystemDX11.h"
+#include "RenderSystem/DX11/SMeshRenderSystemDX11.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_4.h>
@@ -37,6 +38,8 @@ public:
 	const SShaderDataDX11* FindShader(const std::string& name) const;
 
 	std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const;
+
+	bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const;
 	//
 	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
 	//
@@ -57,13 +60,17 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
 	//
+	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
+	//
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) override;
+	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
 	virtual void RequestResize(std::uint32_t width, std::uint32_t height) override;
 	//
 	virtual void SetMode(SAppMode mode) override;
 	//
-	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
+	virtual void UpdateCamera(const SCamera& camera) override;
 	//
 	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
 	//
@@ -102,6 +109,8 @@ protected:
 	void OnWorldScaleChanged(SVector2 worldScale);
 	//
 	void OnCameraViewChanged(const SCamera& camera);
+	//
+	void OnLightsChanged(const IWorld& world);
 
 
 protected:
@@ -113,6 +122,8 @@ protected:
 	SFrameAnimSpriteRenderSystemDX11 frameAnimSpriteRender;
 	//
 	STextRenderSystemDX11 textRender;
+	//
+	SMeshRenderSystemDX11 meshRender;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
@@ -156,9 +167,15 @@ protected:
 	//
 	SSize2 cachedRenderSystemSize{};
 	//
-	SVector3 cachedCameraPos{};
+	SVector2 cachedWorld2dScale{};
 	//
-	SVector3 cachedCameraTarget{};
+	SVector3 cachedCameraPos2d{};
+	//
+	SVector3 cachedCameraTarget2d{};
+	//
+	SVector3 cachedCameraPos3d{};
+	//
+	SVector3 cachedCameraTarget3d{};
 	//
 	std::uint32_t cachedMaxRefreshRate = 0;
 	//

@@ -154,7 +154,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// tree entity
 			treeEntity = context.gui->MakeTexturedSprite(registry, treeTex,
-				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
+				SVector3{ 700.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
 				SConst::White4F
 			);
 
@@ -162,7 +162,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto toggleText = ResourceID<STextID>(toggleTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
 				listener.toggleButtonId, listener.toggleTextId,
-				SVector3{ 300.0f, 500.0f, 0.0f },
+				SVector3{ 700.0f, 500.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F
 			);
@@ -171,7 +171,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto applyText = ResourceID<STextID>(applyTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId,
 				listener.applyButtonId, listener.applyTextId,
-				SVector3{ 700.0f, 500.0f, 0.0f },
+				SVector3{ 300.0f, 500.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F
 			);
@@ -180,7 +180,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto fpsText = ResourceID<STextID>(fpsTextKey);
 			context.gui->MakeText(registry,
 				listener.fpsTextId, fpsText, fontId,
-				SVector3{ 700.0f, 300.0f, 0.0f },
+				SVector3{ 300.0f, 300.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F
 			);
@@ -202,7 +202,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				auto& sprite = spriteView.get<SColoredComponent>(treeEntity);
 
 				listener.tint = SMath::LerpColor4(listener.tint, listener.targetTint, listener.lerp);
-				listener.lerp += deltaSeconds / 3.0f;
+				listener.lerp += deltaSeconds / 4.0f;
 				sprite.SetColors(listener.tint);
 			}
 		};

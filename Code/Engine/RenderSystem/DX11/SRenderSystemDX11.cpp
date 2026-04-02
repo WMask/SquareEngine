@@ -18,6 +18,7 @@ SRenderSystemDX11::SRenderSystemDX11()
 	, texturedSpriteRender(*this)
 	, frameAnimSpriteRender(*this)
 	, textRender(*this)
+	, meshRender(*this)
 {
 }
 
@@ -192,11 +193,18 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	textureManager.Init(context.pool);
 	meshManager.Init(context.pool);
 
-	cachedCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
-	cachedCameraTarget = SVector3{ cachedCameraPos.x, cachedCameraPos.y, 0.0f };
-	constantBuffers.Init(d3dDevice.Get(), deviceContext.Get(), cachedCameraPos, cachedCameraTarget, width, height);
+	cachedCameraPos2d = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
+	cachedCameraTarget2d = SVector3{ cachedCameraPos2d.x, cachedCameraPos2d.y, 0.0f };
+	context.world->GetCamera().Set(SCameraSpace::Camera2D, cachedCameraPos2d, cachedCameraTarget2d);
+
+	cachedCameraPos3d = SVector3{ 500.0f, 500.0f, 500.0f };
+	cachedCameraTarget3d = SConst::ZeroSVector3;
+	context.world->GetCamera().Set(SCameraSpace::Camera3D, cachedCameraPos3d, cachedCameraTarget3d);
+
+	constantBuffers.Init(d3dDevice.Get(), deviceContext.Get(), context.world->GetCamera(), width, height);
 	context.world->UpdateWorldScale(viewportSize);
 	cachedRenderSystemSize = SSize2{ width, height };
+	cachedWorld2dScale = context.world->GetScale().GetScale();
 
 	const bool bShouldGoFullscreen = (ScreenW == width && ScreenH == height);
 	if (bShouldGoFullscreen || mode == SAppMode::Fullscreen)
@@ -302,13 +310,14 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
+	meshRender.Shutdown();
 	textRender.Shutdown();
 	frameAnimSpriteRender.Shutdown();
 	texturedSpriteRender.Shutdown();
 	coloredSpriteRender.Shutdown();
 	constantBuffers.Shutdown();
-	textureManager.Shutdown();
 	meshManager.Shutdown();
+	textureManager.Shutdown();
 	shaderManager.Shutdown();
 	rasterizerState.Reset();
 	blendState.Reset();
@@ -377,6 +386,10 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		{
 			textRender.Setup(shader);
 		}
+		else if (meshRender.CheckShaderName(shaderData.name))
+		{
+			meshRender.Setup(shader);
+		}
 		shader.vsCode = nullptr;
 
 		shaders.emplace(shaderData.name, shader);
@@ -395,6 +408,16 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 	textureManager.PreloadTextures(paths, delegate);
 }
 
+void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
+{
+	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
+}
+
+void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
+{
+	meshManager.PreloadStaticMeshes(path, delegate);
+}
+
 const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) const
 {
 	auto shaderIt = shaders.find(name);
@@ -404,14 +427,19 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
 {
 	SSize2 size{};
-	ID3D11Texture2D* texture = nullptr;
-	ID3D11ShaderResourceView* view = nullptr;
+	ID3D11Texture2D* texture{};
+	ID3D11ShaderResourceView* view{};
 	if (textureManager.FindTexture(id, &texture, &view, &size))
 	{
 		return { view, size };
 	}
 
 	return { view, size };
+}
+
+bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
+{
+	return meshManager.FindMesh(id, outMaterials, outVB, outIB);
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -444,9 +472,18 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	deviceContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
-
-	// render frame
 	drawCalls = 0;
+
+	// render 3d frame
+	constantBuffers.ApplyTransform3D(deviceContext.Get(), world->GetCamera(),
+		cachedRenderSystemSize.width, cachedRenderSystemSize.height);
+
+	meshRender.Render(context.deltaSeconds);
+
+	// render 2d frame
+	constantBuffers.ApplyTransform2D(deviceContext.Get(), world->GetCamera(),
+		cachedWorld2dScale, cachedRenderSystemSize.width, cachedRenderSystemSize.height);
+
 	coloredSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	frameAnimSpriteRender.Render(context.deltaSeconds, context.gameTime);
@@ -478,6 +515,7 @@ void SRenderSystemDX11::Subscribe(const SAppContext& inContext)
 {
 	SAppContext context = inContext;
 
+	context.world->onLightsChanged.connect<&SRenderSystemDX11::OnLightsChanged>(this);
 	context.world->onGlobalTintChanged.connect<&SRenderSystemDX11::OnGlobalTintChanged>(this);
 	context.world->GetCamera().onViewChanged.connect<&SRenderSystemDX11::OnCameraViewChanged>(this);
 	context.world->GetScale().onScaleChanged.connect<&SRenderSystemDX11::OnWorldScaleChanged>(this);
@@ -495,29 +533,40 @@ void SRenderSystemDX11::OnGlobalTintChanged(SColor3 globalTint)
 
 void SRenderSystemDX11::OnWorldScaleChanged(SVector2 worldScale)
 {
-	if (deviceContext && constantBuffers.transMatrixBuffer)
+	cachedWorld2dScale = worldScale;
+}
+
+void SRenderSystemDX11::OnLightsChanged(const IWorld& world)
+{
+	if (deviceContext && constantBuffers.lightsBuffer)
 	{
-		SSingleMatrixBuffer worldTrans{};
-		worldTrans.mat = SMath::ScaleMatrix2(worldScale);
-		deviceContext->UpdateSubresource(constantBuffers.transMatrixBuffer.Get(), 0, NULL, &worldTrans, 0, 0);
+		SLightsBuffer lightsData = world.GetLightsData();
+		deviceContext->UpdateSubresource(constantBuffers.lightsBuffer.Get(), 0, NULL, &lightsData, 0, 0);
 	}
 }
 
 void SRenderSystemDX11::OnCameraViewChanged(const SCamera& camera)
 {
-	UpdateCamera(camera.GetPosition(), camera.GetTarget());
+	UpdateCamera(camera);
 }
 
-void SRenderSystemDX11::UpdateCamera(SVector3 newPos, SVector3 newTarget)
+void SRenderSystemDX11::UpdateCamera(const SCamera& camera)
 {
-	if (deviceContext &&
-		constantBuffers.viewMatrixBuffer && (
-		cachedCameraPos != newPos || cachedCameraTarget != newTarget))
+	auto newPos2d = camera.GetPosition(SCameraSpace::Camera2D);
+	auto newTarget2d = camera.GetTarget(SCameraSpace::Camera2D);
+	auto newPos3d = camera.GetPosition(SCameraSpace::Camera3D);
+	auto newTarget3d = camera.GetTarget(SCameraSpace::Camera3D);
+
+	if (cachedCameraPos2d != newPos2d || cachedCameraTarget2d != newTarget2d)
 	{
-		SMatrix4 view = SMath::LookAtMatrix(newPos, newTarget);
-		deviceContext->UpdateSubresource(constantBuffers.viewMatrixBuffer.Get(), 0, NULL, view.m, 0, 0);
-		cachedCameraPos = newPos;
-		cachedCameraTarget = newTarget;
+		cachedCameraTarget2d = newTarget2d;
+		cachedCameraPos2d = newPos2d;
+	}
+
+	if (cachedCameraPos3d != newPos3d || cachedCameraTarget3d != newTarget3d)
+	{
+		cachedCameraTarget3d = newTarget3d;
+		cachedCameraPos3d = newPos3d;
 	}
 }
 
@@ -575,13 +624,9 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 		// update world settings
 		auto newCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
 		auto newCameraTarget = SVector3{ newCameraPos.x, newCameraPos.y, 0.0f };
-		context.world->GetCamera().Set(newCameraPos, newCameraTarget);
+		context.world->GetCamera().Set(SCameraSpace::Camera2D, newCameraPos, newCameraTarget);
 		context.world->UpdateWorldScale(newViewportSize);
 		cachedRenderSystemSize = newViewportSize;
-
-		// update projection matrix
-		SMatrix4 proj = SMath::OrthoMatrix(newViewportSize, 1.0f, 0.0f);
-		deviceContext->UpdateSubresource(constantBuffers.projMatrixBuffer.Get(), 0, NULL, proj.m, 0, 0);
 
 		DebugMsg("SRenderSystemDX11::Resize(): resized to %dx%d\n", newViewportSize.width, newViewportSize.height);
 	}

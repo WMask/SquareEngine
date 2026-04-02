@@ -17,14 +17,17 @@
 #endif
 
 
-namespace SWorldInternal
+namespace SInternal
 {
 	static const float SMinLayer = -0.9f;
 	static const float SMaxLayer = 0.0f;
 }
 
+/** Light resource id */
+using SLightID = std::uint32_t;
+
 /** Ranged float (-0.9f, 0.0f) */
-using SLayersRange = TRange<float, SWorldInternal::SMinLayer, SWorldInternal::SMaxLayer>;
+using SLayersRange = TRange<float, SInternal::SMinLayer, SInternal::SMaxLayer>;
 
 /** 2D object layers. Z0 - front, Z9 - back. */
 namespace SLayers
@@ -106,8 +109,12 @@ class IWorld : public SUncopyable
 {
 public:
 	/**
-	* Subscribe to get changes of sprites global tint. */
+	* Subscribe to get changes of sprites global tint */
 	entt::delegate<void(SColor3)> onGlobalTintChanged;
+	/**
+	* Subscribe to get changes of lights */
+	entt::delegate<void(const IWorld&)> onLightsChanged;
+
 
 public:
 	/**
@@ -122,6 +129,21 @@ public:
 	/**
 	* Remove all sprites and widgets */
 	virtual void Clear(bool removeRooted = false) = 0;
+	/**
+	* Add directional light */
+	virtual std::pair<SLightID, bool> AddDirectionalLight(const std::string_view& name, const SVector3& direction, const SColor3& color) = 0;
+	/**
+	* Add point light */
+	virtual std::pair<SLightID, bool> AddPointLight(const std::string_view& name, const SVector3& pos, float distance, const SColor3& color) = 0;
+	/**
+	* Get lights data */
+	virtual SLightsBuffer GetLightsData() const = 0;
+	/**
+	* Remove light */
+	virtual bool RemoveLight(SLightID id) = 0;
+	/**
+	* Get lights count */
+	virtual std::uint32_t GetNumLights(SLightID) const noexcept = 0;
 	/**
 	* Update world scale */
 	virtual void UpdateWorldScale(SSize2 newScreenSize) = 0;

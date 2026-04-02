@@ -36,7 +36,7 @@ void SFrameAnimSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime
 	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
 	// prepare cached state
-	if (batchData.capacity() < MaxInstancedSpritesCount) batchData.reserve(MaxInstancedSpritesCount);
+	if (batchData.capacity() < SConst::MaxInstancedSpritesCount) batchData.reserve(SConst::MaxInstancedSpritesCount);
 	batchesRendered = 0;
 	numSprites = 0;
 	cachedTexView = nullptr;
@@ -58,13 +58,13 @@ void SFrameAnimSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime
 		if (!spriteComponent.bVisible) return;
 		if (!cachedTexView)
 		{
-			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.texId);
-			cachedTexId = texturedComponent.texId;
+			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.id);
+			cachedTexId = texturedComponent.id;
 			cachedTexView = view;
 			cachedTexSize = texSize;
 		}
 
-		if (cachedTexId != texturedComponent.texId)
+		if (cachedTexId != texturedComponent.id)
 		{
 			if (!batchData.empty())
 			{
@@ -72,8 +72,8 @@ void SFrameAnimSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime
 				RenderBatch();
 			}
 
-			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.texId);
-			cachedTexId = texturedComponent.texId;
+			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.id);
+			cachedTexId = texturedComponent.id;
 			cachedTexView = view;
 			cachedTexSize = texSize;
 		}
@@ -91,7 +91,7 @@ void SFrameAnimSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime
 		memcpy(instance.uvs, tmpUV.uvs, sizeof(SVector2) * 4);
 		batchData.push_back(instance);
 
-		if (batchData.size() == MaxInstancedSpritesCount)
+		if (batchData.size() == SConst::MaxInstancedSpritesCount)
 		{
 			// render if max number reached
 			RenderBatch();

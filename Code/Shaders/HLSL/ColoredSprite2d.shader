@@ -2,22 +2,14 @@
 
 #include "ShaderUtils.hlsli"
 
-cbuffer VS_PROJ_BUFFER : register(b0)
+cbuffer VS_WVP_BUFFER : register(b0)
 {
+	row_major float4x4 mTrans;
+	row_major float4x4 mView;
 	row_major float4x4 mProj;
 };
 
-cbuffer VS_VIEW_BUFFER : register(b1)
-{
-	row_major float4x4 mView;
-};
-
-cbuffer VS_TRANS_BUFFER : register(b2)
-{
-	row_major float4x4 mTrans;
-};
-
-cbuffer VS_SETTINGS_BUFFER : register(b6)
+cbuffer VS_SETTINGS_BUFFER : register(b1)
 {
 	float4 vGlobalTint;
 };

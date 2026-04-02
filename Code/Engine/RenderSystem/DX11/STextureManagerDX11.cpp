@@ -146,7 +146,7 @@ void STextureManagerDX11::PreloadTextures(const SPathList& paths, OnTexturesLoad
     };
 
     // send task to thread pool
-    threadPool->AddTask(PreloadTexturesTask, "Preload texture list");
+    threadPool->AddTask(PreloadTexturesTask, "Preload textures");
 }
 
 bool STextureManagerDX11::LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize)
@@ -257,7 +257,7 @@ void STextureManagerDX11::ClearCache(IWorld* world)
         const auto& view = registry.view<STexturedComponent>();
 
         view.each([&aliveTexList](const STexturedComponent& textureComponent) {
-            aliveTexList.insert(textureComponent.texId);
+            aliveTexList.insert(textureComponent.id);
         });
 
         std::set<STexID> eraseTexList;

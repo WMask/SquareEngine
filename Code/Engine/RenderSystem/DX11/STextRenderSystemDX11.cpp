@@ -81,7 +81,7 @@ void STextRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderData)
 	// create instance buffer
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.ByteWidth = sizeof(DX11TEXTGLYPHINSTANCE) * MaxInstancedSpritesCount;
+	bufferDesc.ByteWidth = sizeof(DX11TEXTGLYPHINSTANCE) * SConst::MaxInstancedSpritesCount;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, NULL, instanceBuffer.GetAddressOf())))
@@ -119,7 +119,7 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
 	// prepare cached state
-	if (batchData.capacity() < MaxInstancedSpritesCount) batchData.reserve(MaxInstancedSpritesCount);
+	if (batchData.capacity() < SConst::MaxInstancedSpritesCount) batchData.reserve(SConst::MaxInstancedSpritesCount);
 	cachedTexView = nullptr;
 	batchesRendered = 0u;
 	numGlyphs = 0u;
@@ -198,7 +198,7 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 			batchData.push_back(instance);
 			glyphOffset += glyph.size.width;
 
-			if (batchData.size() == MaxInstancedSpritesCount)
+			if (batchData.size() == SConst::MaxInstancedSpritesCount)
 			{
 				// render if max number reached
 				RenderBatch();

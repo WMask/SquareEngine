@@ -241,6 +241,8 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
@@ -305,6 +307,18 @@ target_link_libraries(SpritesSample SCore SApplication SRenderSystem SWorld)
 add_dependencies(SpritesSample SCore SApplication SRenderSystem SWorld)
 
 
+add_executable(StaticMeshSample
+	${SAMPLES_SOURCE_DIR}/StaticMeshSample/StaticMeshSample.cpp
+)
+target_include_directories(StaticMeshSample
+	PUBLIC
+		${ENGINE_SOURCE_DIR}
+)
+target_compile_features(StaticMeshSample PUBLIC cxx_std_20)
+target_link_libraries(StaticMeshSample SCore SApplication SRenderSystem)
+add_dependencies(StaticMeshSample SCore SApplication SRenderSystem)
+
+
 add_executable(FontTool
 	${TOOLS_SOURCE_DIR}/FontTool/FontTool.cpp
 )
@@ -350,6 +364,10 @@ if (WIN32)
         UNICODE
         _UNICODE
 	)
+	target_compile_definitions(StaticMeshSample PRIVATE
+        UNICODE
+        _UNICODE
+	)
 	set_target_properties(HelloWorld PROPERTIES
 		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
         LINK_FLAGS "/SUBSYSTEM:CONSOLE"
@@ -359,6 +377,10 @@ if (WIN32)
         LINK_FLAGS "/SUBSYSTEM:WINDOWS"
 	)
 	set_target_properties(SpritesSample PROPERTIES
+		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
+        LINK_FLAGS "/SUBSYSTEM:WINDOWS"
+	)
+	set_target_properties(StaticMeshSample PROPERTIES
 		VS_DEBUGGER_WORKING_DIRECTORY "$(OutDir)"
         LINK_FLAGS "/SUBSYSTEM:WINDOWS"
 	)
@@ -389,6 +411,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.h
@@ -399,6 +422,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.cpp

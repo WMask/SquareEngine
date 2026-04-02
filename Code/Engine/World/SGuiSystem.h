@@ -45,9 +45,8 @@ public: // IGuiSystem interface implementation
 		std::int32_t frameOffset, std::int32_t framesCount,
 		std::int32_t framesPerSecond, SSize2 frameSize, float startTime) override;
 	//
-	virtual entt::entity MakeText(entt::registry& registry,
-		SWidgetID widgetId, STextID text, SFontID font,
-		const SVector3& pos, const SSize2F& size, SColor4F color) override;
+	virtual entt::entity MakeText(entt::registry& registry, SWidgetID widgetId, STextID text, SFontID font,
+		const SVector3& pos, const SSize2F& size, SColor4F color, STextAlign align) override;
 	//
 	virtual std::pair<entt::entity, entt::entity> MakeButtonWithText(entt::registry& registry,
 		STexID texture, STextID text, SFontID font, SWidgetID btnWidget, SWidgetID textWidget,

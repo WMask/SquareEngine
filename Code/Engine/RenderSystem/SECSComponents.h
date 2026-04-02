@@ -106,7 +106,7 @@ public:
 struct STexturedComponent
 {
 	// id in texture manager
-	STexID texId;
+	STexID id;
 };
 
 
@@ -210,12 +210,31 @@ public:
 		outUV.uvs[2] = SVector2{ xx + ww, yy + hh }; // rb
 		outUV.uvs[3] = SVector2{ xx,      yy + hh }; // lb
 	}
-
 };
+
 
 /** Static mesh component */
 struct SStaticMeshComponent
 {
 	// id in mesh manager
-	SMeshID meshId;
+	SMeshID id;
+	//
+	bool bVisible = true;
+	//
+	SColor3 tint = SConst::White3;
+};
+
+
+/** Transform 3D component */
+struct STransform3DComponent
+{
+	STransform transform;
+
+
+public:
+	//
+	inline SMatrix4 MakeTransform() const
+	{
+		return SMatrix4{};
+	}
 };

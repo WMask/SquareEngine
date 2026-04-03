@@ -207,11 +207,11 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
         {
             SPathList paths;
             auto [baseView, baseSize] = renderSystem->FindTexture(ResourceID<STexID>(material.baseTexture.string()));
-            if (!baseView) paths.push_back(material.baseTexture);
+            if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
             auto [normView, normSize] = renderSystem->FindTexture(ResourceID<STexID>(material.normTexture.string()));
-            if (!normView) paths.push_back(material.normTexture);
+            if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
             auto [maskView, maskSize] = renderSystem->FindTexture(ResourceID<STexID>(material.maskTexture.string()));
-            if (!maskView) paths.push_back(material.maskTexture);
+            if (!maskView && !material.maskTexture.empty()) paths.push_back(material.maskTexture);
 
             if (!paths.empty())
             {

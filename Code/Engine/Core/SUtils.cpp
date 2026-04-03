@@ -387,7 +387,7 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			if (material->textures.count > 0)
 			{
 				baseTexture = material->pbr.base_color.texture->filename.data;
-				normTexture = material->pbr.normal_map.texture->filename.data;
+				normTexture = material->pbr.normal_map.texture ? material->pbr.normal_map.texture->filename.data : "";
 				if (!baseTexture.empty()) std::replace(baseTexture.begin(), baseTexture.end(), '\\', '/');
 				if (!normTexture.empty())
 				{

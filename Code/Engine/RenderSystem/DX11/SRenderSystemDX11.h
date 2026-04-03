@@ -47,6 +47,8 @@ public:
 	//
 	ID3D11Device* GetD3D11Device() const noexcept { return d3dDevice.Get(); }
 	//
+	STextureManagerDX11& GetTextureManager() { return textureManager; }
+	//
 	IWorld* GetWorld() const noexcept { return world; }
 	//
 	bool IsNeedDebugTrace() const noexcept { return bCachedNeedDebugTrace; }

@@ -105,7 +105,8 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 	}
 
 	// prepare cached state
-	if (batchData.capacity() < SConst::MaxInstancedMeshesCount) batchData.reserve(SConst::MaxInstancedMeshesCount);
+	batchData.clear();
+	batchData.reserve(SConst::MaxInstancedMeshesCount);
 	cachedVB = nullptr;
 	cachedIB = nullptr;
 	cachedMeshId = 0;
@@ -189,48 +190,52 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 	if (!shader || !cachedVB || !cachedIB)
 	{
 		// skip rendering if buffers not loaded yet
+		batchData.clear();
 		return;
 	}
 
-	std::uint32_t indexOffset = 0;
 	const std::uint32_t numInstances = batchData.size();
 
+	// fill instanced vertex buffer
+	D3D11_MAPPED_SUBRESOURCE mappedResource{};
+	if (FAILED(d3dDeviceContext->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
+	{
+		throw std::exception("Cannot update vertex buffer");
+	}
+	memcpy(mappedResource.pData, batchData.data(), sizeof(DX11MESHINSTANCE) * numInstances);
+	d3dDeviceContext->Unmap(instanceBuffer.Get(), 0);
+
+	// setup context
+	ID3D11Buffer* buffers[2] = { cachedVB, instanceBuffer.Get() };
+	static UINT strides[2] = { sizeof(SVertex), sizeof(DX11MESHINSTANCE) };
+	static UINT offsets[2] = { 0, 0 };
+	d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
+	d3dDeviceContext->IASetIndexBuffer(cachedIB, DXGI_FORMAT_R16_UINT, 0);
+	d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	d3dDeviceContext->IASetInputLayout(shader->layout.Get());
+	d3dDeviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
+	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
+
+	std::uint32_t indexOffset = 0;
+	std::uint32_t vertexOffset = 0;
 	for (auto& material : cachedMaterials)
 	{
-		auto texId = ResourceID<STexID>(material.texture.string());
+		auto texId = ResourceID<STexID>(material.baseTexture.string());
 		auto [view, texSize] = renderSystemDX11.FindTexture(texId);
 		if (!view)
 		{
 			// skip rendering if texture not loaded yet
 			DebugMsg("[%s] SMeshRenderSystemDX11::RenderBatch(): cannot find texture id=%d\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str(), texId);
+			batchData.clear();
 			return;
 		}
 
-		// fill instanced vertex buffer
-		D3D11_MAPPED_SUBRESOURCE mappedResource{};
-		if (FAILED(d3dDeviceContext->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
-		{
-			throw std::exception("Cannot update vertex buffer");
-		}
-		memcpy(mappedResource.pData, batchData.data(), sizeof(DX11MESHINSTANCE) * numInstances);
-		d3dDeviceContext->Unmap(instanceBuffer.Get(), 0);
-
-		// setup context
-		ID3D11Buffer* buffers[2] = { cachedVB, instanceBuffer.Get() };
-		static UINT strides[2] = { sizeof(SVertex), sizeof(DX11MESHINSTANCE) };
-		static UINT offsets[2] = { 0, 0 };
-		d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
-		d3dDeviceContext->IASetIndexBuffer(cachedIB, DXGI_FORMAT_R16_UINT, 0);
-		d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		d3dDeviceContext->IASetInputLayout(shader->layout.Get());
-		d3dDeviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
-		d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
-
 		// render meshes
 		d3dDeviceContext->PSSetShaderResources(0, 1, &view);
-		d3dDeviceContext->DrawIndexedInstanced(material.numIndices, numInstances, indexOffset, 0, 0);
+		d3dDeviceContext->DrawIndexedInstanced(material.numIndices, numInstances, indexOffset, vertexOffset, 0);
 
+		vertexOffset += material.numVertices;
 		indexOffset += material.numIndices;
 	}
 

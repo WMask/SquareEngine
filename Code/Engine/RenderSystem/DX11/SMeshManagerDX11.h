@@ -24,11 +24,11 @@ using Microsoft::WRL::ComPtr;
 class SMeshManagerDX11
 {
 public:
-	SMeshManagerDX11() : threadPool(nullptr) {}
+	SMeshManagerDX11() : threadPool(nullptr), renderSystem(nullptr) {}
 	//
 	~SMeshManagerDX11();
 	//
-	void Init(IThreadPool* threadPool);
+	void Init(IThreadPool* threadPool, class SRenderSystemDX11* renderSystem);
 	//
 	void Shutdown();
 	//
@@ -95,6 +95,8 @@ protected:
 	TInstancesDelegatesCache instancesDelegatesCache;
 	//
 	TPreloadDelegatesCache preloadDelegatesCache;
+	//
+	class SRenderSystemDX11* renderSystem;
 	//
 	IThreadPool* threadPool;
 

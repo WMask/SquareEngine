@@ -5,6 +5,7 @@
 #ifdef WIN32
 
 #include "RenderSystem/DX11/SMeshManagerDX11.h"
+#include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -25,9 +26,10 @@ SMeshManagerDX11::~SMeshManagerDX11()
     Shutdown();
 }
 
-void SMeshManagerDX11::Init(IThreadPool* inThreadPool)
+void SMeshManagerDX11::Init(IThreadPool* inThreadPool, SRenderSystemDX11* inRenderSystem)
 {
     threadPool = inThreadPool;
+    renderSystem = inRenderSystem;
     loadedMeshes = std::make_shared<TCircularFIFOTextureQueue>(SConst::MaxMeshes);
     auto initialIds = std::make_shared<std::forward_list<SMeshID>>();
     meshesCacheIds.store(initialIds, std::memory_order_release);
@@ -176,6 +178,7 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
     D3D11_SUBRESOURCE_DATA bufferData{};
     bufferData.pSysMem = meshData.vertices.data();
 
+    // create vertex buffer
     if (FAILED(device->CreateBuffer(&bufferDesc, &bufferData, outMesh.vb.GetAddressOf())))
     {
         DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): Cannot create vertex buffer\n",
@@ -196,6 +199,34 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
     }
 
     outMesh.materials = meshData.materials;
+
+    // load textures
+    if (renderSystem)
+    {
+        for (auto& material : meshData.materials)
+        {
+            SPathList paths;
+            auto [baseView, baseSize] = renderSystem->FindTexture(ResourceID<STexID>(material.baseTexture.string()));
+            if (!baseView) paths.push_back(material.baseTexture);
+            auto [normView, normSize] = renderSystem->FindTexture(ResourceID<STexID>(material.normTexture.string()));
+            if (!normView) paths.push_back(material.normTexture);
+            auto [maskView, maskSize] = renderSystem->FindTexture(ResourceID<STexID>(material.maskTexture.string()));
+            if (!maskView) paths.push_back(material.maskTexture);
+
+            if (!paths.empty())
+            {
+                auto onLoaded = [](std::vector<std::filesystem::path>& textures)
+                {
+                    for (auto& texture : textures)
+                    {
+                        DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): material texture loaded '%s'\n",
+                            GetTimeStamp(std::chrono::system_clock::now()).c_str(), texture.string().c_str());
+                    }
+                };
+                renderSystem->GetTextureManager().PreloadTextures(paths, onLoaded);
+            }
+        }
+    }
 
     DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): mesh '%s' created and added to cache\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.name.c_str());

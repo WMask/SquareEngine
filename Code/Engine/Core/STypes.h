@@ -92,9 +92,15 @@ struct SVertex
 /** Mesh material */
 struct SMaterial
 {
-	std::filesystem::path texture;
+	std::filesystem::path baseTexture;
+	// tangent space
+	std::filesystem::path normTexture;
+	// r - roughness, g - metallness, b - AO
+	std::filesystem::path maskTexture;
 	// 
 	std::uint16_t firstIndex;
+	//
+	std::uint16_t numVertices;
 	//
 	std::uint16_t numIndices;
 };

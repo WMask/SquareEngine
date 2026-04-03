@@ -191,7 +191,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	// init managers
 	shaderManager.Init(context.pool);
 	textureManager.Init(context.pool);
-	meshManager.Init(context.pool);
+	meshManager.Init(context.pool, this);
 
 	cachedCameraPos2d = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
 	cachedCameraTarget2d = SVector3{ cachedCameraPos2d.x, cachedCameraPos2d.y, 0.0f };

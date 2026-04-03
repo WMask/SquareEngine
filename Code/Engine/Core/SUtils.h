@@ -18,6 +18,8 @@ std::string_view GetEngineVersion();
 * Get timestamp string */
 S_CORE_API
 std::string GetTimeStamp(const std::chrono::system_clock::time_point& clock);
+
+
 /**
 * Generate resource id */
 template<typename T>

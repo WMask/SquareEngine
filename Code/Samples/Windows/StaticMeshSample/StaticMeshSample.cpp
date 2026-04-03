@@ -21,8 +21,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	{
 		STextID controlsTextId = ResourceID<STextID>(controlsTextKey);
 		STextID fpsTextId = ResourceID<STextID>(fpsTextKey);
-		float rotation = 1.5f;
-		float elevation = 350.0f;
+		float rotation = -1.5f;
+		float elevation = 250.0f;
 
 		auto onKeys = [&](std::int32_t key, SKeyState keyState, SAppContext context)->void
 		{
@@ -45,7 +45,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex);
 			context.text->AddCulture("../../Assets/Loc.json");
-			context.render->LoadTexture("../../Assets/Barrel1.png");
 
 			// setup widgets
 			auto& registry = context.world->GetEntities();
@@ -64,7 +63,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// load mesh
 			const std::string_view group("Room1");
-			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
+			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
 				[&registry](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
 			{
 				for (auto& meshInstance : instances)
@@ -76,7 +75,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			});
 
 			// add light
-			context.world->AddDirectionalLight("DirectionalLight", SVector3{ 1.0f, -1.0f, 0.0f }, SConst::White3);
+			context.world->AddDirectionalLight("DirectionalLight", SVector3{ 0.0f, -0.5f, 1.0f }, SConst::White3);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
@@ -111,8 +110,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 				// set camera
 				context.world->GetCamera().Set(
-					SVector3{ 350.0f * cos(rotation), elevation, 350.0f * sin(rotation) },
-					SVector3{ 0.0f, 150.0f, 0.0f }, 60.0f
+					SVector3{ 256.0f * cos(rotation), elevation, 256.0f * sin(rotation) },
+					SVector3{ 0.0f, 110.0f, 0.0f }, 60.0f
 				);
 			}
 		};
@@ -120,7 +119,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		// set config
 		auto [cfg, bCfgLoaded] = LoadConfig("../../Assets/Config.json");
 		auto app = CreateApplication(SRSType::DX11);
-		if (bCfgLoaded)
+		if (!bCfgLoaded)
 		{
 			app->SetConfig(cfg);
 			app->SetWindowSize(cfg.WinWidth, cfg.WinHeight);
@@ -131,9 +130,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		}
 		else
 		{
-			app->SetFeature(SAppFeature::HighFrequencyTimer, false);
-			app->SetFeature(SAppFeature::VSync, true);
-			app->SetWindowSize(800, 600);
+			app->SetFeature(SAppFeature::HighFrequencyTimer, cfg.bHighFrequencyTimer);
+			app->SetFeature(SAppFeature::AllowFullscreen, cfg.bAllowFullscreen);
+			app->SetFeature(SAppFeature::NoDelay, cfg.bNoDelay);
+			app->SetFeature(SAppFeature::VSync, cfg.bVSync);
+			app->SetWindowSize(1920, 1080);
 		}
 
 		// run app

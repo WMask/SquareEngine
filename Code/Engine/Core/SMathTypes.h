@@ -148,6 +148,15 @@ namespace SConvert
 	{
 		return DirectX::XMVectorSet(v.x, v.y, v.z, v.w);
 	}
+
+	inline SQuat ToQuat(float pitchDegrees, float yawDegrees, float rollDegrees)
+	{
+		return ToVector4(DirectX::XMQuaternionRotationRollPitchYaw(
+			DirectX::XMConvertToRadians(pitchDegrees),
+			DirectX::XMConvertToRadians(yawDegrees),
+			DirectX::XMConvertToRadians(rollDegrees))
+		);
+	}
 }
 
 namespace SConst

@@ -219,31 +219,34 @@ void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth,
 	S_CATCH{ S_THROW_EX("ReadPngFile('", filePath.string().c_str(), "')"); }
 }
 
-inline SVector4 ToVector4(const ufbx_quat& v)
+namespace SConvert
 {
-	return SVector4 {
-		static_cast<float>(v.x),
-		static_cast<float>(v.y),
-		static_cast<float>(v.z),
-		static_cast<float>(v.w)
-	};
-}
+	inline SVector4 ToVector4(const ufbx_quat& v)
+	{
+		return SVector4{
+			static_cast<float>(v.x),
+			static_cast<float>(v.y),
+			static_cast<float>(v.z),
+			static_cast<float>(v.w)
+		};
+	}
 
-inline SVector3 ToVector3(const ufbx_vec3& v)
-{
-	return SVector3 {
-		static_cast<float>(v.x),
-		static_cast<float>(v.y),
-		static_cast<float>(v.z)
-	};
-}
+	inline SVector3 ToVector3(const ufbx_vec3& v)
+	{
+		return SVector3{
+			static_cast<float>(v.x),
+			static_cast<float>(v.y),
+			static_cast<float>(v.z)
+		};
+	}
 
-inline SVector2 ToVector2(const ufbx_vec2& v)
-{
-	return SVector2 {
-		static_cast<float>(v.x),
-		static_cast<float>(v.y)
-	};
+	inline SVector2 ToVector2(const ufbx_vec2& v)
+	{
+		return SVector2{
+			static_cast<float>(v.x),
+			static_cast<float>(v.y)
+		};
+	}
 }
 
 void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
@@ -301,10 +304,11 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 		for (auto instance : node->mesh->instances)
 		{
-			STransform transform{
-				ToVector3(instance->local_transform.translation),
-				ToVector4(instance->local_transform.rotation),
-				ToVector3(instance->local_transform.scale)
+			ufbx_vec3 rotation = ufbx_find_vec3(&node->props, "Lcl Rotation", ufbx_zero_vec3);
+			STransform transform {
+				SConvert::ToVector3(instance->local_transform.translation),
+				SConvert::ToQuat(rotation.x, rotation.y, rotation.z),
+				SConvert::ToVector3(instance->local_transform.scale)
 			};
 			outInstances.emplace_back(mesh.id, groupId, transform);
 		}
@@ -337,9 +341,9 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 				{
 					uint32_t index = triIndices[i];
 					SVertex* v = &vertices[numVertices++];
-					v->pos = ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
-					v->norm = ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
-					v->uv = ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
+					v->pos = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
+					v->norm = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
+					v->uv = SConvert::ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
 					v->uv.y = 1.0f - v->uv.y;
 				}
 			}
@@ -374,21 +378,32 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			tmpIndices.resize(indices.size());
 			for (auto j = 0; j < indices.size(); j++)
 			{
-				tmpIndices[j] = static_cast<std::uint16_t>(indices[j] + indexOffset);
+				tmpIndices[j] = static_cast<std::uint16_t>(indices[j]);
 			}
 
 			// add new material part to the mesh
 			const ufbx_material* material = node->mesh->materials[part.index];
-			std::string texture;
+			std::string baseTexture, normTexture, maskTexture;
 			if (material->textures.count > 0)
 			{
-				texture = material->textures[0].texture->filename.data;
-				std::replace(texture.begin(), texture.end(), '\\', '/');
+				baseTexture = material->pbr.base_color.texture->filename.data;
+				normTexture = material->pbr.normal_map.texture->filename.data;
+				if (!baseTexture.empty()) std::replace(baseTexture.begin(), baseTexture.end(), '\\', '/');
+				if (!normTexture.empty())
+				{
+					std::replace(normTexture.begin(), normTexture.end(), '\\', '/');
+					maskTexture = normTexture;
+					if (auto pos = maskTexture.rfind("N.")) maskTexture.replace(pos, 2, "M.");
+					if (!std::filesystem::exists(maskTexture)) maskTexture.clear();
+				}
 			}
 
 			mesh.indices.insert(mesh.indices.end(), tmpIndices.begin(), tmpIndices.end());
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(texture.c_str(), static_cast<std::uint16_t>(indexOffset), static_cast<std::uint16_t>(numIndices));
+			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), maskTexture.c_str(),
+				static_cast<std::uint16_t>(indexOffset),
+				static_cast<std::uint16_t>(numVertices),
+				static_cast<std::uint16_t>(numIndices));
 
 			indexOffset += numIndices;
 		}

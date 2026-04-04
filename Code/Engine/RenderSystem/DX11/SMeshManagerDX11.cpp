@@ -210,8 +210,8 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
             if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
             auto [normView, normSize] = renderSystem->FindTexture(ResourceID<STexID>(material.normTexture.string()));
             if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
-            auto [maskView, maskSize] = renderSystem->FindTexture(ResourceID<STexID>(material.maskTexture.string()));
-            if (!maskView && !material.maskTexture.empty()) paths.push_back(material.maskTexture);
+            auto [pbrView, pbrSize] = renderSystem->FindTexture(ResourceID<STexID>(material.pbrTexture.string()));
+            if (!pbrView && !material.pbrTexture.empty()) paths.push_back(material.pbrTexture);
 
             if (!paths.empty())
             {

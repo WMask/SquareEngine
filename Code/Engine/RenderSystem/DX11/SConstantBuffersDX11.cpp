@@ -64,11 +64,22 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create constant buffer");
 	}
 
+	SMeshFlagsBuffer meshData{};
+	cbDesc.ByteWidth = Align16<SMeshFlagsBuffer>();
+	lightsData.numLights = 0u;
+	subResData.pSysMem = &meshData;
+	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, meshBuffer.GetAddressOf())))
+	{
+		throw std::exception("Cannot create constant buffer");
+	}
+
 	// set buffers
 	d3dDeviceContext->VSSetConstantBuffers(0, 1, wvpMatrixBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
 	d3dDeviceContext->PSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(2, 1, lightsBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(2, 1, meshBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(2, 1, meshBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(3, 1, lightsBuffer.GetAddressOf());
 
 	// create vertex buffer
 	DX11SPRITEVERTEX data[] = {

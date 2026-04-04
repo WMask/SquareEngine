@@ -21,43 +21,50 @@ struct SSpriteComponent
 };
 
 
+/** Sprite UV */
+struct SSpriteUV
+{
+	SVector2 uvs[4];
+};
+
 /** Sprite UV component */
 struct SSpriteUVComponent
 {
-	SVector2 uvs[4];
+	SSpriteUV uvs;
+
 
 public:
 	//
 	inline void SetDefaultUV()
 	{
-		uvs[0] = SVector2{ 1.0f, 0.0f };
-		uvs[1] = SVector2{ 0.0f, 0.0f };
-		uvs[2] = SVector2{ 1.0f, 1.0f };
-		uvs[3] = SVector2{ 0.0f, 1.0f };
+		uvs.uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs.uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs.uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs.uvs[3] = SVector2{ 0.0f, 1.0f };
 	}
 	//
 	inline void SetTopHalfUV()
 	{
-		uvs[0] = SVector2{ 1.0f, 0.0f };
-		uvs[1] = SVector2{ 0.0f, 0.0f };
-		uvs[2] = SVector2{ 1.0f, 0.5f };
-		uvs[3] = SVector2{ 0.0f, 0.5f };
+		uvs.uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs.uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs.uvs[2] = SVector2{ 1.0f, 0.5f };
+		uvs.uvs[3] = SVector2{ 0.0f, 0.5f };
 	}
 	//
 	inline void SetBottomHalfUV()
 	{
-		uvs[0] = SVector2{ 1.0f, 0.5f };
-		uvs[1] = SVector2{ 0.0f, 0.5f };
-		uvs[2] = SVector2{ 1.0f, 1.0f };
-		uvs[3] = SVector2{ 0.0f, 1.0f };
+		uvs.uvs[0] = SVector2{ 1.0f, 0.5f };
+		uvs.uvs[1] = SVector2{ 0.0f, 0.5f };
+		uvs.uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs.uvs[3] = SVector2{ 0.0f, 1.0f };
 	}
 	//
 	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
 	{
-		uvs[0] = rt;
-		uvs[1] = lt;
-		uvs[2] = rb;
-		uvs[3] = lb;
+		uvs.uvs[0] = rt;
+		uvs.uvs[1] = lt;
+		uvs.uvs[2] = rb;
+		uvs.uvs[3] = lb;
 	}
 };
 
@@ -137,7 +144,7 @@ public:
 		startTime = inStartTime;
 	}
 	//
-	inline void GenerateFrameUV(float gameTime, SSize2 texSize, SSpriteUVComponent& outUV) const
+	inline void GenerateFrameUV(float gameTime, SSize2 texSize, SSpriteUV& outUV) const
 	{
 		const float frameTime = (1.0f / framesPerSecond);
 		std::uint32_t frameId = frameOffset + (static_cast<std::uint32_t>((gameTime - startTime) / frameTime) % framesCount);
@@ -179,6 +186,7 @@ struct SWidgetComponent
 };
 
 
+/** Text alignment */
 enum class STextAlign
 {
 	Begin, Middle, End
@@ -198,7 +206,7 @@ struct STextComponent
 
 public:
 	//
-	inline void GenerateGlyphUV(SGlyph glyph, SSize2F texSize, SSpriteUVComponent& outUV) const
+	inline void GenerateGlyphUV(SGlyph glyph, SSize2F texSize, SSpriteUV& outUV) const
 	{
 		const float xx = glyph.pos.x / texSize.width;
 		const float yy = glyph.pos.y / texSize.height;
@@ -213,6 +221,19 @@ public:
 };
 
 
+/** Button component */
+struct SButtonComponent
+{
+	SPoint2 pressedTextOffset;
+	//
+	SVector3 initialTextPos;
+	//
+	SSpriteUV pressedUV;
+	//
+	SSpriteUV normalUV;
+};
+
+
 /** Static mesh component */
 struct SStaticMeshComponent
 {
@@ -222,6 +243,8 @@ struct SStaticMeshComponent
 	bool bVisible = true;
 	//
 	SColor3 tint = SConst::White3;
+	//
+	SMeshFlagsBuffer flags{ 1, 1, 1, 0.0f };
 };
 
 
@@ -229,12 +252,4 @@ struct SStaticMeshComponent
 struct STransform3DComponent
 {
 	STransform transform;
-
-
-public:
-	//
-	inline SMatrix4 MakeTransform() const
-	{
-		return SMatrix4{};
-	}
 };

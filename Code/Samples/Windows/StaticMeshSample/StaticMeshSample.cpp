@@ -8,10 +8,17 @@
 #include "Application/SInputInterface.h"
 #include "World/SGuiInterface.h"
 
-
-static const std::string_view controlsTextKey = "controls_text";
-static const std::string_view fpsTextKey = "fps_text";
-static const std::string_view fpsFmtKey = "fps_fmt";
+namespace SConst
+{
+	static const std::string_view DefaultMeshWidget = "DefaultMeshWidget";
+	static const std::string_view PBRMeshWidget = "PBRMeshWidget";
+	static const std::string_view NormalsWidget = "NormalsWidget";
+	static const std::string_view NormalsText = "NormalsText";
+	static const std::string_view ControlsTextKey = "controls_text";
+	static const std::string_view ToggleTextKey = "toggle_text";
+	static const std::string_view FpsTextKey = "fps_text";
+	static const std::string_view FpsFmtKey = "fps_fmt";
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -19,10 +26,60 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
-		STextID controlsTextId = ResourceID<STextID>(controlsTextKey);
-		STextID fpsTextId = ResourceID<STextID>(fpsTextKey);
+		entt::entity pbrMeshEntity;
+		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
+		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
+		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
 		float rotation = -1.5f;
 		float elevation = 250.0f;
+
+		struct GuiListener
+		{
+			GuiListener(entt::entity& inPBRMeshEntity) : pbrMeshEntity(inPBRMeshEntity)
+			{
+				defaultMeshButtonId = ResourceID<SWidgetID>(SConst::DefaultMeshWidget);
+				pbrMeshButtonId = ResourceID<SWidgetID>(SConst::PBRMeshWidget);
+				normalsButtonId = ResourceID<SWidgetID>(SConst::NormalsWidget);
+				normalsTextId = ResourceID<SWidgetID>(SConst::NormalsText);
+			}
+			//
+			void onMouseButtonEvent(const SMouseButtonEvent& event)
+			{
+				if (!registry) return;
+
+				if (event.btn == SMouseBtn::Left && event.btnState == SKeyState::Up)
+				{
+					auto buttonsView = registry->view<SWidgetComponent>();
+					auto& button = buttonsView.get<SWidgetComponent>(event.entity);
+					if (button.bPressed)
+					{
+						// show default mesh
+						if (button.id == defaultMeshButtonId)
+						{
+						}
+						// show pbr mesh
+						else if (button.id == pbrMeshButtonId)
+						{
+						}
+						// toggle pbr mesh normals
+						else if (button.id == normalsButtonId)
+						{
+							auto meshView = registry->view<SStaticMeshComponent>();
+							auto& mesh = meshView.get<SStaticMeshComponent>(pbrMeshEntity);
+							mesh.flags.bHasNormTexture = mesh.flags.bHasNormTexture ? 0 : 1;
+						}
+					}
+				}
+			}
+			//
+			entt::registry* registry{};
+			SWidgetID defaultMeshButtonId;
+			SWidgetID pbrMeshButtonId;
+			SWidgetID normalsButtonId;
+			SWidgetID normalsTextId;
+			entt::entity& pbrMeshEntity;
+		};
+		GuiListener listener(pbrMeshEntity);
 
 		auto onKeys = [&](std::int32_t key, SKeyState keyState, SAppContext context)->void
 		{
@@ -42,12 +99,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			// load resources
+			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex);
 			context.text->AddCulture("../../Assets/Loc.json");
 
 			// setup widgets
 			auto& registry = context.world->GetEntities();
+			context.gui->onMouseEvent.sink<SMouseButtonEvent>().connect<&GuiListener::onMouseButtonEvent>(listener);
+			listener.registry = &registry;
+
 			context.gui->MakeText(registry,
 				fpsTextId, fpsTextId, fontId,
 				SVector3{ 120.0f, 64.0f, 0.0f },
@@ -61,16 +122,40 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				SConst::White4F, STextAlign::End
 			);
 
-			// load mesh
+			auto toggleText = ResourceID<STextID>(SConst::ToggleTextKey);
+			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
+				listener.normalsButtonId, listener.normalsTextId,
+				SVector3{ 1720.0f, 150.0f, 0.0f },
+				SSize2F{ 256.0f, 64.0f },
+				SConst::White4F
+			);
+
+			// load meshes
 			const std::string_view group("Room1");
 			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
+				[&registry, &pbrMeshEntity](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
+			{
+				if (!instances.empty())
+				{
+					auto& meshInstance = instances[0];
+					pbrMeshEntity = registry.create();
+					registry.emplace<SStaticMeshComponent>(pbrMeshEntity, meshInstance.id);
+					registry.emplace<STransform3DComponent>(pbrMeshEntity, meshInstance.transform);
+				}
+			});
+			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
 				[&registry](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
 			{
-				for (auto& meshInstance : instances)
+				if (!instances.empty())
 				{
+					auto& meshInstance = instances[0];
+					auto transform = meshInstance.transform;
+					transform.scale = transform.scale * 0.8f;
+					transform.pos.y = transform.pos.y + 32.0f;
+
 					auto meshEntity = registry.create();
-					registry.emplace<SStaticMeshComponent>(meshEntity, meshInstance.id);
-					registry.emplace<STransform3DComponent>(meshEntity, meshInstance.transform);
+					registry.emplace<SStaticMeshComponent>(meshEntity, meshInstance.id, false);
+					registry.emplace<STransform3DComponent>(meshEntity, transform);
 				}
 			});
 
@@ -80,11 +165,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
 		{
-			auto [fmt, bFmtFound] = context.text->Get(fpsFmtKey);
+			auto [fmt, bFmtFound] = context.text->Get(SConst::FpsFmtKey);
 			if (bFmtFound)
 			{
 				std::wstring locFmt = Localize(fmt.c_str(), context.fps);
-				context.text->Set(fpsTextKey, locFmt);
+				context.text->Set(SConst::FpsTextKey, locFmt);
 			}
 
 			// check input

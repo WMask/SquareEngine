@@ -59,7 +59,8 @@ void SMeshRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderData)
 	{
 		{ "POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,   D3D11_INPUT_PER_VERTEX_DATA,   0 },
 		{ "NORMAL",        0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 12,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
-		{ "TEXCOORD",      0, DXGI_FORMAT_R32G32_FLOAT,       0, 24,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "TANGENT",       0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 24,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "TEXCOORD",      0, DXGI_FORMAT_R32G32_FLOAT,       0, 36,  D3D11_INPUT_PER_VERTEX_DATA,   0 },
 		{ "INSTANCEPOS",   0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,   D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 		{ "INSTANCEROT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 		{ "INSTANCESCALE", 0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 28,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
@@ -134,6 +135,8 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 			cachedMeshId = meshComponent.id;
 		}
 
+		if (meshComponent.bVisible) cachedMeshFlags = meshComponent.flags;
+
 		if (cachedMeshId != meshComponent.id)
 		{
 			if (!batchData.empty())
@@ -150,6 +153,8 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 			}
 			cachedMeshId = meshComponent.id;
 		}
+
+		if (!meshComponent.bVisible) return;
 
 		// store instance data
 		DX11MESHINSTANCE instance{};
@@ -220,19 +225,33 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 	std::uint32_t vertexOffset = 0;
 	for (auto& material : cachedMaterials)
 	{
-		auto texId = ResourceID<STexID>(material.baseTexture.string());
-		auto [view, texSize] = renderSystemDX11.FindTexture(texId);
-		if (!view)
-		{
-			// skip rendering if texture not loaded yet
-			DebugMsg("[%s] SMeshRenderSystemDX11::RenderBatch(): cannot find texture id=%d\n",
-				GetTimeStamp(std::chrono::system_clock::now()).c_str(), texId);
-			batchData.clear();
-			return;
-		}
+		std::vector<ID3D11ShaderResourceView*> textures;
+		auto baseTexId = ResourceID<STexID>(material.baseTexture.string());
+		auto normTexId = ResourceID<STexID>(material.normTexture.string());
+		auto pbrTexId = ResourceID<STexID>(material.pbrTexture.string());
+
+		auto [baseView, size1] = renderSystemDX11.FindTexture(baseTexId);
+		if (baseView) textures.push_back(baseView);
+		else continue;
+
+		auto [normView, size2] = renderSystemDX11.FindTexture(normTexId);
+		if (normView) textures.push_back(normView);
+
+		auto [pbrView, size3] = renderSystemDX11.FindTexture(pbrTexId);
+		if (pbrView) textures.push_back(pbrView);
+
+		d3dDeviceContext->PSSetShaderResources(0, textures.size(), textures.data());
+
+		// setup mesh flags
+		SMeshFlagsBuffer meshFlags {
+			(cachedMeshFlags.bHasBaseTexture && baseView) ? 1 : 0,
+			(cachedMeshFlags.bHasNormTexture && normView) ? 1 : 0,
+			(cachedMeshFlags.bHasPbrTexture && pbrView) ? 1 : 0,
+			cachedMeshFlags.subSurfaceAmount
+		};
+		d3dDeviceContext->UpdateSubresource(renderSystemDX11.GetConstantBuffers().meshBuffer.Get(), 0, NULL, &meshFlags, 0, 0);
 
 		// render meshes
-		d3dDeviceContext->PSSetShaderResources(0, 1, &view);
 		d3dDeviceContext->DrawIndexedInstanced(material.numIndices, numInstances, indexOffset, vertexOffset, 0);
 
 		vertexOffset += material.numVertices;

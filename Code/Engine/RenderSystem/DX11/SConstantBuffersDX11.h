@@ -53,5 +53,7 @@ public:
 	ComPtr<ID3D11Buffer> settingsBuffer;
 	//
 	ComPtr<ID3D11Buffer> lightsBuffer;
+	//
+	ComPtr<ID3D11Buffer> meshBuffer;
 
 };

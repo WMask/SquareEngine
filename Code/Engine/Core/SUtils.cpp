@@ -343,6 +343,10 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 					SVertex* v = &vertices[numVertices++];
 					v->pos = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
 					v->norm = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
+					if (node->mesh->vertex_tangent.exists)
+					{
+						v->tangent = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_tangent, index));
+					}
 					v->uv = SConvert::ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
 					v->uv.y = 1.0f - v->uv.y;
 				}
@@ -383,24 +387,32 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 			// add new material part to the mesh
 			const ufbx_material* material = node->mesh->materials[part.index];
-			std::string baseTexture, normTexture, maskTexture;
+			std::string baseTexture, normTexture, pbrTexture;
 			if (material->textures.count > 0)
 			{
-				baseTexture = material->pbr.base_color.texture->filename.data;
+				baseTexture = material->pbr.base_color.texture ? material->pbr.base_color.texture->filename.data : "";
 				normTexture = material->pbr.normal_map.texture ? material->pbr.normal_map.texture->filename.data : "";
-				if (!baseTexture.empty()) std::replace(baseTexture.begin(), baseTexture.end(), '\\', '/');
-				if (!normTexture.empty())
+				if (material->pbr.base_color.texture)
 				{
+					baseTexture = material->pbr.base_color.texture->filename.data;
+					std::replace(baseTexture.begin(), baseTexture.end(), '\\', '/');
+				}
+				if (material->pbr.normal_map.texture)
+				{
+					normTexture = material->pbr.normal_map.texture->filename.data;
 					std::replace(normTexture.begin(), normTexture.end(), '\\', '/');
-					maskTexture = normTexture;
-					if (auto pos = maskTexture.rfind("N.")) maskTexture.replace(pos, 2, "M.");
-					if (!std::filesystem::exists(maskTexture)) maskTexture.clear();
+				}
+				if (material->pbr.emission_color.texture)
+				{
+					// texture in emission, amount = 0
+					pbrTexture = material->pbr.emission_color.texture->filename.data;
+					std::replace(pbrTexture.begin(), pbrTexture.end(), '\\', '/');
 				}
 			}
 
 			mesh.indices.insert(mesh.indices.end(), tmpIndices.begin(), tmpIndices.end());
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), maskTexture.c_str(),
+			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), pbrTexture.c_str(),
 				static_cast<std::uint16_t>(indexOffset),
 				static_cast<std::uint16_t>(numVertices),
 				static_cast<std::uint16_t>(numIndices));

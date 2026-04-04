@@ -59,6 +59,17 @@ struct SLightsBuffer
 	SVector4 lightColor[SConst::MaxLightsCount];
 	//
 	std::uint32_t numLights{};
+	//
+	float padding[3];
+};
+
+/** Mesh flags */
+struct SMeshFlagsBuffer
+{
+	std::int32_t bHasBaseTexture;
+	std::int32_t bHasNormTexture;
+	std::int32_t bHasPbrTexture;
+	float        subSurfaceAmount; // is two-sided
 };
 
 /** Sprite flags */

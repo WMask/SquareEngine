@@ -79,7 +79,7 @@ void SFrameAnimSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime
 		}
 
 		// generate frame uv
-		SSpriteUVComponent tmpUV;
+		SSpriteUV tmpUV;
 		animComponent.GenerateFrameUV(gameTime, cachedTexSize, tmpUV);
 
 		// store instance data

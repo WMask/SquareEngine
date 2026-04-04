@@ -266,6 +266,10 @@ namespace SConvert
 	{
 		return SPoint2{ static_cast<std::int32_t>(p.x), static_cast<std::int32_t>(p.y) };
 	}
+	inline SPoint2F ToPoint2(const SPoint2& p)
+	{
+		return SPoint2F{ static_cast<float>(p.x), static_cast<float>(p.y) };
+	}
 	inline SSize2 ToSize2(const SSize2F& size)
 	{
 		return SSize2{ static_cast<std::uint32_t>(size.width), static_cast<std::uint32_t>(size.height) };

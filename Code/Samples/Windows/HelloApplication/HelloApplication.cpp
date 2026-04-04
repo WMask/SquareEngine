@@ -40,64 +40,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			{
 				if (!registry || !locale) return;
 
-				if (event.btn == SMouseBtn::Left)
+				if (event.btn == SMouseBtn::Left && event.btnState == SKeyState::Up)
 				{
-					auto widgetView = registry->view<SWidgetComponent>();
-					auto& widget = widgetView.get<SWidgetComponent>(event.entity);
-
-					if (widget.id == toggleButtonId || widget.id == applyButtonId)
+					auto buttonsView = registry->view<SWidgetComponent, SButtonComponent>();
+					auto& button = buttonsView.get<SWidgetComponent>(event.entity);
+					if (button.bPressed)
 					{
-						// update button uv
-						auto uvView = registry->view<SSpriteUVComponent>();
-						auto& uv = uvView.get<SSpriteUVComponent>(event.entity);
-						(event.btnState == SKeyState::Up) ? uv.SetTopHalfUV() : uv.SetBottomHalfUV();
-
-						if (event.btnState == SKeyState::Up && widget.bPressed)
+						// toggle sprite tint
+						if (button.id == toggleButtonId)
 						{
-							// toggle sprite tint
-							if (widget.id == toggleButtonId)
-							{
-								targetTint = bUseGreen ? SColor4F{ 0.0f, 0.6f, 0.0f, 1.0f } : SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
-								bUseGreen = !bUseGreen;
-								lerp = 0.0f;
-							}
-							// toggle localization
-							else if (widget.id == applyButtonId)
-							{
-								locale->SetCulture((locale->GetCulture() == "en") ? "ru" : "en");
-							}
+							targetTint = bUseGreen ? SColor4F{ 0.0f, 0.6f, 0.0f, 1.0f } : SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+							bUseGreen = !bUseGreen;
+							lerp = 0.0f;
+						}
+						// toggle localization
+						else if (button.id == applyButtonId)
+						{
+							locale->SetCulture((locale->GetCulture() == "en") ? "ru" : "en");
 						}
 					}
-					else if (widget.id == toggleTextId || widget.id == applyTextId)
-					{
-						// update button text
-						auto spriteView = registry->view<SSpriteComponent>();
-						auto& sprite = spriteView.get<SSpriteComponent>(event.entity);
-						sprite.position.y = (event.btnState == SKeyState::Up) ? 500.0f : 501.0f;
-					}
-				}
-			}
-			//
-			void onMouseLeaveEvent(const SMouseLeaveEvent& event)
-			{
-				if (!registry) return;
-
-				auto widgetView = registry->view<SWidgetComponent>();
-				auto& widget = widgetView.get<SWidgetComponent>(event.entity);
-
-				if (widget.id == toggleButtonId || widget.id == applyButtonId)
-				{
-					// update button uv
-					auto uvView = registry->view<SSpriteUVComponent>();
-					auto& uv = uvView.get<SSpriteUVComponent>(event.entity);
-					uv.SetTopHalfUV();
-				}
-				else if (widget.id == toggleTextId || widget.id == applyTextId)
-				{
-					// update button text
-					auto spriteView = registry->view<SSpriteComponent>();
-					auto& text = spriteView.get<SSpriteComponent>(event.entity);
-					text.position.y = 500.0f;
 				}
 			}
 			//
@@ -137,7 +98,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// setup widgets
 			auto& registry = context.world->GetEntities();
 			context.gui->onMouseEvent.sink<SMouseButtonEvent>().connect<&GuiListener::onMouseButtonEvent>(listener);
-			context.gui->onMouseEvent.sink<SMouseLeaveEvent>().connect<&GuiListener::onMouseLeaveEvent>(listener);
 			listener.registry = &registry;
 			listener.locale = context.text;
 

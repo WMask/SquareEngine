@@ -185,7 +185,7 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		{
 			// generate glyph uv
 			glyph.size.height = textSize.height;
-			SSpriteUVComponent tmpUV;
+			SSpriteUV tmpUV;
 			textComponent.GenerateGlyphUV(glyph, SConvert::ToSize2F(cachedTexSize), tmpUV);
 
 			// store instance data

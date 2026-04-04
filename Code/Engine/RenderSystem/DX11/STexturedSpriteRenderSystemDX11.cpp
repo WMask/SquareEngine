@@ -169,7 +169,7 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		instance.rotation = spriteComponent.rotation;
 		instance.scale = SConvert::ToVector2(spriteComponent.size);
 		memcpy(instance.colors, coloredComponent.colors, sizeof(SColor4F) * 4);
-		memcpy(instance.uvs, uvComponent.uvs, sizeof(SVector2) * 4);
+		memcpy(instance.uvs, uvComponent.uvs.uvs, sizeof(SVector2) * 4);
 		batchData.push_back(instance);
 
 		if (batchData.size() == SConst::MaxInstancedSpritesCount)

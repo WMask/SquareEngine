@@ -332,6 +332,16 @@ namespace SMath
 		return SConvert::ToVector3(xVec);
 	}
 
+	inline SVector3 Normalize(const SVector3& v)
+	{
+		return SConvert::ToVector3(DirectX::XMVector3Normalize(SConvert::ToXVector4(v)));
+	}
+
+	inline SVector4 Normalize(const SVector4& v)
+	{
+		return SConvert::ToVector4(DirectX::XMVector3Normalize(SConvert::ToXVector4(v)));
+	}
+
 	inline SMatrix3 InverseM3(const SMatrix3& m)
 	{
 		DirectX::XMVECTOR determinant;

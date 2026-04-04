@@ -10,11 +10,12 @@
 
 namespace SConst
 {
-	static const std::string_view DefaultMeshWidget = "DefaultMeshWidget";
+	static const std::string_view NormalMeshWidget = "NormalMeshWidget";
 	static const std::string_view PBRMeshWidget = "PBRMeshWidget";
 	static const std::string_view NormalsWidget = "NormalsWidget";
-	static const std::string_view NormalsText = "NormalsText";
 	static const std::string_view ControlsTextKey = "controls_text";
+	static const std::string_view NormalTextKey = "normal_text";
+	static const std::string_view PBRTextKey = "pbr_text";
 	static const std::string_view ToggleTextKey = "toggle_text";
 	static const std::string_view FpsTextKey = "fps_text";
 	static const std::string_view FpsFmtKey = "fps_fmt";
@@ -27,6 +28,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	try
 	{
 		entt::entity pbrMeshEntity;
+		entt::entity normalMeshEntity;
 		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
 		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
@@ -35,12 +37,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		struct GuiListener
 		{
-			GuiListener(entt::entity& inPBRMeshEntity) : pbrMeshEntity(inPBRMeshEntity)
+			GuiListener(entt::entity& inPBRMeshEntity, entt::entity& inNormalMeshEntity)
+				: normalMeshEntity(inNormalMeshEntity)
+				, pbrMeshEntity(inPBRMeshEntity)
 			{
-				defaultMeshButtonId = ResourceID<SWidgetID>(SConst::DefaultMeshWidget);
+				normalMeshButtonId = ResourceID<SWidgetID>(SConst::NormalMeshWidget);
 				pbrMeshButtonId = ResourceID<SWidgetID>(SConst::PBRMeshWidget);
 				normalsButtonId = ResourceID<SWidgetID>(SConst::NormalsWidget);
-				normalsTextId = ResourceID<SWidgetID>(SConst::NormalsText);
 			}
 			//
 			void onMouseButtonEvent(const SMouseButtonEvent& event)
@@ -53,33 +56,39 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					auto& button = buttonsView.get<SWidgetComponent>(event.entity);
 					if (button.bPressed)
 					{
-						// show default mesh
-						if (button.id == defaultMeshButtonId)
+						auto meshView = registry->view<SStaticMeshComponent>();
+						auto& pbrMesh = meshView.get<SStaticMeshComponent>(pbrMeshEntity);
+						auto& normalMesh = meshView.get<SStaticMeshComponent>(normalMeshEntity);
+
+						// show normal mesh
+						if (button.id == normalMeshButtonId)
 						{
+							pbrMesh.bVisible = false;
+							normalMesh.bVisible = true;
 						}
 						// show pbr mesh
 						else if (button.id == pbrMeshButtonId)
 						{
+							pbrMesh.bVisible = true;
+							normalMesh.bVisible = false;
 						}
 						// toggle pbr mesh normals
 						else if (button.id == normalsButtonId)
 						{
-							auto meshView = registry->view<SStaticMeshComponent>();
-							auto& mesh = meshView.get<SStaticMeshComponent>(pbrMeshEntity);
-							mesh.flags.bHasNormTexture = mesh.flags.bHasNormTexture ? 0 : 1;
+							pbrMesh.flags.bHasNormTexture = pbrMesh.flags.bHasNormTexture ? 0 : 1;
 						}
 					}
 				}
 			}
 			//
 			entt::registry* registry{};
-			SWidgetID defaultMeshButtonId;
+			entt::entity& pbrMeshEntity;
+			entt::entity& normalMeshEntity;
+			SWidgetID normalMeshButtonId;
 			SWidgetID pbrMeshButtonId;
 			SWidgetID normalsButtonId;
-			SWidgetID normalsTextId;
-			entt::entity& pbrMeshEntity;
 		};
-		GuiListener listener(pbrMeshEntity);
+		GuiListener listener(pbrMeshEntity, normalMeshEntity);
 
 		auto onKeys = [&](std::int32_t key, SKeyState keyState, SAppContext context)->void
 		{
@@ -121,19 +130,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F, STextAlign::End
 			);
-
+			auto defaultText = ResourceID<STextID>(SConst::NormalTextKey);
+			context.gui->MakeButtonWithText(registry, buttonsTex, defaultText, fontId, listener.normalMeshButtonId,
+				SVector3{ 1720.0f, 150.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
+			);
+			auto pbrText = ResourceID<STextID>(SConst::PBRTextKey);
+			context.gui->MakeButtonWithText(registry, buttonsTex, pbrText, fontId, listener.pbrMeshButtonId,
+				SVector3{ 1720.0f, 250.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
+			);
 			auto toggleText = ResourceID<STextID>(SConst::ToggleTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
-				listener.normalsButtonId, listener.normalsTextId,
-				SVector3{ 1720.0f, 150.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::White4F
+			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId, listener.normalsButtonId,
+				SVector3{ 1720.0f, 350.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// load meshes
 			const std::string_view group("Room1");
 			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
-				[&registry, &pbrMeshEntity](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
+				[&](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
 			{
 				if (!instances.empty())
 				{
@@ -144,7 +157,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 			});
 			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
-				[&registry](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
+				[&](const std::filesystem::path& path, const std::vector<SMeshInstance>& instances)
 			{
 				if (!instances.empty())
 				{
@@ -153,14 +166,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					transform.scale = transform.scale * 0.8f;
 					transform.pos.y = transform.pos.y + 32.0f;
 
-					auto meshEntity = registry.create();
-					registry.emplace<SStaticMeshComponent>(meshEntity, meshInstance.id, false);
-					registry.emplace<STransform3DComponent>(meshEntity, transform);
+					normalMeshEntity = registry.create();
+					registry.emplace<SStaticMeshComponent>(normalMeshEntity, meshInstance.id, false);
+					registry.emplace<STransform3DComponent>(normalMeshEntity, transform);
 				}
 			});
 
 			// add light
-			context.world->AddDirectionalLight("DirectionalLight", SVector3{ 0.0f, -0.5f, 1.0f }, SConst::White3);
+			SVector3 lightDir = SMath::Normalize(SVector3{ 0.0f, -0.8f, 1.0f });
+			context.world->AddDirectionalLight("DirectionalLight", lightDir, SConst::White3);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void

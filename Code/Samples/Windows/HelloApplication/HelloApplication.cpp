@@ -11,11 +11,9 @@
 
 namespace SConst
 {
-	static const std::string_view ToggleTextWidget = "toggleText";
-	static const std::string_view ToggleButtonWidget = "toggleButton";
-	static const std::string_view ApplyButtonWidget = "applyButton";
-	static const std::string_view ApplyTextWidget = "applyText";
-	static const std::string_view FpsTextWidget = "fpsText";
+	static const std::string_view ToggleButtonWidget = "ToggleButton";
+	static const std::string_view ApplyButtonWidget = "ApplyButton";
+	static const std::string_view FpsTextWidget = "FpsText";
 	static const std::string_view ToggleTextKey = "demo_text";
 	static const std::string_view ApplyTextKey = "apply_text";
 	static const std::string_view FpsTextKey = "fps_text";
@@ -45,10 +43,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		{
 			GuiListener()
 			{
-				toggleTextId = ResourceID<SWidgetID>(SConst::ToggleTextWidget);
 				toggleButtonId = ResourceID<SWidgetID>(SConst::ToggleButtonWidget);
 				applyButtonId = ResourceID<SWidgetID>(SConst::ApplyButtonWidget);
-				applyTextId = ResourceID<SWidgetID>(SConst::ApplyTextWidget);
 				fpsTextId = ResourceID<SWidgetID>(SConst::FpsTextWidget);
 			}
 			//
@@ -79,9 +75,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			entt::registry* registry{};
 			ILocalization* locale{};
 			SWidgetID toggleButtonId;
-			SWidgetID toggleTextId;
 			SWidgetID applyButtonId;
-			SWidgetID applyTextId;
 			SWidgetID fpsTextId;
 		};
 		GuiListener listener;
@@ -128,29 +122,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// toggle button
 			auto toggleText = ResourceID<STextID>(SConst::ToggleTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
-				listener.toggleButtonId, listener.toggleTextId,
-				SVector3{ 700.0f, 500.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::White4F
+			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId, listener.toggleButtonId,
+				SVector3{ 700.0f, 500.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// apply button
 			auto applyText = ResourceID<STextID>(SConst::ApplyTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId,
-				listener.applyButtonId, listener.applyTextId,
-				SVector3{ 300.0f, 500.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::White4F
+			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId, listener.applyButtonId,
+				SVector3{ 300.0f, 500.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// fps text
 			auto fpsText = ResourceID<STextID>(SConst::FpsTextKey);
-			context.gui->MakeText(registry,
-				listener.fpsTextId, fpsText, fontId,
-				SVector3{ 300.0f, 300.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::White4F
+			context.gui->MakeText(registry, listener.fpsTextId, fpsText, fontId,
+				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 		};
 

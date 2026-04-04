@@ -4,6 +4,8 @@
 		{ "key": "demo_text", "value": "Demo text" },
 		{ "key": "apply_text", "value": "APPLY" },
 		{ "key": "toggle_text", "value": "Toggle" },
+		{ "key": "normal_text", "value": "Normal" },
+		{ "key": "pbr_text", "value": "PBR" },
 		{ "key": "fps_fmt", "value": "FPS: %d" },
 		{ "key": "fps_text", "value": "FPS: 0" },
 		{ "key": "btn_fullscreen", "value": "Fullscreen" },

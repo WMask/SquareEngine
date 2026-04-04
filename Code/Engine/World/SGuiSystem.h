@@ -49,7 +49,7 @@ public: // IGuiSystem interface implementation
 		const SVector3& pos, const SSize2F& size, SColor4F color, STextAlign align) override;
 	//
 	virtual std::pair<entt::entity, entt::entity> MakeButtonWithText(entt::registry& registry,
-		STexID texture, STextID text, SFontID font, SWidgetID btnWidget, SWidgetID textWidget,
+		STexID texture, STextID text, SFontID font, SWidgetID btnWidget,
 		const SVector3& pos, const SSize2F& size, SColor4F color) override;
 
 

@@ -4,6 +4,8 @@
 		{ "key": "demo_text", "value": "Демо текст" },
 		{ "key": "apply_text", "value": "ПРИМЕНИТЬ" },
 		{ "key": "toggle_text", "value": "Изменить" },
+		{ "key": "normal_text", "value": "Нормальный" },
+		{ "key": "pbr_text", "value": "PBR" },
 		{ "key": "fps_fmt", "value": "ФПС: %d" },
 		{ "key": "fps_text", "value": "ФПС: 0" },
 		{ "key": "btn_fullscreen", "value": "Полный экран" },

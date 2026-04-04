@@ -208,7 +208,7 @@ entt::entity SGuiSystem::MakeText(entt::registry& registry, SWidgetID widgetId, 
 }
 
 std::pair<entt::entity, entt::entity> SGuiSystem::MakeButtonWithText(entt::registry& registry,
-	STexID texture, STextID text, SFontID font, SWidgetID btnWidget, SWidgetID textWidget,
+	STexID texture, STextID text, SFontID font, SWidgetID btnWidget,
 	const SVector3& pos, const SSize2F& size, SColor4F color)
 {
 	SPoint2 textOffset{ 0, 1 };
@@ -230,7 +230,7 @@ std::pair<entt::entity, entt::entity> SGuiSystem::MakeButtonWithText(entt::regis
 	entt::entity textEntity = registry.create();
 	registry.emplace<SSpriteComponent>(textEntity, true, 0.0f, textPos, size);
 	registry.emplace<STextComponent>(textEntity, color, text, font);
-	registry.emplace<SWidgetComponent>(textEntity, textWidget);
+	registry.emplace<SWidgetComponent>(textEntity, btnWidget + 1);
 	registry.emplace<SButtonComponent>(textEntity, textOffset, textPos);
 
 	return { buttonEntity, textEntity };

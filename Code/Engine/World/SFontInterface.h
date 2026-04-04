@@ -20,6 +20,7 @@ struct SGlyph
 	SSize2F size;
 };
 
+/** Id in font manager */
 using SFontID = std::uint32_t;
 
 /***************************************************************************

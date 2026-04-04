@@ -169,6 +169,7 @@ public:
 };
 
 
+/** Widget id */
 using SWidgetID = std::uint32_t;
 
 /** Widget component */

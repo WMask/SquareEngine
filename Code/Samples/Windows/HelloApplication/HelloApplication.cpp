@@ -9,15 +9,18 @@
 #include "World/SGuiInterface.h"
 
 
-static const std::string_view toggleTextWidget = "toggleText";
-static const std::string_view toggleButtonWidget = "toggleButton";
-static const std::string_view applyButtonWidget = "applyButton";
-static const std::string_view applyTextWidget = "applyText";
-static const std::string_view fpsTextWidget = "fpsText";
-static const std::string_view toggleTextKey = "demo_text";
-static const std::string_view applyTextKey = "apply_text";
-static const std::string_view fpsTextKey = "fps_text";
-static const std::string_view fpsFmtKey = "fps_fmt";
+namespace SConst
+{
+	static const std::string_view ToggleTextWidget = "toggleText";
+	static const std::string_view ToggleButtonWidget = "toggleButton";
+	static const std::string_view ApplyButtonWidget = "applyButton";
+	static const std::string_view ApplyTextWidget = "applyText";
+	static const std::string_view FpsTextWidget = "fpsText";
+	static const std::string_view ToggleTextKey = "demo_text";
+	static const std::string_view ApplyTextKey = "apply_text";
+	static const std::string_view FpsTextKey = "fps_text";
+	static const std::string_view FpsFmtKey = "fps_fmt";
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -25,15 +28,28 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
+		entt::entity treeEntity;
+		SColor4F tint = SConst::White4F;
+		SColor4F targetTint = SConst::White4F;
+		float lerp = 1.0f;
+		bool bUseGreen = true;
+
+		static auto startSpriteAnim = [&]()
+		{
+			targetTint = bUseGreen ? SColor4F{ 0.0f, 0.6f, 0.0f, 1.0f } : SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+			bUseGreen = !bUseGreen;
+			lerp = 0.0f;
+		};
+
 		struct GuiListener
 		{
 			GuiListener()
 			{
-				toggleTextId = ResourceID<SWidgetID>(toggleTextWidget);
-				toggleButtonId = ResourceID<SWidgetID>(toggleButtonWidget);
-				applyButtonId = ResourceID<SWidgetID>(applyButtonWidget);
-				applyTextId = ResourceID<SWidgetID>(applyTextWidget);
-				fpsTextId = ResourceID<SWidgetID>(fpsTextWidget);
+				toggleTextId = ResourceID<SWidgetID>(SConst::ToggleTextWidget);
+				toggleButtonId = ResourceID<SWidgetID>(SConst::ToggleButtonWidget);
+				applyButtonId = ResourceID<SWidgetID>(SConst::ApplyButtonWidget);
+				applyTextId = ResourceID<SWidgetID>(SConst::ApplyTextWidget);
+				fpsTextId = ResourceID<SWidgetID>(SConst::FpsTextWidget);
 			}
 			//
 			void onMouseButtonEvent(const SMouseButtonEvent& event)
@@ -49,9 +65,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						// toggle sprite tint
 						if (button.id == toggleButtonId)
 						{
-							targetTint = bUseGreen ? SColor4F{ 0.0f, 0.6f, 0.0f, 1.0f } : SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
-							bUseGreen = !bUseGreen;
-							lerp = 0.0f;
+							startSpriteAnim();
 						}
 						// toggle localization
 						else if (button.id == applyButtonId)
@@ -69,13 +83,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			SWidgetID applyButtonId;
 			SWidgetID applyTextId;
 			SWidgetID fpsTextId;
-			SColor4F tint = SConst::White4F;
-			SColor4F targetTint = SConst::White4F;
-			float lerp = 1.0f;
-			bool bUseGreen = true;
 		};
-
-		entt::entity treeEntity;
 		GuiListener listener;
 
 		auto onKeys = [&](std::int32_t key, SKeyState keyState, SAppContext context)->void
@@ -119,7 +127,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			);
 
 			// toggle button
-			auto toggleText = ResourceID<STextID>(toggleTextKey);
+			auto toggleText = ResourceID<STextID>(SConst::ToggleTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
 				listener.toggleButtonId, listener.toggleTextId,
 				SVector3{ 700.0f, 500.0f, 0.0f },
@@ -128,7 +136,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			);
 
 			// apply button
-			auto applyText = ResourceID<STextID>(applyTextKey);
+			auto applyText = ResourceID<STextID>(SConst::ApplyTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId,
 				listener.applyButtonId, listener.applyTextId,
 				SVector3{ 300.0f, 500.0f, 0.0f },
@@ -137,7 +145,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			);
 
 			// fps text
-			auto fpsText = ResourceID<STextID>(fpsTextKey);
+			auto fpsText = ResourceID<STextID>(SConst::FpsTextKey);
 			context.gui->MakeText(registry,
 				listener.fpsTextId, fpsText, fontId,
 				SVector3{ 300.0f, 300.0f, 0.0f },
@@ -148,22 +156,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
 		{
-			auto [fmt, bFmtFound] = context.text->Get(fpsFmtKey);
+			auto [fmt, bFmtFound] = context.text->Get(SConst::FpsFmtKey);
 			if (bFmtFound)
 			{
 				std::wstring locFmt = Localize(fmt.c_str(), context.fps);
-				context.text->Set(fpsTextKey, locFmt);
+				context.text->Set(SConst::FpsTextKey, locFmt);
 			}
 
-			if (listener.lerp < 1.0f)
+			if (lerp < 1.0f)
 			{
 				auto& registry = context.world->GetEntities();
 				auto spriteView = registry.view<SColoredComponent>();
 				auto& sprite = spriteView.get<SColoredComponent>(treeEntity);
 
-				listener.tint = SMath::LerpColor4(listener.tint, listener.targetTint, listener.lerp);
-				listener.lerp += deltaSeconds / 4.0f;
-				sprite.SetColors(listener.tint);
+				tint = SMath::LerpColor4(tint, targetTint, lerp);
+				lerp += deltaSeconds / 4.0f;
+				sprite.SetColors(tint);
 			}
 		};
 

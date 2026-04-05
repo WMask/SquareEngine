@@ -68,6 +68,8 @@ void SMeshManagerDX11::Update(ID3D11Device* d3dDevice)
     {
         for (std::uint32_t i = 0; i < SConst::MaxMeshesPerFrame; i++)
         {
+            bool bBreak = false;
+
             // read in game thread space
             SMeshData meshData{};
             if (loadedMeshes->pop(meshData))
@@ -84,16 +86,18 @@ void SMeshManagerDX11::Update(ID3D11Device* d3dDevice)
                 }
 
                 UpdateCacheIds();
-
-                if (!preloadDelegatesCache.empty() || !instancesDelegatesCache.empty())
-                {
-                    CheckLoadFinished(meshData);
-                }
             }
             else
             {
-                break;
+                bBreak = true;
             }
+
+            if (!preloadDelegatesCache.empty() || !instancesDelegatesCache.empty())
+            {
+                CheckLoadFinished(meshData);
+            }
+
+            if (bBreak) break;
         }
     }
 
@@ -286,6 +290,11 @@ void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
             DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
         }
+    }
+
+    for (auto eraseIt : eraseList1)
+    {
+        instancesDelegatesCache.erase(eraseIt);
     }
 
     for (auto eraseIt : eraseList2)

@@ -24,6 +24,7 @@ namespace SConst
 {
     static const std::uint32_t MaxTextures = 64u;
     static const std::uint32_t MaxTexturesPerFrame = 8u;
+    static const std::uint32_t MaxPendingWait = 64u;
 }
 
 STextureManagerDX11::~STextureManagerDX11()
@@ -41,6 +42,7 @@ void STextureManagerDX11::Init(IThreadPool* inThreadPool)
 void STextureManagerDX11::Shutdown()
 {
     ClearCache(nullptr);
+    pendingLoadingMap.clear();
     loadedTextures.reset();
     threadPool = nullptr;
     RemoveCubemap();
@@ -101,16 +103,16 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 
                 DebugMsg("[%s] STextureManagerDX11::Update(): texture id=%u created and added to cache\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), data.id);
-
-                if (!preLoadDelegatesCache.empty())
-                {
-                    CheckPreloadFinished();
-                }
             }
             else
             {
                 break;
             }
+        }
+
+        if (!preloadDelegatesCache.empty())
+        {
+            CheckPreloadFinished();
         }
     }
 
@@ -147,18 +149,18 @@ STexID STextureManagerDX11::LoadTexture(const std::filesystem::path& path)
 
 void STextureManagerDX11::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
 {
-    preLoadDelegatesCache.emplace_back(paths, delegate);
+    preloadDelegatesCache.emplace_back(paths, delegate);
 
     auto PreloadTexturesTask = [this, paths]()
     {
-        for (auto& entry : paths)
+        for (auto& path : paths)
         {
-            STexID id = ResourceID<STexID>(entry.string());
+            STexID id = ResourceID<STexID>(path.string());
             DebugMsg("[%s] STextureManagerDX11::PreloadTextures(): begin loading '%s', id=%u\n",
-                GetTimeStamp(std::chrono::system_clock::now()).c_str(), entry.string().c_str(), id);
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
 
             STextureData texture{};
-            if (LoadTextureData(entry, &texture.data, &texture.texSize))
+            if (LoadTextureData(path, &texture.data, &texture.texSize))
             {
                 texture.id = id;
 
@@ -168,7 +170,7 @@ void STextureManagerDX11::PreloadTextures(const SPathList& paths, OnTexturesLoad
             else
             {
                 DebugMsg("[%s] STextureManagerDX11::PreloadTextures(): cannot load '%s'\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), entry.string().c_str());
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
             }
         }
     };
@@ -242,8 +244,9 @@ bool STextureManagerDX11::CreateTexture(ID3D11Device* d3dDevice, const STextureD
 void STextureManagerDX11::CheckPreloadFinished()
 {
     std::forward_list<TPreLoadDelegatesCache::const_iterator> eraseList;
+    SPathList restartLoadingList;
 
-    for (auto it = preLoadDelegatesCache.begin(); it != preLoadDelegatesCache.end(); ++it)
+    for (auto it = preloadDelegatesCache.begin(); it != preloadDelegatesCache.end(); ++it)
     {
         bool bAllLoaded = true;
 
@@ -253,7 +256,38 @@ void STextureManagerDX11::CheckPreloadFinished()
             if (!texturesCache.contains(id))
             {
                 bAllLoaded = false;
-                break;
+
+                auto pendingIt = pendingLoadingMap.find(path);
+                if (pendingIt == pendingLoadingMap.end())
+                {
+                    // start pending wait
+                    pendingLoadingMap.emplace(path, 0u);
+                }
+                else
+                {
+                    pendingIt->second++;
+
+                    DebugMsg("[%s] STextureManagerDX11::CheckPreloadFinished(): still loading [%u] '%s' ...\n",
+                        GetTimeStamp(std::chrono::system_clock::now()).c_str(), pendingIt->second, path.string().c_str());
+
+                    if (pendingIt->second > SConst::MaxPendingWait)
+                    {
+                        // restart loading
+                        DebugMsg("[%s] STextureManagerDX11::CheckPreloadFinished(): pending limit reached, restart '%s' loading\n",
+                            GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
+
+                        pendingLoadingMap.erase(pendingIt);
+                        restartLoadingList.push_back(path);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (pendingLoadingMap.contains(path))
+                {
+                    pendingLoadingMap.erase(path);
+                }
             }
         }
 
@@ -268,9 +302,16 @@ void STextureManagerDX11::CheckPreloadFinished()
         }
     }
 
+    if (!restartLoadingList.empty())
+    {
+        // when texture loaded delegate from preloadDelegatesCache will be called
+        auto unusedDelegate = [](std::vector<std::filesystem::path>&){};
+        PreloadTextures(restartLoadingList, unusedDelegate);
+    }
+
     for (auto eraseIt : eraseList)
     {
-        preLoadDelegatesCache.erase(eraseIt);
+        preloadDelegatesCache.erase(eraseIt);
     }
 }
 

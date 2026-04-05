@@ -86,15 +86,19 @@ protected:
 	//
 	using TCircularFIFOTextureQueue = Fifo4<STextureData>;
 	//
+	using TPendingMap = std::unordered_map<std::filesystem::path, std::uint32_t>;
+	//
 	std::unordered_map<STexID, STextureDataDX11> texturesCache;
 	//
 	std::shared_ptr<TCircularFIFOTextureQueue> loadedTextures;
 	//
-	TPreLoadDelegatesCache preLoadDelegatesCache;
+	TPreLoadDelegatesCache preloadDelegatesCache;
 	//
 	ComPtr<ID3D11ShaderResourceView> cubemapView;
 	//
 	ComPtr<ID3D11Resource> cubemap;
+	//
+	TPendingMap pendingLoadingMap;
 	//
 	IThreadPool* threadPool;
 

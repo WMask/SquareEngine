@@ -49,6 +49,10 @@ public:
 
 public:
 	//
+	ComPtr<ID3D11ShaderResourceView> defaultTextureView;
+	//
+	ComPtr<ID3D11Texture2D> defaultTexture;
+	//
 	ComPtr<ID3D11Buffer> spriteVertexBuffer;
 	//
 	ComPtr<ID3D11Buffer> spriteIndexBuffer;

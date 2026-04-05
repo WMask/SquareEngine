@@ -221,6 +221,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 	d3dDeviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
 	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
+	auto defaultTexture = renderSystemDX11.GetConstantBuffers().defaultTextureView.Get();
 	std::uint32_t indexOffset = 0;
 	std::uint32_t vertexOffset = 0;
 	for (auto& material : cachedMaterials)
@@ -233,7 +234,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 
 		auto [baseView, size1] = renderSystemDX11.FindTexture(baseTexId);
 		if (baseView) textures.push_back(baseView);
-		else continue;
+		else textures.push_back(defaultTexture);
 
 		auto [normView, size2] = renderSystemDX11.FindTexture(normTexId);
 		if (normView) textures.push_back(normView);

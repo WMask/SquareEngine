@@ -22,6 +22,18 @@ SConstantBuffersDX11::~SConstantBuffersDX11()
 	Shutdown();
 }
 
+void SConstantBuffersDX11::Shutdown()
+{
+	wvpMatrixBuffer.Reset();
+	spriteIndexBuffer.Reset();
+	spriteVertexBuffer.Reset();
+	defaultTextureView.Reset();
+	defaultTexture.Reset();
+	settingsBuffer.Reset();
+	lightsBuffer.Reset();
+	meshBuffer.Reset();
+}
+
 void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
 	const SCamera& camera, std::uint32_t width, std::uint32_t height)
 {
@@ -113,6 +125,52 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create index buffer");
 	}
 
+	// create default texture
+	const std::uint32_t defaultTextureSize = 64;
+	const std::uint32_t defaultTextureGrid = 8;
+	std::vector<std::uint32_t> pixels;
+	pixels.resize(defaultTextureSize * defaultTextureSize);
+
+	for (std::uint32_t y = 0u; y < defaultTextureSize; y++)
+	{
+		bool bSwap = (y / defaultTextureGrid) % 2;
+		for (std::uint32_t x = 0u; x < defaultTextureSize; x++)
+		{
+			std::uint32_t& pixel = pixels[y * defaultTextureSize + x];
+			bool bIsBlack = ((x / defaultTextureGrid + y / defaultTextureGrid) % 2) == 0;
+			pixel = bIsBlack ? 0xFF000000 : 0xFFFFFFFF;
+		}
+	}
+
+	D3D11_TEXTURE2D_DESC desc{};
+	desc.Width = defaultTextureSize;
+	desc.Height = defaultTextureSize;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA initData{};
+	initData.pSysMem = pixels.data();
+	initData.SysMemPitch = defaultTextureSize * 4;
+
+	if (FAILED(d3dDevice->CreateTexture2D(&desc, &initData, defaultTexture.GetAddressOf())))
+	{
+		throw std::exception("Cannot create default texture");
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = desc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	if (FAILED(d3dDevice->CreateShaderResourceView(defaultTexture.Get(), &srvDesc, defaultTextureView.GetAddressOf())))
+	{
+		throw std::exception("Cannot create default texture view");
+	}
+
 	S_CATCH{ S_THROW("SConstantBuffersDX11::Init()") }
 }
 
@@ -172,11 +230,4 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceCo
 
 		d3dDeviceContext->UpdateSubresource(settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
 	}
-}
-
-void SConstantBuffersDX11::Shutdown()
-{
-	wvpMatrixBuffer.Reset();
-	spriteIndexBuffer.Reset();
-	spriteVertexBuffer.Reset();
 }

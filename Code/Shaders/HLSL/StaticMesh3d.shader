@@ -196,8 +196,8 @@ float4 PShader(PS_INPUT input) : SV_TARGET
 				float3 vEnvSpec = F * vEnvSpecular * (1.0 - roughness);
 				float3 vEnvDiff = kD * vEnvDiffuse * ao;
 
-				vEnvColor = (vEnvSpec + vEnvDiff) * metallic;
-				float3 vBackEnv = vEnvDiffuse * NdotL2 * envCubemapAmount;
+				vEnvColor = (vEnvSpec + vEnvDiff) * metallic * lerp(NdotL, 1.0, 0.1);
+				float3 vBackEnv = vEnvDiffuse * NdotL2 * envCubemapAmount * (1.0 - metallic);
 				vBackLight = vBackLight + vBackEnv;
 			}
 			else
@@ -206,8 +206,8 @@ float4 PShader(PS_INPUT input) : SV_TARGET
 			}
 
 			// gamma correction
-			vFinalColor = AdjustSaturation(vDirectLight, 1.5) + vEnvColor;
-			vFinalColor = pow(vFinalColor, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2)) + vBackLight;
+			vFinalColor = AdjustSaturation(vDirectLight, 1.33) + vEnvColor;
+			vFinalColor = pow(vFinalColor, float3(1.0 / 2.5, 1.0 / 2.5, 1.0 / 2.5)) + vBackLight;
 		}
 		else
 		{

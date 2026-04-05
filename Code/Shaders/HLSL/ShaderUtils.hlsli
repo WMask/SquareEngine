@@ -56,7 +56,7 @@ bool IsDirectional(float4 vLight)
 float3 AdjustSaturation(float3 color, float saturation)
  {
     // calculate luminance (perceived brightness)
-    const float3 vLuminanceWeights = float3(0.2126, 0.7152, 0.0722);
+    const float3 vLuminanceWeights = float3(0.5126, 0.5152, 0.5722);
     float luminance = dot(color, vLuminanceWeights);
     
     // blend between grayscale and original color

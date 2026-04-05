@@ -9,15 +9,16 @@
 #include "World/SGuiInterface.h"
 
 
-static const std::string_view toggleTextWidget = "toggleText";
-static const std::string_view toggleButtonWidget = "toggleButton";
-static const std::string_view applyButtonWidget = "applyButton";
-static const std::string_view applyTextWidget = "applyText";
-static const std::string_view fpsTextWidget = "fpsText";
-static const std::string_view toggleTextKey = "demo_text";
-static const std::string_view applyTextKey = "apply_text";
-static const std::string_view fpsTextKey = "fps_text";
-static const std::string_view fpsFmtKey = "fps_fmt";
+namespace SConst
+{
+	static const std::string_view ToggleButtonWidget = "ToggleButton";
+	static const std::string_view ApplyButtonWidget = "ApplyButton";
+	static const std::string_view FpsTextWidget = "FpsText";
+	static const std::string_view ToggleTextKey = "demo_text";
+	static const std::string_view ApplyTextKey = "apply_text";
+	static const std::string_view FpsTextKey = "fps_text";
+	static const std::string_view FpsFmtKey = "fps_fmt";
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -25,101 +26,58 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
+		entt::entity treeEntity;
+		SColor4F tint = SConst::White4F;
+		SColor4F targetTint = SConst::White4F;
+		float lerp = 1.0f;
+		bool bUseGreen = true;
+
+		static auto startSpriteAnim = [&]()
+		{
+			targetTint = bUseGreen ? SColor4F{ 0.0f, 0.6f, 0.0f, 1.0f } : SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+			bUseGreen = !bUseGreen;
+			lerp = 0.0f;
+		};
+
 		struct GuiListener
 		{
 			GuiListener()
 			{
-				toggleTextId = MakeWidgetId(toggleTextWidget);
-				toggleButtonId = MakeWidgetId(toggleButtonWidget);
-				applyButtonId = MakeWidgetId(applyButtonWidget);
-				applyTextId = MakeWidgetId(applyTextWidget);
-				fpsTextId = MakeWidgetId(fpsTextWidget);
+				toggleButtonId = ResourceID<SWidgetID>(SConst::ToggleButtonWidget);
+				applyButtonId = ResourceID<SWidgetID>(SConst::ApplyButtonWidget);
+				fpsTextId = ResourceID<SWidgetID>(SConst::FpsTextWidget);
 			}
+			//
 			void onMouseButtonEvent(const SMouseButtonEvent& event)
 			{
 				if (!registry || !locale) return;
 
-				if (event.btn == SMouseBtn::Left)
+				if (event.btn == SMouseBtn::Left && event.btnState == SKeyState::Up)
 				{
-					auto widgetView = registry->view<SWidgetComponent>();
-					auto& widget = widgetView.get<SWidgetComponent>(event.entity);
-
-					if (widget.id == toggleButtonId || widget.id == applyButtonId)
+					auto buttonsView = registry->view<SWidgetComponent, SButtonComponent>();
+					auto& button = buttonsView.get<SWidgetComponent>(event.entity);
+					if (button.bPressed)
 					{
-						// update button uv
-						auto uvView = registry->view<SSpriteUVComponent>();
-						auto& uv = uvView.get<SSpriteUVComponent>(event.entity);
-						(event.btnState == SKeyState::Up) ? uv.SetTopHalfUV() : uv.SetBottomHalfUV();
-
-						if (event.btnState == SKeyState::Up && widget.bPressed)
+						// toggle sprite tint
+						if (button.id == toggleButtonId)
 						{
-							// toggle sprite tint
-							if (widget.id == toggleButtonId)
-							{
-								targetTint = bUseGreen ? SColor4F{ 0.0f, 0.6f, 0.0f, 1.0f } : SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
-								bUseGreen = !bUseGreen;
-								lerp = 0.0f;
-							}
-							// toggle localization
-							else if (widget.id == applyButtonId)
-							{
-								locale->SetCulture((locale->GetCulture() == "en") ? "ru" : "en");
-							}
+							startSpriteAnim();
+						}
+						// toggle localization
+						else if (button.id == applyButtonId)
+						{
+							locale->SetCulture((locale->GetCulture() == "en") ? "ru" : "en");
 						}
 					}
-					else if (widget.id == toggleTextId || widget.id == applyTextId)
-					{
-						// update button text
-						auto spriteView = registry->view<SSpriteComponent>();
-						auto& sprite = spriteView.get<SSpriteComponent>(event.entity);
-						sprite.position.y = (event.btnState == SKeyState::Up) ? 500.0f : 501.0f;
-					}
 				}
-			}
-			//
-			void onMouseLeaveEvent(const SMouseLeaveEvent& event)
-			{
-				if (!registry) return;
-
-				auto widgetView = registry->view<SWidgetComponent>();
-				auto& widget = widgetView.get<SWidgetComponent>(event.entity);
-
-				if (widget.id == toggleButtonId || widget.id == applyButtonId)
-				{
-					// update button uv
-					auto uvView = registry->view<SSpriteUVComponent>();
-					auto& uv = uvView.get<SSpriteUVComponent>(event.entity);
-					uv.SetTopHalfUV();
-				}
-				else if (widget.id == toggleTextId || widget.id == applyTextId)
-				{
-					// update button text
-					auto spriteView = registry->view<SSpriteComponent>();
-					auto& text = spriteView.get<SSpriteComponent>(event.entity);
-					text.position.y = 500.0f;
-				}
-			}
-			//
-			SWidgetID MakeWidgetId(const std::string_view& name)
-			{
-				return hasher(name.data());
 			}
 			//
 			entt::registry* registry{};
 			ILocalization* locale{};
 			SWidgetID toggleButtonId;
-			SWidgetID toggleTextId;
 			SWidgetID applyButtonId;
-			SWidgetID applyTextId;
 			SWidgetID fpsTextId;
-			std::hash<std::string> hasher;
-			SColor4F tint = SConst::OneSColor4F;
-			SColor4F targetTint = SConst::OneSColor4F;
-			float lerp = 1.0f;
-			bool bUseGreen = true;
 		};
-
-		entt::entity treeEntity;
 		GuiListener listener;
 
 		auto onKeys = [&](std::int32_t key, SKeyState keyState, SAppContext context)->void
@@ -142,7 +100,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// setup widgets
 			auto& registry = context.world->GetEntities();
 			context.gui->onMouseEvent.sink<SMouseButtonEvent>().connect<&GuiListener::onMouseButtonEvent>(listener);
-			context.gui->onMouseEvent.sink<SMouseLeaveEvent>().connect<&GuiListener::onMouseLeaveEvent>(listener);
 			listener.registry = &registry;
 			listener.locale = context.text;
 
@@ -159,56 +116,47 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// tree entity
 			treeEntity = context.gui->MakeTexturedSprite(registry, treeTex,
-				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
-				SConst::OneSColor4F
+				SVector3{ 700.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
+				SConst::White4F
 			);
 
 			// toggle button
-			auto toggleText = context.text->MakeId(toggleTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId,
-				listener.toggleButtonId, listener.toggleTextId,
-				SVector3{ 300.0f, 500.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::OneSColor4F
+			auto toggleText = ResourceID<STextID>(SConst::ToggleTextKey);
+			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId, listener.toggleButtonId,
+				SVector3{ 700.0f, 500.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// apply button
-			auto applyText = context.text->MakeId(applyTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId,
-				listener.applyButtonId, listener.applyTextId,
-				SVector3{ 700.0f, 500.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::OneSColor4F
+			auto applyText = ResourceID<STextID>(SConst::ApplyTextKey);
+			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId, listener.applyButtonId,
+				SVector3{ 300.0f, 500.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// fps text
-			auto fpsText = context.text->MakeId(fpsTextKey);
-			context.gui->MakeText(registry,
-				listener.fpsTextId, fpsText, fontId,
-				SVector3{ 700.0f, 300.0f, 0.0f },
-				SSize2F{ 256.0f, 64.0f },
-				SConst::OneSColor4F
+			auto fpsText = ResourceID<STextID>(SConst::FpsTextKey);
+			context.gui->MakeText(registry, listener.fpsTextId, fpsText, fontId,
+				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 		};
 
 		auto onUpdateHandler = [&](float deltaSeconds, SAppContext context)->void
 		{
-			auto [fmt, bFmtFound] = context.text->Get(fpsFmtKey);
+			auto [fmt, bFmtFound] = context.text->Get(SConst::FpsFmtKey);
 			if (bFmtFound)
 			{
 				std::wstring locFmt = Localize(fmt.c_str(), context.fps);
-				context.text->Set(fpsTextKey, locFmt);
+				context.text->Set(SConst::FpsTextKey, locFmt);
 			}
 
-			if (listener.lerp < 1.0f)
+			if (lerp < 1.0f)
 			{
 				auto& registry = context.world->GetEntities();
 				auto spriteView = registry.view<SColoredComponent>();
 				auto& sprite = spriteView.get<SColoredComponent>(treeEntity);
 
-				listener.tint = SMath::LerpColor4(listener.tint, listener.targetTint, listener.lerp);
-				listener.lerp += deltaSeconds / 3.0f;
-				sprite.SetColors(listener.tint);
+				tint = SMath::LerpColor4(tint, targetTint, lerp);
+				lerp += deltaSeconds / 4.0f;
+				sprite.SetColors(tint);
 			}
 		};
 

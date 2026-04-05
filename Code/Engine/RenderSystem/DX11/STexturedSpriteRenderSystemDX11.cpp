@@ -84,7 +84,7 @@ void STexturedSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderDa
 	// create instance buffer
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.ByteWidth = sizeof(DX11TEXTUREDSPRITEINSTANCE) * MaxInstancedSpritesCount;
+	bufferDesc.ByteWidth = sizeof(DX11TEXTUREDSPRITEINSTANCE) * SConst::MaxInstancedSpritesCount;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, NULL, instanceBuffer.GetAddressOf())))
@@ -123,7 +123,7 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
 	// prepare cached state
-	if (batchData.capacity() < MaxInstancedSpritesCount) batchData.reserve(MaxInstancedSpritesCount);
+	if (batchData.capacity() < SConst::MaxInstancedSpritesCount) batchData.reserve(SConst::MaxInstancedSpritesCount);
 	cachedTexView = nullptr;
 	numSprites = 0;
 	batchesRendered = 0;
@@ -145,12 +145,12 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		if (!spriteComponent.bVisible) return;
 		if (!cachedTexView)
 		{
-			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.texId);
-			cachedTexId = texturedComponent.texId;
+			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.id);
+			cachedTexId = texturedComponent.id;
 			cachedTexView = view;
 		}
 
-		if (cachedTexId != texturedComponent.texId)
+		if (cachedTexId != texturedComponent.id)
 		{
 			if (!batchData.empty())
 			{
@@ -158,8 +158,8 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 				RenderBatch();
 			}
 
-			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.texId);
-			cachedTexId = texturedComponent.texId;
+			auto [view, texSize] = renderSystemDX11.FindTexture(texturedComponent.id);
+			cachedTexId = texturedComponent.id;
 			cachedTexView = view;
 		}
 
@@ -169,10 +169,10 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		instance.rotation = spriteComponent.rotation;
 		instance.scale = SConvert::ToVector2(spriteComponent.size);
 		memcpy(instance.colors, coloredComponent.colors, sizeof(SColor4F) * 4);
-		memcpy(instance.uvs, uvComponent.uvs, sizeof(SVector2) * 4);
+		memcpy(instance.uvs, uvComponent.uvs.uvs, sizeof(SVector2) * 4);
 		batchData.push_back(instance);
 
-		if (batchData.size() == MaxInstancedSpritesCount)
+		if (batchData.size() == SConst::MaxInstancedSpritesCount)
 		{
 			// render if max number reached
 			RenderBatch();

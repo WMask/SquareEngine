@@ -90,12 +90,11 @@ public:
 		std::int32_t frameOffset, std::int32_t framesCount,
 		std::int32_t framesPerSecond, SSize2 frameSize, float startTime) = 0;
 	//
-	virtual entt::entity MakeText(entt::registry& registry,
-		SWidgetID widgetId, STextID text, SFontID font,
-		const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
+	virtual entt::entity MakeText(entt::registry& registry, SWidgetID widgetId, STextID text, SFontID font,
+		const SVector3& pos, const SSize2F& size, SColor4F color, STextAlign align = STextAlign::Middle) = 0;
 	//
 	virtual std::pair<entt::entity, entt::entity> MakeButtonWithText(entt::registry& registry,
-		STexID texture, STextID text, SFontID font, SWidgetID btnWidget, SWidgetID textWidget,
+		STexID texture, STextID text, SFontID font, SWidgetID btnWidget,
 		const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
 
 };

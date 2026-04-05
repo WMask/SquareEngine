@@ -7,12 +7,14 @@
 #include "RenderSystem/SRenderSystemInterface.h"
 #include "RenderSystem/Windows/SDXShaderManager.h"
 #include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/DX11/SMeshManagerDX11.h"
 #include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STextRenderSystemDX11.h"
+#include "RenderSystem/DX11/SMeshRenderSystemDX11.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_4.h>
@@ -34,14 +36,20 @@ public:
 	SRenderSystemDX11();
 	//
 	const SShaderDataDX11* FindShader(const std::string& name) const;
-
+	//
 	std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const;
+	//
+	ID3D11ShaderResourceView* GetCubemap() const { return textureManager.GetCubemap(); }
+	//
+	bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const;
 	//
 	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
 	//
 	ID3D11DeviceContext* GetD3D11DeviceContext() const noexcept { return deviceContext.Get(); }
 	//
 	ID3D11Device* GetD3D11Device() const noexcept { return d3dDevice.Get(); }
+	//
+	STextureManagerDX11& GetTextureManager() { return textureManager; }
 	//
 	IWorld* GetWorld() const noexcept { return world; }
 	//
@@ -54,7 +62,17 @@ public:// IRenderSystem interface implementation
 	//
 	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
 	//
-	virtual void PreLoadTextures(const SPathList& paths, OnPreLoadTexturesDelegate delegate) override;
+	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
+	//
+	virtual void SetCubemap(const std::filesystem::path& path, float amount) override;
+	//
+	virtual void SetCubemapAmount(float amount) override;
+	//
+	virtual void RemoveCubemap() override;
+	//
+	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
+	//
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) override;
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
@@ -62,7 +80,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void SetMode(SAppMode mode) override;
 	//
-	virtual void UpdateCamera(SVector3 newPos, SVector3 newTarget) override;
+	virtual void UpdateCamera(const SCamera& camera) override;
 	//
 	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
 	//
@@ -101,6 +119,8 @@ protected:
 	void OnWorldScaleChanged(SVector2 worldScale);
 	//
 	void OnCameraViewChanged(const SCamera& camera);
+	//
+	void OnLightsChanged(const IWorld& world);
 
 
 protected:
@@ -111,11 +131,15 @@ protected:
 	//
 	SFrameAnimSpriteRenderSystemDX11 frameAnimSpriteRender;
 	//
-	STextRenderSystemDX11 textRenderSystem;
+	STextRenderSystemDX11 textRender;
+	//
+	SMeshRenderSystemDX11 meshRender;
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
 	STextureManagerDX11 textureManager;
+	//
+	SMeshManagerDX11 meshManager;
 	//
 	SDXShaderManager shaderManager;
 	//
@@ -144,6 +168,8 @@ protected:
 	//
 	std::uint32_t drawCalls = 0;
 	//
+	float envCubemapAmount = 0.0f;
+	//
 	IWorld* world{};
 
 
@@ -153,9 +179,15 @@ protected:
 	//
 	SSize2 cachedRenderSystemSize{};
 	//
-	SVector3 cachedCameraPos{};
+	SVector2 cachedWorld2dScale{};
 	//
-	SVector3 cachedCameraTarget{};
+	SVector3 cachedCameraPos2d{};
+	//
+	SVector3 cachedCameraTarget2d{};
+	//
+	SVector3 cachedCameraPos3d{};
+	//
+	SVector3 cachedCameraTarget3d{};
 	//
 	std::uint32_t cachedMaxRefreshRate = 0;
 	//

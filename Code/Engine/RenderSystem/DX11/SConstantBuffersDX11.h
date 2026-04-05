@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "Core/SMathTypes.h"
+#include "Core/STypes.h"
+#include "World/SCamera.h"
 
 #include <d3d11.h>
 #include <wrl.h>
@@ -32,31 +33,36 @@ public:
 	~SConstantBuffersDX11();
 	//
 	void Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
-		SVector3 cameraPos, SVector3 cameraTarget, std::uint32_t width, std::uint32_t height);
+		const SCamera& camera, std::uint32_t width, std::uint32_t height);
+	//
+	void ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+		SVector2 worldScale, std::uint32_t width, std::uint32_t height);
+	//
+	void ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+		std::uint32_t width, std::uint32_t height);
+	//
+	void UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+		const std::optional<SColor3>& globalTint, float envCubemapAmount);
 	//
 	void Shutdown();
 
 
 public:
 	//
+	ComPtr<ID3D11ShaderResourceView> defaultTextureView;
+	//
+	ComPtr<ID3D11Texture2D> defaultTexture;
+	//
 	ComPtr<ID3D11Buffer> spriteVertexBuffer;
 	//
 	ComPtr<ID3D11Buffer> spriteIndexBuffer;
 	//
-	ComPtr<ID3D11Buffer> projMatrixBuffer;
-	//
-	ComPtr<ID3D11Buffer> transMatrixBuffer;
-	//
-	ComPtr<ID3D11Buffer> viewMatrixBuffer;
-	//
-	ComPtr<ID3D11Buffer> colorsBuffer;
-	//
-	ComPtr<ID3D11Buffer> customUvBuffer;
-	//
-	ComPtr<ID3D11Buffer> frameAnimBuffer;
+	ComPtr<ID3D11Buffer> wvpMatrixBuffer;
 	//
 	ComPtr<ID3D11Buffer> settingsBuffer;
 	//
-	ComPtr<ID3D11Buffer> flagsBuffer;
+	ComPtr<ID3D11Buffer> lightsBuffer;
+	//
+	ComPtr<ID3D11Buffer> meshBuffer;
 
 };

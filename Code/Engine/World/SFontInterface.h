@@ -20,6 +20,7 @@ struct SGlyph
 	SSize2F size;
 };
 
+/** Id in font manager */
 using SFontID = std::uint32_t;
 
 /***************************************************************************
@@ -41,5 +42,7 @@ public:
 	* outGlyphs or outTextSize can be nullptr when not required.
 	*/
 	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const = 0;
+	//
+	virtual class ILocalization* GetLocale() const = 0;
 
 };

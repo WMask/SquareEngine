@@ -77,6 +77,8 @@ public:
 	virtual std::pair<SGlyph, bool> FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const override;
 	// outTextSize - full string size in pixels
 	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const override;
+	//
+	virtual class ILocalization* GetLocale() const override { return context ? context->text : nullptr; }
 
 
 protected:

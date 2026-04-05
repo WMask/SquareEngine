@@ -9,6 +9,8 @@
 #include <string>
 #include <optional>
 #include <algorithm>
+#include <functional>
+#include <filesystem>
 #include <vector>
 
 
@@ -76,6 +78,69 @@ constexpr bool InRange(T value, T minValue, T maxValue)
 
 
 /***************************************************************************
+* Mesh
+*/
+
+/** Static mesh vertex */
+struct SVertex
+{
+	SVector3 pos;
+	SVector3 norm;
+	SVector3 tangent;
+	SVector2 uv;
+};
+
+/** Mesh material */
+struct SMaterial
+{
+	std::filesystem::path baseTexture;
+	// tangent space
+	std::filesystem::path normTexture;
+	// r - AO, g - roughness, b - metallic
+	std::filesystem::path ormTexture;
+	// 
+	std::uint16_t firstIndex;
+	//
+	std::uint16_t numVertices;
+	//
+	std::uint16_t numIndices;
+};
+
+/** Id in mesh manager */
+using SMeshID = std::uint32_t;
+using TMeshIdGenerator = std::function<SMeshID(const std::string&)>;
+
+/** Static mesh */
+struct SMesh
+{
+	// generated from mesh name
+	SMeshID id{};
+	//
+	std::string name;
+	//
+	std::vector<SMaterial> materials;
+	//
+	std::vector<SVertex> vertices;
+	//
+	std::vector<std::uint16_t> indices;
+};
+
+/** Meshes group id in mesh manager */
+using SGroupID = std::uint32_t;
+
+/** Mesh instance */
+struct SMeshInstance
+{
+	// mesh id in mesh manager
+	SMeshID id;
+	//
+	SGroupID group;
+	//
+	STransform transform;
+};
+
+
+/***************************************************************************
 * Color
 */
 
@@ -110,9 +175,9 @@ struct SColor4F : public SColor3F
 
 namespace SConst
 {
-	static const SColor3 OneSColor3 = SColor3{ 255, 255, 255 };
-	static const SColor3F OneSColor3F = SColor3F{ 1.0f, 1.0f, 1.0f };
-	static const SColor4F OneSColor4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+	static const SColor3 White3 = SColor3{ 255, 255, 255 };
+	static const SColor3F White3F = SColor3F{ 1.0f, 1.0f, 1.0f };
+	static const SColor4F White4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
 }
 
 namespace SConvert
@@ -124,6 +189,15 @@ namespace SConvert
 			static_cast<float>(color.g) / 255.0f,
 			static_cast<float>(color.b) / 255.0f,
 			1.0f
+		};
+	}
+
+	inline SVector3 ToVector3(const SColor3F& color)
+	{
+		return SVector3 {
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f
 		};
 	}
 
@@ -152,6 +226,15 @@ namespace SConvert
 	inline DirectX::XMVECTOR ToXVector4(const SColor4F& c)
 	{
 		return DirectX::XMVectorSet(c.r, c.g, c.b, c.a);
+	}
+
+	inline SColor3F ToColor3(const SColor3& c)
+	{
+		return SColor3F {
+			static_cast<float>(c.r) / 255.0f,
+			static_cast<float>(c.g) / 255.0f,
+			static_cast<float>(c.b) / 255.0f
+		};
 	}
 
 	inline SColor3F ToColor3(DirectX::XMVECTOR v)

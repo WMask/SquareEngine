@@ -4,20 +4,31 @@
 
 #pragma once
 
-#include "Core/SMathTypes.h"
+#include "Core/STypes.h"
 
 #include <cstdint>
 #include <filesystem>
 #include <functional>
 
 
-/** Max sprites count in one batch */
-static const std::uint32_t MaxInstancedSpritesCount = 512u;
+namespace SConst
+{
+	/** Max sprites count in one batch */
+	static const std::uint32_t MaxInstancedSpritesCount = 512u;
+	/** Max meshes count in one batch */
+	static const std::uint32_t MaxInstancedMeshesCount = 512u;
+	/** Max lights count */
+	static const std::uint32_t MaxLightsCount = 64u;
+}
 
 /** Id in texture manager */
 using STexID = std::uint32_t;
-using TTexIDList = std::unordered_map<std::filesystem::path, STexID>;
-using OnPreLoadTexturesDelegate = std::function<void(TTexIDList&)>;
+/** Textures delegate */
+using OnTexturesLoadedDelegate = std::function<void(std::vector<std::filesystem::path>&)>;
+/** Mesh instances delegate */
+using OnMeshInstancesLoadedDelegate = std::function<void(std::filesystem::path, const std::vector<SMeshInstance>&)>;
+/** Meshes delegate */
+using OnMeshesLoadedDelegate = std::function<void(std::filesystem::path)>;
 
 /** Render system stats */
 struct SRSStats
@@ -37,6 +48,38 @@ struct SSingleMatrixBuffer
 struct SSettingsBuffer
 {
 	SVector4 worldTint;
+	//
+	SVector4 cameraPos;
+	//
+	SVector4 viewDir;
+	//
+	float envCubemapAmount;
+	//
+	std::uint32_t bHasEnvCubemap;
+	//
+	float padding[2];
+};
+
+/** Lights settings */
+struct SLightsBuffer
+{
+	// w - light type: <0.5 - directional, >0.5 - point
+	SVector4 lightVec[SConst::MaxLightsCount];
+	// w - distance if point light type
+	SVector4 lightColor[SConst::MaxLightsCount];
+	//
+	std::uint32_t numLights{};
+	//
+	float padding[3];
+};
+
+/** Material flags */
+struct SMaterialBuffer
+{
+	std::int32_t bHasBaseTexture;
+	std::int32_t bHasNormTexture;
+	std::int32_t bHasORMTexture;
+	float        subSurfaceAmount; // is two-sided
 };
 
 /** Sprite flags */
@@ -47,3 +90,10 @@ struct SSpriteFlagsBuffer
 	std::int32_t bHasCustomUV;
 	std::int32_t bHasTexture;
 };
+
+/** Align buffer size */
+template<typename T>
+constexpr std::uint32_t Align16()
+{
+	return (sizeof(T) + 15) & ~15;
+}

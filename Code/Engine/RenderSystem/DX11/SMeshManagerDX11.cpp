@@ -210,12 +210,12 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
             if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
             auto [normView, normSize] = renderSystem->FindTexture(ResourceID<STexID>(material.normTexture.string()));
             if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
-            auto [pbrView, pbrSize] = renderSystem->FindTexture(ResourceID<STexID>(material.pbrTexture.string()));
-            if (!pbrView && !material.pbrTexture.empty()) paths.push_back(material.pbrTexture);
+            auto [ormView, ormSize] = renderSystem->FindTexture(ResourceID<STexID>(material.ormTexture.string()));
+            if (!ormView && !material.ormTexture.empty()) paths.push_back(material.ormTexture);
 
             if (!paths.empty())
             {
-                auto onLoaded = [](std::vector<std::filesystem::path>& textures)
+                static auto onLoaded = [](std::vector<std::filesystem::path>& textures)
                 {
                     for (auto& texture : textures)
                     {

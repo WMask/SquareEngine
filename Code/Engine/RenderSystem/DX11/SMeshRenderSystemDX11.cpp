@@ -135,7 +135,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 			cachedMeshId = meshComponent.id;
 		}
 
-		if (meshComponent.bVisible) cachedMeshFlags = meshComponent.flags;
+		if (meshComponent.bVisible) cachedMaterialFlags = meshComponent.flags;
 
 		if (cachedMeshId != meshComponent.id)
 		{
@@ -225,10 +225,11 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 	std::uint32_t vertexOffset = 0;
 	for (auto& material : cachedMaterials)
 	{
+		// set textures
 		std::vector<ID3D11ShaderResourceView*> textures;
 		auto baseTexId = ResourceID<STexID>(material.baseTexture.string());
 		auto normTexId = ResourceID<STexID>(material.normTexture.string());
-		auto pbrTexId = ResourceID<STexID>(material.pbrTexture.string());
+		auto ormTexId = ResourceID<STexID>(material.ormTexture.string());
 
 		auto [baseView, size1] = renderSystemDX11.FindTexture(baseTexId);
 		if (baseView) textures.push_back(baseView);
@@ -237,19 +238,22 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 		auto [normView, size2] = renderSystemDX11.FindTexture(normTexId);
 		if (normView) textures.push_back(normView);
 
-		auto [pbrView, size3] = renderSystemDX11.FindTexture(pbrTexId);
-		if (pbrView) textures.push_back(pbrView);
+		auto [ormView, size3] = renderSystemDX11.FindTexture(ormTexId);
+		if (ormView) textures.push_back(ormView);
 
 		d3dDeviceContext->PSSetShaderResources(0, textures.size(), textures.data());
 
-		// setup mesh flags
-		SMeshFlagsBuffer meshFlags {
-			(cachedMeshFlags.bHasBaseTexture && baseView) ? 1 : 0,
-			(cachedMeshFlags.bHasNormTexture && normView) ? 1 : 0,
-			(cachedMeshFlags.bHasPbrTexture && pbrView) ? 1 : 0,
-			cachedMeshFlags.subSurfaceAmount
+		auto cubeView = renderSystemDX11.GetCubemap();
+		if (cubeView) d3dDeviceContext->PSSetShaderResources(3, 1, &cubeView);
+
+		// setup material flags
+		SMaterialBuffer matFlags {
+			(cachedMaterialFlags.bHasBaseTexture && baseView) ? 1 : 0,
+			(cachedMaterialFlags.bHasNormTexture && normView) ? 1 : 0,
+			(cachedMaterialFlags.bHasORMTexture && ormView) ? 1 : 0,
+			cachedMaterialFlags.subSurfaceAmount
 		};
-		d3dDeviceContext->UpdateSubresource(renderSystemDX11.GetConstantBuffers().meshBuffer.Get(), 0, NULL, &meshFlags, 0, 0);
+		d3dDeviceContext->UpdateSubresource(renderSystemDX11.GetConstantBuffers().meshBuffer.Get(), 0, NULL, &matFlags, 0, 0);
 
 		// render meshes
 		d3dDeviceContext->DrawIndexedInstanced(material.numIndices, numInstances, indexOffset, vertexOffset, 0);

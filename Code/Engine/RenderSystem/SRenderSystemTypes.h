@@ -48,6 +48,16 @@ struct SSingleMatrixBuffer
 struct SSettingsBuffer
 {
 	SVector4 worldTint;
+	//
+	SVector4 cameraPos;
+	//
+	SVector4 viewDir;
+	//
+	float envCubemapAmount;
+	//
+	std::uint32_t bHasEnvCubemap;
+	//
+	float padding[2];
 };
 
 /** Lights settings */
@@ -63,12 +73,12 @@ struct SLightsBuffer
 	float padding[3];
 };
 
-/** Mesh flags */
-struct SMeshFlagsBuffer
+/** Material flags */
+struct SMaterialBuffer
 {
 	std::int32_t bHasBaseTexture;
 	std::int32_t bHasNormTexture;
-	std::int32_t bHasPbrTexture;
+	std::int32_t bHasORMTexture;
 	float        subSurfaceAmount; // is two-sided
 };
 

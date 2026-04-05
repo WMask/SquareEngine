@@ -38,6 +38,15 @@ public:
 	* Load textures and call delegate */
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
 	/**
+	* Load cubemap from dds file */
+	virtual void SetCubemap(const std::filesystem::path& path, float amount = 0.0f) = 0;
+	/**
+	* Cubemap amount as global ambient (0 - 1) */
+	virtual void SetCubemapAmount(float amount) = 0;
+	/**
+	* Remove cubemap */
+	virtual void RemoveCubemap() = 0;
+	/**
 	* Load mesh scene instances and call delegate.
 	* Loads meshes with material textures if instance's mesh not loaded yet.
 	*/

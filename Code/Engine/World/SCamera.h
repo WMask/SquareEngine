@@ -91,6 +91,12 @@ public:
 		return (space == SCameraSpace::Camera2D) ? target2d : target3d;
 	}
 	/**
+	* Get view diraction */
+	inline SVector3 GetViewDir() const noexcept
+	{
+		return SMath::Normalize(target3d - position3d);
+	}
+	/**
 	* Get FOV in degrees */
 	inline float GetFOV() const noexcept
 	{

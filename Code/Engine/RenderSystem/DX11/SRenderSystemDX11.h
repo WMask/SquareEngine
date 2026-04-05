@@ -36,9 +36,11 @@ public:
 	SRenderSystemDX11();
 	//
 	const SShaderDataDX11* FindShader(const std::string& name) const;
-
+	//
 	std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const;
-
+	//
+	ID3D11ShaderResourceView* GetCubemap() const { return textureManager.GetCubemap(); }
+	//
 	bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const;
 	//
 	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
@@ -61,6 +63,12 @@ public:// IRenderSystem interface implementation
 	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
 	//
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
+	//
+	virtual void SetCubemap(const std::filesystem::path& path, float amount) override;
+	//
+	virtual void SetCubemapAmount(float amount) override;
+	//
+	virtual void RemoveCubemap() override;
 	//
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
@@ -159,6 +167,8 @@ protected:
 	std::unordered_map<std::string, SShaderDataDX11> shaders;
 	//
 	std::uint32_t drawCalls = 0;
+	//
+	float envCubemapAmount = 0.0f;
 	//
 	IWorld* world{};
 

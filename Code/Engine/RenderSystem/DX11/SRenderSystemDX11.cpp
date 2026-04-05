@@ -408,6 +408,22 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 	textureManager.PreloadTextures(paths, delegate);
 }
 
+void SRenderSystemDX11::SetCubemap(const std::filesystem::path& path, float amount)
+{
+	textureManager.SetCubemap(path, d3dDevice.Get());
+	envCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
+}
+
+void SRenderSystemDX11::SetCubemapAmount(float amount)
+{
+	envCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
+}
+
+void SRenderSystemDX11::RemoveCubemap()
+{
+	textureManager.RemoveCubemap();
+}
+
 void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
 	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
@@ -477,6 +493,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	// render 3d frame
 	constantBuffers.ApplyTransform3D(deviceContext.Get(), world->GetCamera(),
 		cachedRenderSystemSize.width, cachedRenderSystemSize.height);
+	constantBuffers.UpdateSettingsBuffer(deviceContext.Get(), world->GetCamera(), world->GetGlobalTint(),
+		textureManager.GetCubemap() ? envCubemapAmount : -1.0f);
 
 	meshRender.Render(context.deltaSeconds);
 
@@ -523,11 +541,10 @@ void SRenderSystemDX11::Subscribe(const SAppContext& inContext)
 
 void SRenderSystemDX11::OnGlobalTintChanged(SColor3 globalTint)
 {
-	if (deviceContext && constantBuffers.settingsBuffer)
+	if (deviceContext && world)
 	{
-		SSettingsBuffer settings{};
-		settings.worldTint = SConvert::ToVector4(globalTint);
-		deviceContext->UpdateSubresource(constantBuffers.settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
+		constantBuffers.UpdateSettingsBuffer(deviceContext.Get(), world->GetCamera(), world->GetGlobalTint(),
+			textureManager.GetCubemap() ? envCubemapAmount : -1.0f);
 	}
 }
 

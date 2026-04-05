@@ -9,15 +9,22 @@
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
+#define USE_DIRECTX_TK 1
+#if USE_DIRECTX_TK
+// Install directxtk_desktop_win10 by Nuget package manager
+# include <DDSTextureLoader.h>
+# pragma comment(lib, "DirectXTK.lib")
+#endif
+
 #include <vector>
 #include <cmath>
+
 
 namespace SConst
 {
     static const std::uint32_t MaxTextures = 64u;
     static const std::uint32_t MaxTexturesPerFrame = 8u;
 }
-
 
 STextureManagerDX11::~STextureManagerDX11()
 {
@@ -36,6 +43,7 @@ void STextureManagerDX11::Shutdown()
     ClearCache(nullptr);
     loadedTextures.reset();
     threadPool = nullptr;
+    RemoveCubemap();
 }
 
 bool STextureManagerDX11::FindTexture(STexID id, ID3D11Texture2D** outTexture,
@@ -52,6 +60,23 @@ bool STextureManagerDX11::FindTexture(STexID id, ID3D11Texture2D** outTexture,
     }
 
     return false;
+}
+
+bool STextureManagerDX11::SetCubemap(const std::filesystem::path& path, ID3D11Device* d3dDevice)
+{
+#if USE_DIRECTX_TK
+    if (FAILED(DirectX::CreateDDSTextureFromFile(d3dDevice, path.c_str(), cubemap.GetAddressOf(), cubemapView.GetAddressOf())))
+    {
+        throw std::exception("STextureManagerDX11::SetCubemap(): cannot load cubemap texture");
+    }
+#endif
+    return cubemapView;
+}
+
+void STextureManagerDX11::RemoveCubemap()
+{
+    if (cubemapView) cubemapView.Reset();
+    if (cubemap) cubemap.Reset();
 }
 
 void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
@@ -74,7 +99,7 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 
                 texturesCache.emplace(data.id, std::move(texture));
 
-                DebugMsg("[%s] STextureManagerDX11::Update(): texture id=%d created and added to cache\n",
+                DebugMsg("[%s] STextureManagerDX11::Update(): texture id=%u created and added to cache\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), data.id);
 
                 if (!preLoadDelegatesCache.empty())
@@ -95,8 +120,7 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
 STexID STextureManagerDX11::LoadTexture(const std::filesystem::path& path)
 {
     STexID id = ResourceID<STexID>(path.string());
-
-    DebugMsg("[%s] STextureManagerDX11::LoadTexture(): begin loading texture '%s', id=%d\n",
+    DebugMsg("[%s] STextureManagerDX11::LoadTexture(): begin loading '%s', id=%u\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
 
     auto LoadTextureTask = [this, path, id]()
@@ -111,7 +135,7 @@ STexID STextureManagerDX11::LoadTexture(const std::filesystem::path& path)
         }
         else
         {
-            DebugMsg("[%s] STextureManagerDX11::LoadTexture(): cannot load '%s', id=%d\n",
+            DebugMsg("[%s] STextureManagerDX11::LoadTexture(): cannot load '%s', id=%u\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
         }
     };
@@ -129,10 +153,14 @@ void STextureManagerDX11::PreloadTextures(const SPathList& paths, OnTexturesLoad
     {
         for (auto& entry : paths)
         {
+            STexID id = ResourceID<STexID>(entry.string());
+            DebugMsg("[%s] STextureManagerDX11::PreloadTextures(): begin loading '%s', id=%u\n",
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(), entry.string().c_str(), id);
+
             STextureData texture{};
             if (LoadTextureData(entry, &texture.data, &texture.texSize))
             {
-                texture.id = ResourceID<STexID>(entry.string());
+                texture.id = id;
 
                 // write in thread pool space
                 loadedTextures->push(texture);

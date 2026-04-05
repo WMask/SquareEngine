@@ -96,8 +96,8 @@ struct SMaterial
 	std::filesystem::path baseTexture;
 	// tangent space
 	std::filesystem::path normTexture;
-	// r - roughness, g - metallness, b - AO
-	std::filesystem::path pbrTexture;
+	// r - AO, g - roughness, b - metallic
+	std::filesystem::path ormTexture;
 	// 
 	std::uint16_t firstIndex;
 	//

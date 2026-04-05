@@ -63,7 +63,7 @@ protected:
 	//
 	std::vector<SMaterial> cachedMaterials;
 	//
-	SMeshFlagsBuffer cachedMeshFlags;
+	SMaterialBuffer cachedMaterialFlags;
 	//
 	ID3D11Buffer* cachedVB;
 	//

@@ -245,7 +245,7 @@ struct SStaticMeshComponent
 	//
 	SColor3 tint = SConst::White3;
 	//
-	SMeshFlagsBuffer flags{ 1, 1, 1, 0.0f };
+	SMaterialBuffer flags{ 1, 1, 1, 0.0f };
 };
 
 

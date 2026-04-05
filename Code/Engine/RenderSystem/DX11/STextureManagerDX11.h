@@ -39,8 +39,13 @@ public:
 	void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate);
 	//
 	bool FindTexture(STexID id, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView, SSize2* outTexSize = nullptr) const;
-	/**
-	* If world is not null - only unused textures removed. If null - all textures removed. */
+	//
+	bool SetCubemap(const std::filesystem::path& path, ID3D11Device* d3dDevice);
+	//
+	void RemoveCubemap();
+	//
+	inline ID3D11ShaderResourceView* GetCubemap() const { return cubemapView.Get(); }
+	//
 	void ClearCache(IWorld* world);
 	//
 	inline std::uint32_t GetNumTextures() const { return texturesCache.size(); }
@@ -86,6 +91,10 @@ protected:
 	std::shared_ptr<TCircularFIFOTextureQueue> loadedTextures;
 	//
 	TPreLoadDelegatesCache preLoadDelegatesCache;
+	//
+	ComPtr<ID3D11ShaderResourceView> cubemapView;
+	//
+	ComPtr<ID3D11Resource> cubemap;
 	//
 	IThreadPool* threadPool;
 

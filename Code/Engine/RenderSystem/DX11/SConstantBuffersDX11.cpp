@@ -46,9 +46,11 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create constant buffer");
 	}
 
-	SSettingsBuffer settingsData;
+	SSettingsBuffer settingsData{};
 	cbDesc.ByteWidth = Align16<SSettingsBuffer>();
 	settingsData.worldTint = SConvert::ToVector4(SConst::White3);
+	settingsData.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
+	settingsData.viewDir = SConvert::ToVector4(camera.GetViewDir());
 	subResData.pSysMem = &settingsData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, settingsBuffer.GetAddressOf())))
 	{
@@ -64,10 +66,10 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create constant buffer");
 	}
 
-	SMeshFlagsBuffer meshData{};
-	cbDesc.ByteWidth = Align16<SMeshFlagsBuffer>();
+	SMaterialBuffer materialData{};
+	cbDesc.ByteWidth = Align16<SMaterialBuffer>();
 	lightsData.numLights = 0u;
-	subResData.pSysMem = &meshData;
+	subResData.pSysMem = &materialData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, meshBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");
@@ -140,6 +142,35 @@ void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContex
 			camera.GetPosition(SCameraSpace::Camera3D), camera.GetTarget(SCameraSpace::Camera3D));
 		wvpData.mTrans = SMath::ScaleMatrix3(SConst::OneSVector3);
 		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
+	}
+}
+
+void SConstantBuffersDX11::UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceContext,
+	const SCamera& camera, const std::optional<SColor3>& globalTint, float envCubemapAmount)
+{
+	if (settingsBuffer)
+	{
+		SSettingsBuffer settings{};
+		settings.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
+		settings.viewDir = SConvert::ToVector4(camera.GetViewDir());
+
+		if (globalTint.has_value())
+			settings.worldTint = SConvert::ToVector4(globalTint.value());
+		else
+			settings.worldTint = SConst::OneSVector4;
+
+		if (envCubemapAmount >= 0.0f)
+		{
+			settings.bHasEnvCubemap = TRUE;
+			settings.envCubemapAmount = envCubemapAmount;
+		}
+		else
+		{
+			settings.bHasEnvCubemap = FALSE;
+			settings.envCubemapAmount = envCubemapAmount;
+		}
+
+		d3dDeviceContext->UpdateSubresource(settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
 	}
 }
 

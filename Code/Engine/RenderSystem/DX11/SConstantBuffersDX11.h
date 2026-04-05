@@ -35,9 +35,14 @@ public:
 	void Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
 		const SCamera& camera, std::uint32_t width, std::uint32_t height);
 	//
-	void ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera, SVector2 worldScale, std::uint32_t width, std::uint32_t height);
+	void ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+		SVector2 worldScale, std::uint32_t width, std::uint32_t height);
 	//
-	void ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera, std::uint32_t width, std::uint32_t height);
+	void ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+		std::uint32_t width, std::uint32_t height);
+	//
+	void UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+		const std::optional<SColor3>& globalTint, float envCubemapAmount);
 	//
 	void Shutdown();
 

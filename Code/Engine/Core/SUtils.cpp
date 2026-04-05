@@ -387,7 +387,7 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 			// add new material part to the mesh
 			const ufbx_material* material = node->mesh->materials[part.index];
-			std::string baseTexture, normTexture, pbrTexture;
+			std::string baseTexture, normTexture, ormTexture;
 			if (material->textures.count > 0)
 			{
 				baseTexture = material->pbr.base_color.texture ? material->pbr.base_color.texture->filename.data : "";
@@ -405,14 +405,14 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 				if (material->pbr.emission_color.texture)
 				{
 					// texture in emission, amount = 0
-					pbrTexture = material->pbr.emission_color.texture->filename.data;
-					std::replace(pbrTexture.begin(), pbrTexture.end(), '\\', '/');
+					ormTexture = material->pbr.emission_color.texture->filename.data;
+					std::replace(ormTexture.begin(), ormTexture.end(), '\\', '/');
 				}
 			}
 
 			mesh.indices.insert(mesh.indices.end(), tmpIndices.begin(), tmpIndices.end());
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), pbrTexture.c_str(),
+			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), ormTexture.c_str(),
 				static_cast<std::uint16_t>(indexOffset),
 				static_cast<std::uint16_t>(numVertices),
 				static_cast<std::uint16_t>(numIndices));

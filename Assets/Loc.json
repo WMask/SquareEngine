@@ -5,6 +5,7 @@
 		{ "key": "apply_text", "value": "APPLY" },
 		{ "key": "toggle_text", "value": "Toggle" },
 		{ "key": "normal_text", "value": "Normal" },
+		{ "key": "default_text", "value": "Default" },
 		{ "key": "pbr_text", "value": "PBR" },
 		{ "key": "fps_fmt", "value": "FPS: %d" },
 		{ "key": "fps_text", "value": "FPS: 0" },

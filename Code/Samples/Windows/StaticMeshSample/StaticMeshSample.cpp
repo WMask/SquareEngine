@@ -8,13 +8,14 @@
 #include "Application/SInputInterface.h"
 #include "World/SGuiInterface.h"
 
+
 namespace SConst
 {
 	static const std::string_view NormalMeshWidget = "NormalMeshWidget";
 	static const std::string_view PBRMeshWidget = "PBRMeshWidget";
 	static const std::string_view NormalsWidget = "NormalsWidget";
 	static const std::string_view ControlsTextKey = "controls_text";
-	static const std::string_view NormalTextKey = "normal_text";
+	static const std::string_view DefaultTextKey = "default_text";
 	static const std::string_view PBRTextKey = "pbr_text";
 	static const std::string_view ToggleTextKey = "toggle_text";
 	static const std::string_view FpsTextKey = "fps_text";
@@ -108,6 +109,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			// load resources
+			context.render->SetCubemap("../../Assets/EnvironmentCM.dds", 0.2f);
 			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex);
@@ -130,7 +132,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F, STextAlign::End
 			);
-			auto defaultText = ResourceID<STextID>(SConst::NormalTextKey);
+			auto defaultText = ResourceID<STextID>(SConst::DefaultTextKey);
 			context.gui->MakeButtonWithText(registry, buttonsTex, defaultText, fontId, listener.normalMeshButtonId,
 				SVector3{ 1720.0f, 150.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);

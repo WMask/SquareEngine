@@ -42,3 +42,6 @@ Build
 
 # debug information files
 *.dwo
+
+# files
+Code/Shaders/HLSL/PBRCommon.hlsli

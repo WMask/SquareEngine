@@ -11,7 +11,6 @@
 
 #define USE_DIRECTX_TK 1
 #if USE_DIRECTX_TK
-// Install directxtk_desktop_win10 by Nuget package manager
 # include <DDSTextureLoader.h>
 # pragma comment(lib, "DirectXTK.lib")
 #endif

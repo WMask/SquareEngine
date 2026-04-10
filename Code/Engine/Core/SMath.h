@@ -389,7 +389,7 @@ namespace SMath
 
 	inline SMatrix4 ProjectionMatrix(float fovDegrees, float aspectRatio, float nearPlane, float farPlane)
 	{
-		auto matrix = DirectX::XMMatrixPerspectiveFovLH(
+		auto matrix = DirectX::XMMatrixPerspectiveFovRH(
 			DirectX::XMConvertToRadians(fovDegrees),
 			aspectRatio, nearPlane, farPlane
 		);
@@ -398,7 +398,7 @@ namespace SMath
 
 	inline SMatrix4 LookAtMatrix(const SVector3& from, const SVector3& to, bool bFlipY = false)
 	{
-		auto matrix = DirectX::XMMatrixLookAtLH(
+		auto matrix = DirectX::XMMatrixLookAtRH(
 			DirectX::XMVectorSet(from.x, from.y, from.z, 0.0f),
 			DirectX::XMVectorSet(to.x, to.y, to.z, 0.0f),
 			DirectX::XMVectorSet(0.0f, bFlipY ? -1.0f : 1.0f, 0.0f, 0.0f));
@@ -408,6 +408,12 @@ namespace SMath
 	inline SMatrix4 TranslationMatrix(const SVector3& pos)
 	{
 		auto matrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		return SConvert::ToMatrix4(matrix);
+	}
+
+	inline SMatrix4 RotationMatrixY(float yRad)
+	{
+		auto matrix = DirectX::XMMatrixRotationY(yRad);
 		return SConvert::ToMatrix4(matrix);
 	}
 

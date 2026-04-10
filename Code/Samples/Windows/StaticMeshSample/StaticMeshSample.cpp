@@ -33,8 +33,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
 		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
-		float rotation = -1.5f;
-		float elevation = 250.0f;
+		float rotation = 0.5f;
+		float elevation = 10.0f;
 
 		struct GuiListener
 		{
@@ -109,7 +109,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			// load resources
-			context.render->SetCubemap("../../Assets/EnvironmentCM.dds", 0.2f);
+			context.render->LoadCubemap("../../Assets/EnvironmentDiffuse.dds", ECubemapType::Diffuse);
+			context.render->LoadCubemap("../../Assets/EnvironmentSpecular.dds", ECubemapType::Specular);
 			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex);
@@ -153,9 +154,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				if (!instances.empty())
 				{
 					auto& meshInstance = instances[0];
+					auto transform = meshInstance.transform;
 					pbrMeshEntity = registry.create();
 					registry.emplace<SStaticMeshComponent>(pbrMeshEntity, meshInstance.id);
-					registry.emplace<STransform3DComponent>(pbrMeshEntity, meshInstance.transform);
+					registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
 				}
 			});
 			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
@@ -175,7 +177,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			});
 
 			// add light
-			SVector3 lightDir = SMath::Normalize(SVector3{ 0.0f, -0.8f, 1.0f });
+			SVector3 lightDir = SMath::Normalize(SVector3{ 0.0f, -0.8f, 0.5f });
 			context.world->AddDirectionalLight("DirectionalLight", lightDir, SConst::White3);
 		};
 
@@ -194,11 +196,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				auto& keys = context.input->GetActiveInputDevice()->GetState().keys;
 				if (keys[SKeys::Up])
 				{
-					elevation += context.deltaSeconds * 300.0f;
+					elevation += context.deltaSeconds * 100.0f;
 				}
 				if (keys[SKeys::Down])
 				{
-					elevation -= context.deltaSeconds * 300.0f;
+					elevation -= context.deltaSeconds * 100.0f;
 				}
 				if (keys[SKeys::Left])
 				{
@@ -211,8 +213,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 				// set camera
 				context.world->GetCamera().Set(
-					SVector3{ 256.0f * cos(rotation), elevation, 256.0f * sin(rotation) },
-					SVector3{ 0.0f, 110.0f, 0.0f }, 60.0f
+					SVector3{ 70.0f * cos(rotation), elevation, 70.0f * sin(rotation) },
+					SVector3{ 0.0f, 0.0f, 0.0f }, 60.0f
 				);
 			}
 		};

@@ -14,7 +14,7 @@ class SFrameAnimSpriteRenderSystemDX11 : public STexturedSpriteRenderSystemDX11
 {
 public:
 	//
-	SFrameAnimSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem) : STexturedSpriteRenderSystemDX11(renderSystem) {}
+	SFrameAnimSpriteRenderSystemDX11(class IRenderSystemDX11& renderSystem) : STexturedSpriteRenderSystemDX11(renderSystem) {}
 	//
 	~SFrameAnimSpriteRenderSystemDX11() {}
 	//

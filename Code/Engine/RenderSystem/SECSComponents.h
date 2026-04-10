@@ -244,8 +244,8 @@ struct SStaticMeshComponent
 	bool bVisible = true;
 	//
 	SColor3 tint = SConst::White3;
-	//
-	SMaterialBuffer flags{ 1, 1, 1, 0.0f };
+	// set to 0 to disable texture
+	SMaterialBuffer flags{ 1, 1, 1, 1 };
 };
 
 

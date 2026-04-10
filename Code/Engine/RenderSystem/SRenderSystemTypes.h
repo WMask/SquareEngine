@@ -44,6 +44,25 @@ struct SSingleMatrixBuffer
 	SMatrix4 mat;
 };
 
+enum ECubemapType : int
+{
+	// diffuse ambient light (radiance)
+	Diffuse,
+	// specular reflection (irradiance)
+	Specular
+};
+
+namespace SConst
+{
+	static std::string_view GetNameByType(ECubemapType type)
+	{
+		static const std::string_view diffuseName = "Diffuse";
+		static const std::string_view specularName = "Specular";
+
+		return (type == ECubemapType::Diffuse) ? diffuseName : specularName;
+	}
+}
+
 /** Render settings */
 struct SSettingsBuffer
 {
@@ -53,11 +72,13 @@ struct SSettingsBuffer
 	//
 	SVector4 viewDir;
 	//
-	float envCubemapAmount;
+	std::uint32_t bHasDiffuseCubemap;
 	//
-	std::uint32_t bHasEnvCubemap;
+	std::uint32_t bHasSpecularCubemap;
 	//
-	float padding[2];
+	float diffuseAmount;
+	//
+	float specularAmount;
 };
 
 /** Lights settings */
@@ -78,8 +99,8 @@ struct SMaterialBuffer
 {
 	std::int32_t bHasBaseTexture;
 	std::int32_t bHasNormTexture;
-	std::int32_t bHasORMTexture;
-	float        subSurfaceAmount; // is two-sided
+	std::int32_t bHasRMATexture; // r - roughness, g - metallic, b - AO
+	std::int32_t bHasEmiTexture; // rgb - emissive
 };
 
 /** Sprite flags */

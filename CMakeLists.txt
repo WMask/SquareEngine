@@ -118,11 +118,6 @@ message("--\n-- Downloading DirectXTK mar2026 ...\n--")
 FetchContent_MakeAvailable(DirectXTK)
 FetchContent_GetProperties(DirectXTK)
 
-file(READ ${DirectXTK_SOURCE_DIR}/Src/Shaders/PBRCommon.fxh pbr_content)
-string(REPLACE "LightSurface" "LightSurfaceTK" pbr_content "${pbr_content}")
-string(REPLACE "RadianceTexture" "envTex" pbr_content "${pbr_content}")
-file(WRITE ${SHADERS_DIR}/HLSL/PBRCommon.hlsli "${pbr_content}")
-
 message("--\n-- Downloading zlib 1.3.2 ...\n--")
 
 FetchContent_MakeAvailable(zlib)

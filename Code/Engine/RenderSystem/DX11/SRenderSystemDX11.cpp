@@ -9,6 +9,8 @@
 #include "Application/SApplicationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
+#include "DDSTextureLoader.h"
+#include "WICTextureLoader.h"
 
 #pragma comment(lib, "d3d11.lib")
 
@@ -166,7 +168,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	if (FAILED(d3dDevice->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf())))
 	{
-		throw std::exception("LcRendCannot create rasterizer state");
+		throw std::exception("Cannot create rasterizer state");
 	}
 
 	deviceContext->RSSetState(rasterizerState.Get());
@@ -187,6 +189,34 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	const float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	d3dDevice->CreateBlendState(&blendStateDesc, blendState.GetAddressOf());
 	deviceContext->OMSetBlendState(blendState.Get(), blendFactor, 0xffffffff);
+
+	// create samplers
+	D3D11_SAMPLER_DESC desc{};
+	desc.Filter = D3D11_FILTER_ANISOTROPIC;
+	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.MaxAnisotropy = D3D11_MAX_MAXANISOTROPY;
+	desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	desc.MaxLOD = FLT_MAX;
+
+	if (FAILED(d3dDevice->CreateSamplerState(&desc, surfaceSampler.GetAddressOf())))
+	{
+		throw std::exception("Cannot create surface sampler");
+	}
+
+	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+	if (FAILED(d3dDevice->CreateSamplerState(&desc, IBLSampler.GetAddressOf())))
+	{
+		throw std::exception("Cannot create IBL sampler");
+	}
+
+	static ID3D11SamplerState* samplers[] = { surfaceSampler.Get(), IBLSampler.Get() };
+	deviceContext->PSSetSamplers(0, 2, samplers);
 
 	// init managers
 	shaderManager.Init(context.pool);
@@ -320,6 +350,8 @@ void SRenderSystemDX11::Shutdown()
 	textureManager.Shutdown();
 	shaderManager.Shutdown();
 	rasterizerState.Reset();
+	surfaceSampler.Reset();
+	IBLSampler.Reset();
 	blendState.Reset();
 	depthStencilView.Reset();
 	depthStencilState.Reset();
@@ -390,7 +422,6 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		{
 			meshRender.Setup(shader);
 		}
-		shader.vsCode = nullptr;
 
 		shaders.emplace(shaderData.name, shader);
 	});
@@ -408,20 +439,32 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 	textureManager.PreloadTextures(paths, delegate);
 }
 
-void SRenderSystemDX11::SetCubemap(const std::filesystem::path& path, float amount)
+void SRenderSystemDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
 {
-	textureManager.SetCubemap(path, d3dDevice.Get());
-	envCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
+	textureManager.LoadCubemap(path, type, d3dDevice.Get());
 }
 
-void SRenderSystemDX11::SetCubemapAmount(float amount)
+void SRenderSystemDX11::SetCubemapAmount(float amount, ECubemapType type)
 {
-	envCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
+	switch (type)
+	{
+	case ECubemapType::Diffuse:
+		diffuseCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
+		break;
+	case ECubemapType::Specular:
+		specularCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
+		break;
+	}
 }
 
-void SRenderSystemDX11::RemoveCubemap()
+float SRenderSystemDX11::GetCubemapAmount(ECubemapType type) const noexcept
 {
-	textureManager.RemoveCubemap();
+	return (type == ECubemapType::Diffuse) ? diffuseCubemapAmount : specularCubemapAmount;
+}
+
+void SRenderSystemDX11::RemoveCubemap(ECubemapType type)
+{
+	textureManager.RemoveCubemap(type);
 }
 
 void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
@@ -438,6 +481,11 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 {
 	auto shaderIt = shaders.find(name);
 	return (shaderIt == shaders.end()) ? nullptr : &shaderIt->second;
+}
+
+ID3D11ShaderResourceView* SRenderSystemDX11::FindCubemap(ECubemapType type) const
+{
+	return textureManager.FindCubemap(type);
 }
 
 std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
@@ -469,6 +517,14 @@ void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
 	S_CATCH{ S_THROW("SRenderSystemDX11::Update()") }
 }
 
+struct SWVPBuffer
+{
+	SMatrix4 mWorld;
+	SMatrix4 mView;
+	SMatrix4 mProj;
+	DirectX::XMVECTOR mWorldInverse[3];
+};
+
 void SRenderSystemDX11::Render(const SAppContext& context)
 {
 	S_TRY
@@ -492,9 +548,13 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	// render 3d frame
 	constantBuffers.ApplyTransform3D(deviceContext.Get(), world->GetCamera(),
-		cachedRenderSystemSize.width, cachedRenderSystemSize.height);
-	constantBuffers.UpdateSettingsBuffer(deviceContext.Get(), world->GetCamera(), world->GetGlobalTint(),
-		textureManager.GetCubemap() ? envCubemapAmount : -1.0f);
+		cachedRenderSystemSize.width, cachedRenderSystemSize.height, context.gameTime);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
+
+	auto diffuseMap = textureManager.FindCubemap(ECubemapType::Diffuse);
+	if (diffuseMap) deviceContext->PSSetShaderResources(4, 1, &diffuseMap);
+	auto specularMap = textureManager.FindCubemap(ECubemapType::Specular);
+	if (specularMap) deviceContext->PSSetShaderResources(5, 1, &specularMap);
 
 	meshRender.Render(context.deltaSeconds);
 
@@ -543,8 +603,7 @@ void SRenderSystemDX11::OnGlobalTintChanged(SColor3 globalTint)
 {
 	if (deviceContext && world)
 	{
-		constantBuffers.UpdateSettingsBuffer(deviceContext.Get(), world->GetCamera(), world->GetGlobalTint(),
-			textureManager.GetCubemap() ? envCubemapAmount : -1.0f);
+		constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
 	}
 }
 

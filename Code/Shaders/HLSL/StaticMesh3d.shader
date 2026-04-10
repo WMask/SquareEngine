@@ -1,222 +1,180 @@
 // StaticMesh3d.shader
+// Based on DirectXTK shaders
+// http://go.microsoft.com/fwlink/?LinkId=248929
 
 #include "ShaderUtils.hlsli"
 
-cbuffer VS_WVP_BUFFER : register(b0)
+cbuffer VSMatrixBuffer : register(b0)
 {
-	row_major float4x4 mTrans;
-	row_major float4x4 mView;
-	row_major float4x4 mProj;
+	float4x4 mWorld;
+	float4x4 mView;
+	float4x4 mProj;
+	float3x3 mNormal;
 };
 
-cbuffer VS_LIGHTS_BUFFER : register(b3)
-{
-	float4 vLightVec[MaxLights];   // w - light type: <0.5 - directional, >0.5 - point
-	float4 vLightColor[MaxLights]; // w - distance if point light type
-	uint numLights;
-};
-
-cbuffer SETTINGS_BUFFER : register(b1)
+cbuffer VSPSSettingsBuffer : register(b1)
 {
 	float4 vGlobalTint;
 	float4 vCameraPos;
 	float4 vViewDir;
-	float  envCubemapAmount; // 0-1
-	uint   bHasEnvCubemap;
+	uint   bHasDiffuseCubemap;  // diffuse ambient light (radiance)
+	uint   bHasSpecularCubemap; // specular reflection (irradiance)
+	float  diffuseAmount;
+	float  specularAmount;
 };
 
-cbuffer MATERIAL_BUFFER : register(b2)
+cbuffer VSPSMaterialBuffer : register(b2)
 {
-	uint  bHasBaseTexture;
-	uint  bHasNormalTexture;
-	uint  bHasORMTexture;
-	float subSurfaceAmount; // is two-sided
+	uint bHasBaseTexture;
+	uint bHasNormalTexture;
+	uint bHasRMATexture;
+	uint bHasEmissiveTexture;
 };
 
-struct VS_INPUT
+cbuffer PSLightsBuffer : register(b3)
 {
-	float3 vPosition : POSITION;
-	float3 vNormal   : NORMAL;
-    float3 vTangent  : TANGENT;
-	float2 vTexUV    : TEXCOORD;
+	float4 vLightVec[MaxLights];   // xyz - direction for directional, position for point, w - light type: <0.5 - directional, >0.5 - point
+	float4 vLightColor[MaxLights]; // rgb - color, a - distance if point light type
+	uint numLights;
+};
+
+struct VSOutputNmTx
+{
+    float3 vPositionWS : POSITION;
+    float3 vNormalWS   : NORMAL;
+    float2 vTexCoord   : TEXCOORD;
+    float4 vPositionPS : SV_Position;
+};
+
+struct PSInputNmTx
+{
+    float3 vPositionWS : POSITION;
+    float3 vNormalWS   : NORMAL;
+    float2 vTexCoord   : TEXCOORD;
+};
+
+struct VSInputNmTxInst
+{
+    float4 vPosition : SV_Position;
+    float3 vNormal   : NORMAL;
+    float2 vTexCoord : TEXCOORD;
 	float3 iPosition : INSTANCEPOS;
 	float4 iRotation : INSTANCEROT;
 	float3 iScale    : INSTANCESCALE;
 	float3 iTint     : INSTANCECOLOR;
 };
 
-struct PS_INPUT
-{
-	float4 vPosition  : SV_POSITION;
-	float3 vWorldPos  : POSITION;
-	float2 vTexUV     : TEXCOORD;
-	float3 vNormal    : NORMAL0;
-    float3 vTangent   : TANGENT;
-    float3 vBitangent : BITANGENT;
-    float3 vLightDir  : NORMAL1;
-	float3 vLightClr  : COLOR0;
-	float4 iTint      : COLOR1;
-};
 
-PS_INPUT VShader(VS_INPUT input)
+VSOutputNmTx VShader(VSInputNmTxInst input)
 {
-	PS_INPUT output;
+    VSOutputNmTx output;
 
-	float3 vPos3 = (input.vPosition * input.iScale);
-	float3 vRotatedPos3 = QuaternionRotate(input.iRotation, vPos3);
+	float3 vScaledPos3 = (input.vPosition.xyz * input.iScale);
+	float3 vRotatedPos3 = QuaternionRotate(input.iRotation, vScaledPos3);
 	float4 vWorldPos4 = float4(vRotatedPos3 + input.iPosition, 1.0);
 
-	float4x4 mWVP = mul(mTrans, mul(mView, mProj));
+	float4x4 mWVP = mul(mWorld, mul(mView, mProj));
 
-	output.vPosition = mul(vWorldPos4, mWVP);
-	output.vTexUV = input.vTexUV;
-	output.iTint = float4(input.iTint, 1.0);
+    output.vPositionPS = mul(vWorldPos4, mWVP);
+    output.vPositionWS = mul(vWorldPos4, mWorld).xyz;
+    output.vNormalWS = normalize(mul(input.vNormal, mNormal));
+    output.vTexCoord = input.vTexCoord;
 
-	// compute normals data
-	float3x3 mWorld = (float3x3)mTrans;
-	output.vWorldPos = mul(input.vPosition.xyz, mWorld);
-	output.vNormal = normalize(mul(input.vNormal, mWorld));
-	if (bHasNormalTexture)
-	{
-		output.vTangent = normalize(mul(input.vTangent, mWorld));
-		output.vBitangent = normalize(cross(output.vNormal, output.vTangent));
-	}
-
-	// apply lights
-	float3 vAccColor = float3(0.0, 0.0, 0.0);
-	for (uint i = 0; i < numLights; i++)
-	{
-		if (IsDirectional(vLightVec[i]))
-		{
-			float3 vDir = normalize(vLightVec[i].xyz);
-			float3 vNewLight = CalculateDirectionalLight(vDir, output.vNormal, vLightColor[i].xyz);
-			vAccColor += vNewLight;
-			output.vLightDir = vDir; // only one directional light
-		}
-	}
-	output.vLightClr = vAccColor;
-
-	return output;
+    return output;
 }
 
-Texture2D baseTex   : register(t0);
-Texture2D normTex   : register(t1);
-Texture2D ormTex    : register(t2);
-TextureCube envMap  : register(t3);
 
-SamplerState linearSampler
+Texture2D<float4> AlbedoTexture   : register(t0);
+Texture2D<float3> NormalTexture   : register(t1);
+Texture2D<float3> RMATexture      : register(t2);
+Texture2D<float3> EmissiveTexture : register(t3);
+
+TextureCube<float3> RadianceTexture   : register(t4); // diffuse ambient light (radiance)
+TextureCube<float3> IrradianceTexture : register(t5); // specular reflection (irradiance)
+
+sampler SurfaceSampler : register(s0);
+sampler IBLSampler     : register(s1);
+
+
+// Apply Disney-style physically based rendering to a surface with:
+float3 LightSurface(
+    in float3 V, in float3 N, in float3 albedo,
+	in float roughness, in float metallic, in float ambientOcclusion)
 {
-	Filter = MIN_MAG_MIP_LINEAR;
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
+    // Specular coefficiant - fixed reflectance value for non-metals
+    static const float kSpecularCoefficient = 0.04;
 
-// Get normal from map or use vertex normal
-float3 GetFinalNormal(PS_INPUT input)
-{
-	float3 N = normalize(input.vNormal);
+    const float NdotV = saturate(dot(N, V));
 
-	if (bHasNormalTexture)
-	{
-		float3 vNormalMap = normTex.Sample(linearSampler, input.vTexUV).rgb;
-		vNormalMap = normalize(vNormalMap * 2.0 - 1.0);
+    // Burley roughness bias
+    const float alpha = roughness * roughness;
 
-		float3x3 mTBN = float3x3(
-			input.vTangent,
-			input.vBitangent,
-			input.vNormal
-		);
+    // Blend base colors
+    const float3 vDiff = lerp(albedo, float3(0, 0, 0), metallic) * ambientOcclusion;
+    const float3 vSpec = lerp(kSpecularCoefficient, albedo, metallic) * ambientOcclusion;
 
-		N = normalize(mul(vNormalMap, mTBN));
-	}
+    // Output color
+    float3 vAccColor = 0;
 
-	return N;
+    // Accumulate light values
+    for (uint i = 0; i < numLights; i++)
+    {
+        // light vector (to light)
+        const float3 L = normalize(-vLightVec[i].xyz);
+
+        // Half vector
+        const float3 H = normalize(L + V);
+
+        // products
+        const float NdotL = saturate(dot(N, L));
+        const float LdotH = saturate(dot(L, H));
+        const float NdotH = saturate(dot(N, H));
+
+        // Diffuse & specular factors
+        float diffuseFactor = DiffuseBurley(NdotL, NdotV, LdotH, roughness);
+        float3 vSpecular = SpecularBRDF(alpha, vSpec, NdotV, NdotL, LdotH, NdotH);
+
+        // Directional light
+        vAccColor += NdotL * vLightColor[i].rgb * (((vDiff * diffuseFactor) + vSpecular));
+    }
+
+	// Add diffuse irradiance
+	float3 vDiffuseEnv = IrradianceTexture.Sample(IBLSampler, N);
+	vAccColor += vDiff * vDiffuseEnv;
+
+	// Get specular radiance
+	float3 vDir = reflect(-V, N);
+	float3 vSpecularEnv = RadianceTexture.Sample(IBLSampler, vDir);
+	float3 vSpecular = vSpec * vSpecularEnv;
+
+	// Lerp IBL and normal lighting
+	const float3 L = normalize(-vLightVec[0].xyz);
+	const float NdotL = saturate(dot(N, L));
+	vAccColor += lerp(albedo * NdotL, vSpecular, 0.5);
+
+	return vAccColor;
 }
 
-float4 PShader(PS_INPUT input) : SV_TARGET
+
+float4 PShader(PSInputNmTx input) : SV_Target0
 {
-	if (bHasBaseTexture)
-	{
-		// color
-		float4 vAlbedoData = baseTex.Sample(linearSampler, input.vTexUV);
-		float3 vAlbedo = vAlbedoData.rgb;
-		float alpha = vAlbedoData.a;
+    const float3 V = normalize(vCameraPos.xyz - input.vPositionWS);
+    const float3 L = normalize(-vLightVec[0].xyz);
 
-		// normal and light
-		float3 N = GetFinalNormal(input);
-		float3 L = normalize(-input.vLightDir);
-		float3 V = normalize(vCameraPos.xyz - input.vWorldPos);
-		float NdotL = max(dot(N, L), 0.0);
-		float NdotL2 = max(dot(N, -L), 0.0);
+    // Before lighting, peturb the surface's normal by the one given in normal map.
+    float3 vLocalNormal = TwoChannelNormalX2(NormalTexture.Sample(SurfaceSampler, input.vTexCoord).xy);
+    float3 N = PeturbNormal(vLocalNormal, input.vPositionWS, input.vNormalWS, input.vTexCoord);
 
-		float3 vBackLight = vAlbedo * NdotL2 * envCubemapAmount;
-		float3 vDirectLight = vAlbedo * input.vLightClr * NdotL;
-		float3 vFinalColor = vDirectLight + vBackLight;
+    // Get albedo
+    float4 albedo = AlbedoTexture.Sample(SurfaceSampler, input.vTexCoord);
 
-		// pbr
-		if (bHasORMTexture)
-		{
-			float3 vORM = ormTex.Sample(linearSampler, input.vTexUV).rgb;
-			float metallic = vORM.b;
-			float roughness = vORM.g;
-			float ao = vORM.r;
+    // Get roughness, metalness, and ambient occlusion
+    float3 vRMA = RMATexture.Sample(SurfaceSampler, input.vTexCoord);
 
-			// fresnel
-			float3 H = normalize(V + L);
-			float3 F0 = lerp(float3(0.04, 0.04, 0.04), vAlbedo, metallic);
-			float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+    // Shade surface
+    float3 color = LightSurface(V, N, albedo.rgb, vRMA.g, vRMA.r, vRMA.b);
 
-			// normal distribution (GGX)
-			float NDF = DistributionGGX(N, H, roughness);
-			float NGL = GeometrySmith(N, V, L, roughness);
-		
-			// specular BRDF
-			float3 numerator = NDF * NGL * F;
-			float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001;
-			float3 specular = numerator / denominator;
+    color += EmissiveTexture.Sample(SurfaceSampler, input.vTexCoord).rgb;
 
-			// diffuse (energy conservation)
-			float3 kD = (1.0 - F) * (1.0 - metallic);
-			float3 diffuse = kD * vAlbedo / 3.14159;
-
-			vDirectLight = (diffuse + specular) * input.vLightClr * NdotL;
-			vDirectLight *= ao;
-
-			// environment cubemap
-			float3 vEnvColor = float3(0.0, 0.0, 0.0);
-			if (bHasEnvCubemap)
-			{
-				float3 R = reflect(-V, N);
-				float3 vEnvSpecular = envMap.Sample(linearSampler, R).rgb;
-
-				// Simple diffuse irradiance
-				float3 vEnvDiffuse = envMap.Sample(linearSampler, N).rgb;
-			
-				// Apply Fresnel and metallic to environment
-				float3 vEnvSpec = F * vEnvSpecular * (1.0 - roughness);
-				float3 vEnvDiff = kD * vEnvDiffuse * ao;
-
-				vEnvColor = (vEnvSpec + vEnvDiff) * metallic * lerp(NdotL, 1.0, 0.1);
-				float3 vBackEnv = vEnvDiffuse * NdotL2 * envCubemapAmount * (1.0 - metallic);
-				vBackLight = vBackLight + vBackEnv;
-			}
-			else
-			{
-				vBackLight = vBackLight * 1.5;
-			}
-
-			// gamma correction
-			vFinalColor = AdjustSaturation(vDirectLight, 1.33) + vEnvColor;
-			vFinalColor = pow(vFinalColor, float3(1.0 / 2.5, 1.0 / 2.5, 1.0 / 2.5)) + vBackLight;
-		}
-		else
-		{
-			// gamma correction
-			vFinalColor = pow(vFinalColor, float3(1.0 / 1.2, 1.0 / 1.2, 1.0 / 1.2));
-		}
-
-		return float4(vFinalColor, alpha) * input.iTint * vGlobalTint;
-	}
-
-	return input.iTint * vGlobalTint * float4(input.vLightClr, 1.0);
+    return float4(color, albedo.w);
 }

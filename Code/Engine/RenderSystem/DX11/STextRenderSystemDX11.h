@@ -5,22 +5,9 @@
 #pragma once
 
 #include "Core/STypes.h"
-#include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 #include "Application/SLocalizationInterface.h"
 
-#include <d3d11.h>
-#include <wrl.h>
-
-using Microsoft::WRL::ComPtr;
-
-
-struct DX11TEXTGLYPHINSTANCE
-{
-	SVector3 pos;
-	SVector2 scale;
-	SColor4F color;
-	SVector2 uvs[4];
-};
 
 /***************************************************************************
 * Text render system
@@ -29,7 +16,7 @@ class STextRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	STextRenderSystemDX11(class SRenderSystemDX11& renderSystem);
+	STextRenderSystemDX11(class IRenderSystemDX11& renderSystem);
 	//
 	~STextRenderSystemDX11();
 	//
@@ -49,9 +36,7 @@ protected:
 
 protected:
 	//
-	class SRenderSystemDX11& renderSystemDX11;
-	//
-	struct ID3D11DeviceContext* d3dDeviceContext;
+	class IRenderSystemDX11& renderSystemDX11;
 	//
 	struct ID3D11Buffer* spriteVertexBuffer;
 	//
@@ -67,8 +52,6 @@ protected:
 	std::vector<DX11TEXTGLYPHINSTANCE> batchData;
 	//
 	ID3D11ShaderResourceView* cachedTexView;
-	//
-	const class IWorld* world;
 	//
 	SSize2 cachedTexSize;
 	//

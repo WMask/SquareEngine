@@ -2,19 +2,22 @@
 
 #include "ShaderUtils.hlsli"
 
-cbuffer VS_WVP_BUFFER : register(b0)
+cbuffer VSMatrixBuffer : register(b0)
 {
-	row_major float4x4 mTrans;
-	row_major float4x4 mView;
-	row_major float4x4 mProj;
+	float4x4 mWorld;
+	float4x4 mView;
+	float4x4 mProj;
+	float3x3 mNormal;
 };
 
-cbuffer VS_SETTINGS_BUFFER : register(b1)
+cbuffer VSPSSettingsBuffer : register(b1)
 {
 	float4 vGlobalTint;
+	float4 vCameraPos;
+	float4 vViewDir;
 };
 
-struct VS_INPUT
+struct VSInputTxInst
 {
     uint   vVertexID : SV_VertexID;
 	float3 vPosition : POSITION;
@@ -24,24 +27,28 @@ struct VS_INPUT
 	float4 iColor[4] : INSTANCECOLOR;
 };
 
-struct VS_OUT
+struct VSOutputClr
 {
 	float4 vPosition : SV_POSITION;
 	float4 vColor    : COLOR0;
 };
 
-VS_OUT VShader(VS_INPUT input)
+struct PSInputClr
 {
-	VS_OUT output;
+	float4 vColor : COLOR;
+};
+
+VSOutputClr VShader(VSInputTxInst input)
+{
+	VSOutputClr output;
 
 	float2 vPos2D = (input.vPosition.xy * input.iScale);
 	float2 vRotatedPos2D = SRotate2D(vPos2D, input.iRotation);
 
 	float4 vWorldPos = float4(
 		vRotatedPos2D + input.iPosition.xy,
-		1.0 - input.iPosition.z,
-		1.0);
-	float4x4 mWVP = mul(mTrans, mul(mView, mProj));
+		1.0 - input.iPosition.z, 1.0);
+	float4x4 mWVP = mul(mWorld, mul(mView, mProj));
 
 	output.vPosition = mul(vWorldPos, mWVP);
 	output.vColor = input.iColor[input.vVertexID];
@@ -49,7 +56,7 @@ VS_OUT VShader(VS_INPUT input)
 	return output;
 }
 
-float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0) : SV_TARGET
+float4 PShader(PSInputClr input) : SV_Target0
 {
-	return vColor * vGlobalTint;
+	return input.vColor * vGlobalTint;
 }

@@ -40,11 +40,11 @@ public:
 	//
 	bool FindTexture(STexID id, ID3D11Texture2D** outTexture, ID3D11ShaderResourceView** outView, SSize2* outTexSize = nullptr) const;
 	//
-	bool SetCubemap(const std::filesystem::path& path, ID3D11Device* d3dDevice);
+	void LoadCubemap(const std::filesystem::path& path, ECubemapType type, ID3D11Device* d3dDevice);
 	//
-	void RemoveCubemap();
+	ID3D11ShaderResourceView* FindCubemap(ECubemapType type) const;
 	//
-	inline ID3D11ShaderResourceView* GetCubemap() const { return cubemapView.Get(); }
+	void RemoveCubemap(ECubemapType type);
 	//
 	void ClearCache(IWorld* world);
 	//
@@ -56,19 +56,27 @@ protected:
 	struct STextureData
 	{
 		SBytes data;
-		//
 		SSize2 texSize;
-		//
 		STexID id;
+	};
+	//
+	struct SCubemapData
+	{
+		SBytes data;
+		ECubemapType type;
 	};
 	//
 	struct STextureDataDX11
 	{
 		ComPtr<ID3D11Texture2D> texture;
-		//
 		ComPtr<ID3D11ShaderResourceView> view;
-		//
 		SSize2 texSize{};
+	};
+	//
+	struct SCubemapDataDX11
+	{
+		ComPtr<ID3D11Resource> texture;
+		ComPtr<ID3D11ShaderResourceView> view;
 	};
 	//
 	bool LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize);
@@ -86,17 +94,19 @@ protected:
 	//
 	using TCircularFIFOTextureQueue = Fifo4<STextureData>;
 	//
+	using TCircularFIFOCubemapQueue = Fifo4<SCubemapData>;
+	//
 	using TPendingMap = std::unordered_map<std::filesystem::path, std::uint32_t>;
+	//
+	std::unordered_map<ECubemapType, SCubemapDataDX11> cubemapsCache;
 	//
 	std::unordered_map<STexID, STextureDataDX11> texturesCache;
 	//
 	std::shared_ptr<TCircularFIFOTextureQueue> loadedTextures;
 	//
+	std::shared_ptr<TCircularFIFOCubemapQueue> loadedCubemaps;
+	//
 	TPreLoadDelegatesCache preloadDelegatesCache;
-	//
-	ComPtr<ID3D11ShaderResourceView> cubemapView;
-	//
-	ComPtr<ID3D11Resource> cubemap;
 	//
 	TPendingMap pendingLoadingMap;
 	//

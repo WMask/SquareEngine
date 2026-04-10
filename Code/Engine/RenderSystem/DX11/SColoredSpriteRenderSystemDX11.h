@@ -28,7 +28,7 @@ class SColoredSpriteRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	SColoredSpriteRenderSystemDX11(class SRenderSystemDX11& renderSystem);
+	SColoredSpriteRenderSystemDX11(class IRenderSystemDX11& renderSystem);
 	//
 	~SColoredSpriteRenderSystemDX11();
 	//
@@ -48,9 +48,7 @@ protected:
 
 protected:
 	//
-	SRenderSystemDX11& renderSystemDX11;
-	//
-	struct ID3D11DeviceContext* d3dDeviceContext;
+	IRenderSystemDX11& renderSystemDX11;
 	//
 	struct ID3D11Buffer* spriteVertexBuffer;
 	//

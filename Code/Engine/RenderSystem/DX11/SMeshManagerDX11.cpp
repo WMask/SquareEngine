@@ -5,7 +5,8 @@
 #ifdef WIN32
 
 #include "RenderSystem/DX11/SMeshManagerDX11.h"
-#include "RenderSystem/DX11/SRenderSystemDX11.h"
+#include "RenderSystem/DX11/STextureManagerDX11.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -26,7 +27,7 @@ SMeshManagerDX11::~SMeshManagerDX11()
     Shutdown();
 }
 
-void SMeshManagerDX11::Init(IThreadPool* inThreadPool, SRenderSystemDX11* inRenderSystem)
+void SMeshManagerDX11::Init(IThreadPool* inThreadPool, IRenderSystemDX11* inRenderSystem)
 {
     threadPool = inThreadPool;
     renderSystem = inRenderSystem;
@@ -214,8 +215,10 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
             if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
             auto [normView, normSize] = renderSystem->FindTexture(ResourceID<STexID>(material.normTexture.string()));
             if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
-            auto [ormView, ormSize] = renderSystem->FindTexture(ResourceID<STexID>(material.ormTexture.string()));
-            if (!ormView && !material.ormTexture.empty()) paths.push_back(material.ormTexture);
+            auto [ormView, ormSize] = renderSystem->FindTexture(ResourceID<STexID>(material.rmaTexture.string()));
+            if (!ormView && !material.rmaTexture.empty()) paths.push_back(material.rmaTexture);
+            auto [emiView, emiSize] = renderSystem->FindTexture(ResourceID<STexID>(material.emiTexture.string()));
+            if (!ormView && !material.emiTexture.empty()) paths.push_back(material.emiTexture);
 
             if (!paths.empty())
             {

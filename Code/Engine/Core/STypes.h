@@ -86,7 +86,6 @@ struct SVertex
 {
 	SVector3 pos;
 	SVector3 norm;
-	SVector3 tangent;
 	SVector2 uv;
 };
 
@@ -96,8 +95,10 @@ struct SMaterial
 	std::filesystem::path baseTexture;
 	// tangent space
 	std::filesystem::path normTexture;
-	// r - AO, g - roughness, b - metallic
-	std::filesystem::path ormTexture;
+	// r - roughness, g - metallic, b - AO
+	std::filesystem::path rmaTexture;
+	// rgb - emissive
+	std::filesystem::path emiTexture;
 	// 
 	std::uint16_t firstIndex;
 	//

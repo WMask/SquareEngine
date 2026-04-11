@@ -218,7 +218,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 		deviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
 		deviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
-		auto defaultTexture = renderSystemDX11.GetConstantBuffers().defaultTextureView.Get();
+		auto defaultTexture = renderSystemDX11.GetConstantBuffers().GetDefaultTexture();
 		std::uint32_t indexOffset = 0;
 		std::uint32_t vertexOffset = 0;
 		for (auto& material : cachedMaterials)
@@ -248,7 +248,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 				(cachedMaterialFlags.bHasRMATexture && rmaView) ? 1 : 0,
 				(cachedMaterialFlags.bHasEmiTexture && emiView) ? 1 : 0
 			};
-			deviceContext->UpdateSubresource(renderSystemDX11.GetConstantBuffers().materialBuffer.Get(), 0, NULL, &matFlags, 0, 0);
+			renderSystemDX11.GetConstantBuffers().UpdateMaterialFlags(renderSystemDX11, matFlags);
 
 			// render meshes
 			deviceContext->DrawIndexedInstanced(material.numIndices, numInstances, indexOffset, vertexOffset, 0);

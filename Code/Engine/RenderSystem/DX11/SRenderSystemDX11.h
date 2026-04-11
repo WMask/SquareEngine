@@ -73,6 +73,10 @@ public:// IRenderSystem interface implementation
 	//
 	virtual float GetCubemapAmount(ECubemapType type) const noexcept override;
 	//
+	virtual void SetIBLAmount(float amount) override { IBLAmount = amount; }
+	//
+	virtual float GetIBLAmount() const noexcept { return IBLAmount; }
+	//
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
 	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) override;
@@ -178,6 +182,8 @@ protected:
 	float diffuseCubemapAmount = 1.0f;
 	//
 	float specularCubemapAmount = 1.0f;
+	//
+	float IBLAmount = 0.5f;
 	//
 	IWorld* world{};
 

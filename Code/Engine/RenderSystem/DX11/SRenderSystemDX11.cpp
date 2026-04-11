@@ -442,6 +442,7 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 void SRenderSystemDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
 {
 	textureManager.LoadCubemap(path, type, d3dDevice.Get());
+	constantBuffers.UpdateCubemapSettings(*this);
 }
 
 void SRenderSystemDX11::SetCubemapAmount(float amount, ECubemapType type)
@@ -455,6 +456,8 @@ void SRenderSystemDX11::SetCubemapAmount(float amount, ECubemapType type)
 		specularCubemapAmount = std::clamp(amount, 0.0f, 1.0f);
 		break;
 	}
+
+	constantBuffers.UpdateCubemapSettings(*this);
 }
 
 float SRenderSystemDX11::GetCubemapAmount(ECubemapType type) const noexcept
@@ -465,6 +468,7 @@ float SRenderSystemDX11::GetCubemapAmount(ECubemapType type) const noexcept
 void SRenderSystemDX11::RemoveCubemap(ECubemapType type)
 {
 	textureManager.RemoveCubemap(type);
+	constantBuffers.UpdateCubemapSettings(*this);
 }
 
 void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
@@ -606,10 +610,10 @@ void SRenderSystemDX11::OnWorldScaleChanged(SVector2 worldScale)
 
 void SRenderSystemDX11::OnLightsChanged(const IWorld& world)
 {
-	if (deviceContext && constantBuffers.lightsBuffer)
+	if (deviceContext)
 	{
 		SLightsBuffer lightsData = world.GetLightsData();
-		deviceContext->UpdateSubresource(constantBuffers.lightsBuffer.Get(), 0, NULL, &lightsData, 0, 0);
+		constantBuffers.UpdateLightSettings(*this, lightsData);
 	}
 }
 

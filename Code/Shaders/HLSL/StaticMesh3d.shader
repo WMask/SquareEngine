@@ -17,10 +17,6 @@ cbuffer VSPSSettingsBuffer : register(b1)
 	float4 vGlobalTint;
 	float4 vCameraPos;
 	float4 vViewDir;
-	uint   bHasDiffuseCubemap;  // diffuse ambient light (radiance)
-	uint   bHasSpecularCubemap; // specular reflection (irradiance)
-	float  diffuseAmount;
-	float  specularAmount;
 };
 
 cbuffer VSPSMaterialBuffer : register(b2)
@@ -31,7 +27,16 @@ cbuffer VSPSMaterialBuffer : register(b2)
 	uint bHasEmissiveTexture;
 };
 
-cbuffer PSLightsBuffer : register(b3)
+cbuffer PSCubemapsBuffer : register(b3)
+{
+	uint  bHasDiffuseCubemap;  // diffuse ambient light (radiance)
+	uint  bHasSpecularCubemap; // specular reflection (irradiance)
+	float diffuseAmount;
+	float specularAmount;
+	float IBLAmount;           // image-based lighting or normal lighting
+};
+
+cbuffer PSLightsBuffer : register(b4)
 {
 	float4 vLightVec[MaxLights];   // xyz - direction for directional, position for point, w - light type: <0.5 - directional, >0.5 - point
 	float4 vLightColor[MaxLights]; // rgb - color, a - distance if point light type
@@ -96,6 +101,16 @@ sampler SurfaceSampler : register(s0);
 sampler IBLSampler     : register(s1);
 
 
+float3 GetLightDirection()
+{
+	if (numLights > 0)
+	{
+		return vLightVec[0].xyz;
+	}
+	
+	return normalize(float3(-1.0, -1.0, -1.0));
+}
+
 // Apply Disney-style physically based rendering to a surface with:
 float3 LightSurface(
     in float3 V, in float3 N, in float3 albedo,
@@ -148,9 +163,9 @@ float3 LightSurface(
 	float3 vSpecular = vSpec * vSpecularEnv;
 
 	// Lerp IBL and normal lighting
-	const float3 L = normalize(-vLightVec[0].xyz);
+	const float3 L = -GetLightDirection();
 	const float NdotL = saturate(dot(N, L));
-	vAccColor += lerp(albedo * NdotL, vSpecular, 0.5);
+	vAccColor += lerp(albedo * NdotL, vSpecular, IBLAmount);
 
 	return vAccColor;
 }
@@ -159,7 +174,7 @@ float3 LightSurface(
 float4 PShader(PSInputNmTx input) : SV_Target0
 {
     const float3 V = normalize(vCameraPos.xyz - input.vPositionWS);
-    const float3 L = normalize(-vLightVec[0].xyz);
+    const float3 L = -GetLightDirection();
 
 	// Get normal
 	float3 N = input.vNormalWS;

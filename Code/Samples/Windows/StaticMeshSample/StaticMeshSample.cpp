@@ -33,7 +33,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
 		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
-		float rotation = 0.73f;
+		float rotation = -0.6f;
 		float elevation = 10.0f;
 
 		struct GuiListener
@@ -177,7 +177,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			});
 
 			// add light
-			SVector3 lightDir = SMath::Normalize(SVector3{ 0.0f, -0.8f, 0.5f });
+			SVector3 lightDir = SMath::Normalize(SVector3{ -0.8f, -0.8f, -0.8f });
 			context.world->AddDirectionalLight("DirectionalLight", lightDir, SConst::White3);
 		};
 

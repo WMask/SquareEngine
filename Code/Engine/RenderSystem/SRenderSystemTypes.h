@@ -71,7 +71,11 @@ struct SSettingsBuffer
 	SVector4 cameraPos;
 	//
 	SVector4 viewDir;
-	//
+};
+
+/** Cubemaps settings */
+struct SCubemapsBuffer
+{
 	std::uint32_t bHasDiffuseCubemap;
 	//
 	std::uint32_t bHasSpecularCubemap;
@@ -79,6 +83,8 @@ struct SSettingsBuffer
 	float diffuseAmount;
 	//
 	float specularAmount;
+	//
+	float IBLAmount;
 };
 
 /** Lights settings */

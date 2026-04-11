@@ -210,7 +210,7 @@ void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContex
 {
 	if (d3dDeviceContext)
 	{
-		SMatrix4 mWorld = SMath::RotationMatrixY(cosf(gameTime) * 2.f);
+		SMatrix4 mWorld = SMath::RotationMatrixY(cosf(gameTime) / 2.f);
 		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 		SMatrix4 mProj = SMath::ProjectionMatrix(camera.GetFOV(), aspectRatio, 0.1f, 10000.0f);
 		SMatrix4 mView = SMath::LookAtMatrix(

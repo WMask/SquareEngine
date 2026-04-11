@@ -103,11 +103,11 @@ struct SMaterial
 	// rgb - emissive
 	std::filesystem::path emiTexture;
 	// 
-	std::uint16_t firstIndex;
+	std::uint32_t firstIndex;
 	//
-	std::uint16_t numVertices;
+	std::uint32_t numVertices;
 	//
-	std::uint16_t numIndices;
+	std::uint32_t numIndices;
 };
 
 /** Mesh material */
@@ -121,11 +121,11 @@ struct SMeshMaterial
 	//
 	STexID emiTexId;
 	// 
-	std::uint16_t firstIndex;
+	std::uint32_t firstIndex;
 	//
-	std::uint16_t numVertices;
+	std::uint32_t numVertices;
 	//
-	std::uint16_t numIndices;
+	std::uint32_t numIndices;
 };
 
 /** Id in mesh manager */
@@ -144,7 +144,9 @@ struct SMesh
 	//
 	std::vector<SVertex> vertices;
 	//
-	std::vector<std::uint16_t> indices;
+	std::vector<std::uint16_t> indices16;
+	//
+	std::vector<std::uint32_t> indices32;
 };
 
 /** Meshes group id in mesh manager */

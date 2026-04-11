@@ -78,6 +78,8 @@ struct SMeshDataDX11 : public SMeshBase
 	ComPtr<ID3D11Buffer> vb;
 	//
 	ComPtr<ID3D11Buffer> ib;
+	//
+	DXGI_FORMAT ibFormat;
 };
 
 
@@ -94,7 +96,8 @@ public:
 	//
 	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const = 0;
 	//
-	virtual bool FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const = 0;
+	virtual bool FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials,
+		ID3D11Buffer** outVB, ID3D11Buffer** outIB) const = 0;
 	//
 	virtual class SConstantBuffersDX11& GetConstantBuffers() noexcept = 0;
 	//

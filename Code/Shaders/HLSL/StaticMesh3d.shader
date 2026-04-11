@@ -196,7 +196,7 @@ float4 PShader(PSInputNmTx input) : SV_Target0
     float3 color = albedo * NdotL;
 	if (bHasRMATexture)
 	{
-		color = LightSurface(V, N, albedo.rgb, vRMA.g, vRMA.r, vRMA.b);
+		color = LightSurface(V, N, albedo.rgb, vRMA.r, vRMA.g, vRMA.b);
 	}
 
 	// Add emissive

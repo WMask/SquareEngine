@@ -50,6 +50,8 @@ protected:
 	//
 	SMaterialBuffer cachedMaterialFlags;
 	//
+	DXGI_FORMAT cachedFormat;
+	//
 	ID3D11Buffer* cachedVB;
 	//
 	ID3D11Buffer* cachedIB;

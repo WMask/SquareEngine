@@ -124,7 +124,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 		if (!meshComponent.bVisible) return;
 		if (!cachedVB || !cachedIB)
 		{
-			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedMaterials, &cachedVB, &cachedIB))
+			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedFormat, &cachedMaterials, &cachedVB, &cachedIB))
 			{
 				DebugMsg("[%s] SMeshRenderSystemDX11::Render(): cannot find mesh id=%d\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshComponent.id);
@@ -143,7 +143,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 				RenderBatch(shader);
 			}
 
-			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedMaterials, &cachedVB, &cachedIB))
+			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedFormat, &cachedMaterials, &cachedVB, &cachedIB))
 			{
 				DebugMsg("[%s] SMeshRenderSystemDX11::Render(): cannot find mesh id=%d\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshComponent.id);
@@ -208,7 +208,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 		static UINT strides[2] = { sizeof(SVertex), sizeof(DX11MESHINSTANCE) };
 		static UINT offsets[2] = { 0, 0 };
 		deviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
-		deviceContext->IASetIndexBuffer(cachedIB, DXGI_FORMAT_R16_UINT, 0);
+		deviceContext->IASetIndexBuffer(cachedIB, cachedFormat, 0);
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		deviceContext->IASetInputLayout(shader->layout.Get());
 		deviceContext->VSSetShader(shader->vs.Get(), NULL, 0);

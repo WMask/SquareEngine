@@ -152,8 +152,8 @@ void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth,
 
 	std::uint32_t width = png_get_image_width(png_ptr, info_ptr);
 	std::uint32_t height = png_get_image_height(png_ptr, info_ptr);
-	if (!InRange(width, 0u, SConst::MAX_PNG_SIZE) ||
-		!InRange(height, 0u, SConst::MAX_PNG_SIZE))
+	if (!InRange(width, 0u, SConst::MAX_PNG_SIZE + 1) ||
+		!InRange(height, 0u, SConst::MAX_PNG_SIZE + 1))
 	{
 		throw std::exception("Invalid image size");
 	}
@@ -364,22 +364,7 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			const size_t numIndices = numTriangles * 3;
 			indices.resize(numIndices);
 
-			if ((indexOffset + numIndices) >= std::numeric_limits<std::uint16_t>::max())
-			{
-				staticMeshMsg = "Mesh size is too big: ";
-				staticMeshMsg += node->mesh->name.data;
-				throw std::exception(staticMeshMsg.c_str());
-			}
-
 			numVertices = ufbx_generate_indices(streams, 1, indices.data(), numIndices, NULL, NULL);
-
-			// rebase indices
-			std::vector<std::uint16_t> tmpIndices;
-			tmpIndices.resize(indices.size());
-			for (auto j = 0; j < indices.size(); j++)
-			{
-				tmpIndices[j] = static_cast<std::uint16_t>(indices[j]);
-			}
 
 			// add new material part to the mesh
 			const ufbx_material* material = node->mesh->materials[part.index];
@@ -410,12 +395,24 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 				}
 			}
 
-			mesh.indices.insert(mesh.indices.end(), tmpIndices.begin(), tmpIndices.end());
+			static const std::uint32_t max16bitIndex = std::numeric_limits<std::uint16_t>::max();
+			const bool bUseIndices16bit = (numIndices < max16bitIndex);
+			if (bUseIndices16bit)
+			{
+				mesh.indices16.resize(indices.size());
+				for (auto j = 0; j < indices.size(); j++)
+				{
+					mesh.indices16[j] = static_cast<std::uint16_t>(indices[j]);
+				}
+			}
+			else
+			{
+				mesh.indices32 = indices;
+			}
+
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str(),
-				static_cast<std::uint16_t>(indexOffset),
-				static_cast<std::uint16_t>(numVertices),
-				static_cast<std::uint16_t>(numIndices));
+			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(),
+				emiTexture.c_str(), indexOffset, numVertices, numIndices);
 
 			indexOffset += numIndices;
 		}

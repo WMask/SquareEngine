@@ -509,12 +509,13 @@ std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STex
 	return { nullptr, SConst::ZeroSSize2 };
 }
 
-bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
+bool SRenderSystemDX11::FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
 {
 	auto mesh = static_cast<SMeshDataDX11*>(meshManager.FindMesh(id));
 	if (mesh)
 	{
 		if (outMaterials) *outMaterials = mesh->materials;
+		if (outFormat) *outFormat = mesh->ibFormat;
 		if (outVB) *outVB = mesh->vb.Get();
 		if (outIB) *outIB = mesh->ib.Get();
 		return true;
@@ -798,9 +799,20 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 	}
 
 	// create index buffer
-	bufferDesc.ByteWidth = sizeof(std::uint16_t) * meshData.indices.size();
 	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bufferData.pSysMem = meshData.indices.data();
+	if (meshData.indices16.empty())
+	{
+		bufferDesc.ByteWidth = sizeof(std::uint32_t) * meshData.indices32.size();
+		bufferData.pSysMem = meshData.indices32.data();
+		outMesh->ibFormat = DXGI_FORMAT_R32_UINT;
+	}
+	else
+	{
+		bufferDesc.ByteWidth = sizeof(std::uint16_t) * meshData.indices16.size();
+		bufferData.pSysMem = meshData.indices16.data();
+		outMesh->ibFormat = DXGI_FORMAT_R16_UINT;
+	}
+
 
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, outMesh->ib.GetAddressOf())))
 	{

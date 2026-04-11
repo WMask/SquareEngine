@@ -33,7 +33,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
 		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
-		float rotation = 0.5f;
+		float rotation = 0.73f;
 		float elevation = 10.0f;
 
 		struct GuiListener

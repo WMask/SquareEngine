@@ -183,17 +183,19 @@ void SConstantBuffersDX11::ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContex
 {
 	if (d3dDeviceContext)
 	{
-		SWVPBuffer wvpData;
-		wvpData.mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
-		wvpData.mView = SMath::LookAtMatrix(
+		SMatrix4 mWorld = SMath::ScaleMatrix2(worldScale);
+		SMatrix4 mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
+		SMatrix4 mInvertY = SMath::ScaleMatrix2({ 1.0f, -1.0f });
+		SMatrix4 mView = SMath::LookAtMatrix(
 			camera.GetPosition(SCameraSpace::Camera2D),
-			camera.GetTarget(SCameraSpace::Camera2D), true);
-		wvpData.mWorld = SMath::ScaleMatrix2(worldScale);
+			camera.GetTarget(SCameraSpace::Camera2D));
+		SWVPBuffer wvpData{ SMath::TransposeM4(mWorld), SMath::TransposeM4(mView), SMath::TransposeM4(mProj) * mInvertY };
 		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
 	}
 }
 
-void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera, std::uint32_t width, std::uint32_t height, float gameTime)
+void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+	std::uint32_t width, std::uint32_t height, float gameTime)
 {
 	if (d3dDeviceContext)
 	{

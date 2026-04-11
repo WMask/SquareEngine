@@ -20,7 +20,7 @@ cbuffer VSPSSettingsBuffer : register(b1)
 struct VSInputTxInst
 {
     uint   vVertexID : SV_VertexID;
-	float3 vPosition : POSITION;
+	float3 vPosition : SV_Position;
 	float3 iPosition : INSTANCEPOS;
 	float  iRotation : INSTANCEROT;
 	float2 iScale    : INSTANCESCALE;
@@ -29,13 +29,14 @@ struct VSInputTxInst
 
 struct VSOutputClr
 {
-	float4 vPosition : SV_POSITION;
-	float4 vColor    : COLOR0;
+	float4 vPosition : SV_Position;
+	float4 vColor    : COLOR;
 };
 
 struct PSInputClr
 {
-	float4 vColor : COLOR;
+	float4 vPosition : SV_Position;
+	float4 vColor    : COLOR;
 };
 
 VSOutputClr VShader(VSInputTxInst input)
@@ -47,7 +48,8 @@ VSOutputClr VShader(VSInputTxInst input)
 
 	float4 vWorldPos = float4(
 		vRotatedPos2D + input.iPosition.xy,
-		1.0 - input.iPosition.z, 1.0);
+		1.0 - input.iPosition.z,
+		1.0);
 	float4x4 mWVP = mul(mWorld, mul(mView, mProj));
 
 	output.vPosition = mul(vWorldPos, mWVP);

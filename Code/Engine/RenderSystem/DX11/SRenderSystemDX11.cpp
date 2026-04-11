@@ -517,14 +517,6 @@ void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
 	S_CATCH{ S_THROW("SRenderSystemDX11::Update()") }
 }
 
-struct SWVPBuffer
-{
-	SMatrix4 mWorld;
-	SMatrix4 mView;
-	SMatrix4 mProj;
-	DirectX::XMVECTOR mWorldInverse[3];
-};
-
 void SRenderSystemDX11::Render(const SAppContext& context)
 {
 	S_TRY

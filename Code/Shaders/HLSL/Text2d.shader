@@ -20,7 +20,7 @@ cbuffer VSPSSettingsBuffer : register(b1)
 struct VSInputTxInst
 {
     uint   vVertexID : SV_VertexID;
-	float3 vPosition : POSITION;
+	float3 vPosition : SV_Position;
 	float3 iPosition : INSTANCEPOS;
 	float2 iScale    : INSTANCESCALE;
 	float4 iColor    : INSTANCECOLOR;
@@ -29,15 +29,16 @@ struct VSInputTxInst
 
 struct VSOutputTxClr
 {
-	float4 vPosition : SV_POSITION;
-	float4 vColor    : COLOR0;
+	float4 vPosition : SV_Position;
+	float4 vColor    : COLOR;
 	float2 vTexUV    : TEXCOORD;
 };
 
 struct PSInputTxClr
 {
-	float4 vColor : COLOR;
-	float2 vTexUV : TEXCOORD;
+	float4 vPosition : SV_Position;
+	float4 vColor    : COLOR;
+	float2 vTexUV    : TEXCOORD;
 };
 
 VSOutputTxClr VShader(VSInputTxInst input)

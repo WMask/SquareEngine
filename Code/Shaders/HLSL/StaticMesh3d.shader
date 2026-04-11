@@ -161,9 +161,14 @@ float4 PShader(PSInputNmTx input) : SV_Target0
     const float3 V = normalize(vCameraPos.xyz - input.vPositionWS);
     const float3 L = normalize(-vLightVec[0].xyz);
 
-    // Before lighting, peturb the surface's normal by the one given in normal map.
-    float3 vLocalNormal = TwoChannelNormalX2(NormalTexture.Sample(SurfaceSampler, input.vTexCoord).xy);
-    float3 N = PeturbNormal(vLocalNormal, input.vPositionWS, input.vNormalWS, input.vTexCoord);
+	// Get normal
+	float3 N = input.vNormalWS;
+	if (bHasNormalTexture)
+	{
+		// Before lighting, peturb the surface's normal by the one given in normal map.
+		float3 vLocalNormal = TwoChannelNormalX2(NormalTexture.Sample(SurfaceSampler, input.vTexCoord).xy);
+		N = PeturbNormal(vLocalNormal, input.vPositionWS, input.vNormalWS, input.vTexCoord);
+	}
 
     // Get albedo
     float4 albedo = AlbedoTexture.Sample(SurfaceSampler, input.vTexCoord);
@@ -174,7 +179,11 @@ float4 PShader(PSInputNmTx input) : SV_Target0
     // Shade surface
     float3 color = LightSurface(V, N, albedo.rgb, vRMA.g, vRMA.r, vRMA.b);
 
-    color += EmissiveTexture.Sample(SurfaceSampler, input.vTexCoord).rgb;
+	if (bHasEmissiveTexture)
+	{
+		// Add emissive
+		color += EmissiveTexture.Sample(SurfaceSampler, input.vTexCoord).rgb;
+	}
 
     return float4(color, albedo.w);
 }

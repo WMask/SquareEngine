@@ -242,7 +242,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 			if (emiView) deviceContext->PSSetShaderResources(3, 1, &emiView);
 
 			// setup material flags
-			SMaterialBuffer matFlags{
+			SMaterialBuffer matFlags {
 				(cachedMaterialFlags.bHasBaseTexture && baseView) ? 1 : 0,
 				(cachedMaterialFlags.bHasNormTexture && normView) ? 1 : 0,
 				(cachedMaterialFlags.bHasRMATexture && rmaView) ? 1 : 0,

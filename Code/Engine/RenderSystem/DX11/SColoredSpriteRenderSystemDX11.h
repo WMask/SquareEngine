@@ -5,21 +5,8 @@
 #pragma once
 
 #include "Core/STypes.h"
-#include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 
-#include <d3d11.h>
-#include <wrl.h>
-
-using Microsoft::WRL::ComPtr;
-
-
-struct DX11COLOREDSPRITEINSTANCE
-{
-	SVector3 pos;
-	float    rotation;
-	SVector2 scale;
-	SColor4F colors[4];
-};
 
 /***************************************************************************
 * Colored sprite render system

@@ -306,6 +306,11 @@ namespace SMath
 
 #if USING_DXMATH
 
+inline SMatrix4 operator*(const SMatrix4& a, const SMatrix4& b)
+{
+	return SConvert::ToMatrix4(DirectX::XMMatrixMultiply(SConvert::ToXMatrix(a), SConvert::ToXMatrix(b)));
+}
+
 namespace SMath
 {
 	inline SColor3F LerpColor3(const SColor3F& from, const SColor3F& to, float alpha)
@@ -378,7 +383,7 @@ namespace SMath
 
 	inline SMatrix4 OrthoMatrix(float widthPixels, float heightPixels, float nearPlane, float farPlane)
 	{
-		auto matrix = DirectX::XMMatrixOrthographicLH(widthPixels, heightPixels, 1.0f, -1.0f);
+		auto matrix = DirectX::XMMatrixOrthographicRH(widthPixels, heightPixels, 1.0f, -1.0f);
 		return SConvert::ToMatrix4(matrix);
 	}
 

@@ -18,6 +18,15 @@ struct DX11SPRITEVERTEX
 	SVector3 pos;
 };
 
+/** Colored sprite */
+struct DX11COLOREDSPRITEINSTANCE
+{
+	SVector3 pos;
+	float    rotation;
+	SVector2 scale;
+	SColor4F colors[4];
+};
+
 /** Text glyph data */
 struct DX11TEXTGLYPHINSTANCE
 {

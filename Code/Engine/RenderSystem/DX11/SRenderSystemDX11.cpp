@@ -509,7 +509,7 @@ std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STex
 	return { nullptr, SConst::ZeroSSize2 };
 }
 
-bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
+bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
 {
 	auto mesh = static_cast<SMeshDataDX11*>(meshManager.FindMesh(id));
 	if (mesh)
@@ -809,23 +809,28 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 		return nullptr;
 	}
 
-	outMesh->materials = meshData.materials;
-
 	// load textures
 	for (auto& material : meshData.materials)
 	{
+		STexID baseTexId = ResourceID<STexID>(material.baseTexture.string());
+		STexID normTexId = ResourceID<STexID>(material.normTexture.string());
+		STexID rmaTexId = ResourceID<STexID>(material.rmaTexture.string());
+		STexID emiTexId = ResourceID<STexID>(material.emiTexture.string());
 		SPathList paths;
-		auto [baseView, baseSize] = FindTexture(ResourceID<STexID>(material.baseTexture.string()));
+		auto [baseView, baseSize] = FindTexture(baseTexId);
 		if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
-		auto [normView, normSize] = FindTexture(ResourceID<STexID>(material.normTexture.string()));
+		auto [normView, normSize] = FindTexture(normTexId);
 		if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
-		auto [ormView, ormSize] = FindTexture(ResourceID<STexID>(material.rmaTexture.string()));
+		auto [ormView, ormSize] = FindTexture(rmaTexId);
 		if (!ormView && !material.rmaTexture.empty()) paths.push_back(material.rmaTexture);
-		auto [emiView, emiSize] = FindTexture(ResourceID<STexID>(material.emiTexture.string()));
+		auto [emiView, emiSize] = FindTexture(emiTexId);
 		if (!ormView && !material.emiTexture.empty()) paths.push_back(material.emiTexture);
 
 		if (!paths.empty())
 		{
+			outMesh->materials.emplace_back(baseTexId, normTexId, rmaTexId, emiTexId,
+				material.firstIndex, material.numVertices, material.numIndices);
+
 			static auto onLoaded = [](std::vector<std::filesystem::path>& textures)
 			{
 				for (auto& texture : textures)

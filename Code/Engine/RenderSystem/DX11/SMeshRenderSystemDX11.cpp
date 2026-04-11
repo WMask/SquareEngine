@@ -155,15 +155,11 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 		if (!meshComponent.bVisible) return;
 
 		// store instance data
-		DX11MESHINSTANCE instance{};/*
+		DX11MESHINSTANCE instance{};
 		instance.pos = transformComponent.transform.pos;
 		instance.rotation = transformComponent.transform.rotation;
 		instance.scale = transformComponent.transform.scale;
-		instance.tint = SConvert::ToColor3(meshComponent.tint);*/
-		instance.pos = SVector3{ 0.0f, 5.0f, 0.0f };
-		instance.scale = SConst::OneSVector3;
-		instance.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
-		instance.tint = SConst::White3F;
+		instance.tint = SConvert::ToColor3(meshComponent.tint);
 		batchData.push_back(instance);
 
 		if (batchData.size() == SConst::MaxInstancedMeshesCount)
@@ -224,21 +220,16 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 		for (auto& material : cachedMaterials)
 		{
 			// set textures
-			auto baseTexId = ResourceID<STexID>(material.baseTexture.string());
-			auto normTexId = ResourceID<STexID>(material.normTexture.string());
-			auto rmaTexId = ResourceID<STexID>(material.rmaTexture.string());
-			auto emiTexId = ResourceID<STexID>(material.emiTexture.string());
-
-			auto [baseView, size1] = renderSystemDX11.FindTexture(baseTexId);
+			auto [baseView, size1] = renderSystemDX11.FindTexture(material.baseTexId);
 			if (baseView) deviceContext->PSSetShaderResources(0, 1, &baseView);
 
-			auto [normView, size2] = renderSystemDX11.FindTexture(normTexId);
+			auto [normView, size2] = renderSystemDX11.FindTexture(material.normTexId);
 			if (normView) deviceContext->PSSetShaderResources(1, 1, &normView);
 
-			auto [rmaView, size3] = renderSystemDX11.FindTexture(rmaTexId);
+			auto [rmaView, size3] = renderSystemDX11.FindTexture(material.rmaTexId);
 			if (rmaView) deviceContext->PSSetShaderResources(2, 1, &rmaView);
 
-			auto [emiView, size4] = renderSystemDX11.FindTexture(emiTexId);
+			auto [emiView, size4] = renderSystemDX11.FindTexture(material.emiTexId);
 			if (emiView) deviceContext->PSSetShaderResources(3, 1, &emiView);
 
 			// setup material flags

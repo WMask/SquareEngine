@@ -21,8 +21,6 @@ namespace SConst
 	static const std::uint32_t MaxLightsCount = 64u;
 }
 
-/** Id in texture manager */
-using STexID = std::uint32_t;
 /** Textures delegate */
 using OnTexturesLoadedDelegate = std::function<void(std::vector<std::filesystem::path>&)>;
 /** Mesh instances delegate */

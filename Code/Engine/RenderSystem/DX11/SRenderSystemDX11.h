@@ -44,7 +44,7 @@ public:// IRenderSystemDX11 interface implementation
 	//
 	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const override;
 	//
-	virtual bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials,
+	virtual bool FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials,
 		ID3D11Buffer** outVB, ID3D11Buffer** outIB) const override;
 	//
 	virtual SConstantBuffersDX11& GetConstantBuffers() noexcept override { return constantBuffers; }

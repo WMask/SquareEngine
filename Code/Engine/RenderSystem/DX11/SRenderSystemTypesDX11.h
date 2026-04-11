@@ -73,7 +73,7 @@ struct STextureDataDX11 : public SCubemapDataDX11
 /** DirectX 11 mesh data */
 struct SMeshDataDX11 : public SMeshBase
 {
-	std::vector<SMaterial> materials;
+	std::vector<SMeshMaterial> materials;
 	//
 	ComPtr<ID3D11Buffer> vb;
 	//
@@ -94,7 +94,7 @@ public:
 	//
 	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const = 0;
 	//
-	virtual bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const = 0;
+	virtual bool FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const = 0;
 	//
 	virtual class SConstantBuffersDX11& GetConstantBuffers() noexcept = 0;
 	//

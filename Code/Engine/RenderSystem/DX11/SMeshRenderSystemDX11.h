@@ -46,7 +46,7 @@ protected:
 	//
 	std::vector<DX11MESHINSTANCE> batchData;
 	//
-	std::vector<SMaterial> cachedMaterials;
+	std::vector<SMeshMaterial> cachedMaterials;
 	//
 	SMaterialBuffer cachedMaterialFlags;
 	//

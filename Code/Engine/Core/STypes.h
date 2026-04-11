@@ -81,6 +81,9 @@ constexpr bool InRange(T value, T minValue, T maxValue)
 * Mesh
 */
 
+/** Id in texture manager */
+using STexID = std::uint32_t;
+
 /** Static mesh vertex */
 struct SVertex
 {
@@ -99,6 +102,24 @@ struct SMaterial
 	std::filesystem::path rmaTexture;
 	// rgb - emissive
 	std::filesystem::path emiTexture;
+	// 
+	std::uint16_t firstIndex;
+	//
+	std::uint16_t numVertices;
+	//
+	std::uint16_t numIndices;
+};
+
+/** Mesh material */
+struct SMeshMaterial
+{
+	STexID baseTexId;
+	//
+	STexID normTexId;
+	//
+	STexID rmaTexId;
+	//
+	STexID emiTexId;
 	// 
 	std::uint16_t firstIndex;
 	//
@@ -132,7 +153,7 @@ using SGroupID = std::uint32_t;
 /** Mesh instance */
 struct SMeshInstance
 {
-	// mesh id in mesh manager
+	//
 	SMeshID id;
 	//
 	SGroupID group;

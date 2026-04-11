@@ -44,25 +44,6 @@ struct SSingleMatrixBuffer
 	SMatrix4 mat;
 };
 
-enum ECubemapType : int
-{
-	// diffuse ambient light (radiance)
-	Diffuse,
-	// specular reflection (irradiance)
-	Specular
-};
-
-namespace SConst
-{
-	static std::string_view GetNameByType(ECubemapType type)
-	{
-		static const std::string_view diffuseName = "Diffuse";
-		static const std::string_view specularName = "Specular";
-
-		return (type == ECubemapType::Diffuse) ? diffuseName : specularName;
-	}
-}
-
 /** Render settings */
 struct SSettingsBuffer
 {
@@ -124,3 +105,75 @@ constexpr std::uint32_t Align16()
 {
 	return (sizeof(T) + 15) & ~15;
 }
+
+enum ECubemapType : int
+{
+	// diffuse ambient light (radiance)
+	Diffuse,
+	// specular reflection (irradiance)
+	Specular
+};
+
+namespace SConst
+{
+	static std::string_view GetNameByType(ECubemapType type)
+	{
+		static const std::string_view diffuseName = "Diffuse";
+		static const std::string_view specularName = "Specular";
+
+		return (type == ECubemapType::Diffuse) ? diffuseName : specularName;
+	}
+}
+
+struct STextureBase
+{
+	virtual ~STextureBase() {}
+};
+
+struct STextureData
+{
+	SBytes data;
+	SSize2 texSize;
+	STexID id;
+};
+
+struct SCubemapData
+{
+	SBytes data;
+	ECubemapType type;
+};
+
+/** Texture lifetime policy */
+class ITextureLifetime
+{
+public:
+	//
+	virtual std::shared_ptr<STextureBase> CreateTexture(const STextureData& data) = 0;
+	//
+	virtual std::shared_ptr<STextureBase> CreateCubemap(const SCubemapData& data) = 0;
+};
+
+struct SMeshBase
+{
+	virtual ~SMeshBase() {}
+};
+
+struct SMeshData
+{
+	// generated from fbx path
+	SMeshID id{};
+	//
+	std::vector<SMesh> meshes;
+	//
+	std::vector<SMeshInstance> instances;
+};
+
+/** Mesh lifetime policy */
+class IMeshLifetime
+{
+public:
+	//
+	virtual std::shared_ptr<SMeshBase> CreateMesh(const SMesh& data) = 0;
+	//
+	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SMesh& data) = 0;
+};

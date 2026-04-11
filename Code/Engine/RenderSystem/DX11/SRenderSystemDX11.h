@@ -5,16 +5,16 @@
 #pragma once
 
 #include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
-#include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
-#include "RenderSystem/DX11/SMeshManagerDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STextRenderSystemDX11.h"
 #include "RenderSystem/DX11/SMeshRenderSystemDX11.h"
-#include "RenderSystem/Windows/SDXShaderManager.h"
-#include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/Windows/SMeshManagerWindows.h"
+#include "RenderSystem/Windows/STextureManagerWindows.h"
+#include "RenderSystem/Windows/SShaderManagerWindows.h"
+#include "RenderSystem/Windows/SUtilsWindows.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_4.h>
@@ -26,7 +26,10 @@
 /***************************************************************************
 * DirectX 11 render system
 */
-class SRenderSystemDX11 : public IRenderSystemDX11
+class SRenderSystemDX11
+	: public IRenderSystemDX11
+	, public ITextureLifetime
+	, public IMeshLifetime
 {
 public:
 	//
@@ -46,7 +49,7 @@ public:// IRenderSystemDX11 interface implementation
 	//
 	virtual SConstantBuffersDX11& GetConstantBuffers() noexcept override { return constantBuffers; }
 	//
-	virtual STextureManagerDX11& GetTextureManager() noexcept override { return textureManager; }
+	virtual STextureManagerWindows& GetTextureManager() noexcept override { return textureManager; }
 	//
 	virtual ID3D11DeviceContext* GetDeviceContext() const noexcept override { return deviceContext.Get(); }
 	//
@@ -117,6 +120,20 @@ public:// IRenderSystemEx interface implementation
 	virtual void AddDrawCalls(std::uint32_t inDrawCalls) noexcept { drawCalls += inDrawCalls; }
 
 
+protected:// ITextureLifetime interface implementation
+	//
+	virtual std::shared_ptr<STextureBase> CreateTexture(const STextureData& data) override;
+	//
+	virtual std::shared_ptr<STextureBase> CreateCubemap(const SCubemapData& data) override;
+
+
+protected:// IMeshLifetime interface implementation
+	//
+	virtual std::shared_ptr<SMeshBase> CreateMesh(const SMesh& data) override;
+	//
+	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SMesh& data) override;
+
+
 protected:
 	//
 	void CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height);
@@ -144,11 +161,11 @@ protected:
 	//
 	SConstantBuffersDX11 constantBuffers;
 	//
-	STextureManagerDX11 textureManager;
+	STextureManagerWindows textureManager;
 	//
-	SMeshManagerDX11 meshManager;
+	SShaderManagerWindows shaderManager;
 	//
-	SDXShaderManager shaderManager;
+	SMeshManagerWindows meshManager;
 	//
 	ComPtr<IDXGISwapChain4> swapChain;
 	//

@@ -1,10 +1,10 @@
 /***************************************************************************
-* SDXShaderManager.cpp
+* SShaderManagerWindows.cpp
 */
 
 #ifdef WIN32
 
-#include "RenderSystem/Windows/SDXShaderManager.h"
+#include "RenderSystem/Windows/SShaderManagerWindows.h"
 #include "Core/SUtils.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
@@ -45,24 +45,24 @@ private:
 	const std::unordered_map<std::string, SBytes>& includeShaders;
 };
 
-SDXShaderManager::~SDXShaderManager()
+SShaderManagerWindows::~SShaderManagerWindows()
 {
 	Shutdown();
 }
 
-void SDXShaderManager::Shutdown()
+void SShaderManagerWindows::Shutdown()
 {
 	compiledShaders.reset();
 	threadPool = nullptr;
 }
 
-void SDXShaderManager::Init(IThreadPool* inThreadPool)
+void SShaderManagerWindows::Init(IThreadPool* inThreadPool)
 {
 	threadPool = inThreadPool;
 	compiledShaders = std::make_shared<TCircularFIFOShaderQueue>(SConst::MaxShaders);
 }
 
-void SDXShaderManager::Update()
+void SShaderManagerWindows::Update()
 {
 	if (compiledShaders)
 	{
@@ -80,17 +80,17 @@ void SDXShaderManager::Update()
 	}
 }
 
-void SDXShaderManager::LoadShader(const std::filesystem::path& path, TOnLoadedDelegate delegate)
+void SShaderManagerWindows::LoadShader(const std::filesystem::path& path, TOnLoadedDelegate delegate)
 {
 	std::vector<std::filesystem::path> paths{ path };
 	LoadShaders(paths, delegate);
 }
 
-void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& paths, TOnLoadedDelegate delegate)
+void SShaderManagerWindows::LoadShaders(const std::vector<std::filesystem::path>& paths, TOnLoadedDelegate delegate)
 {
 	if (!threadPool || !compiledShaders)
 	{
-		throw std::exception("SDXShaderManager::LoadShader(): manager is not initialized");
+		throw std::exception("SShaderManagerWindows::LoadShader(): manager is not initialized");
 	}
 
 	auto LoadShadersTask = [this, paths, delegate]()
@@ -110,7 +110,7 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 				}
 				catch (std::exception&)
 				{
-					DebugMsg("[%s] SDXShaderManager::LoadShaders(): cannot load '%s' include file\n",
+					DebugMsg("[%s] SShaderManagerWindows::LoadShaders(): cannot load '%s' include file\n",
 						GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
 				}
 
@@ -152,7 +152,7 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 
 			if (code.empty())
 			{
-				DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): cannot read file\n",
+				DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): cannot read file\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str());
 			}
 			else
@@ -162,7 +162,7 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 				{
 					if (threadPool->IsDebugLogsEnabled())
 					{
-						DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): vertex shader compiled\n",
+						DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): vertex shader compiled\n",
 							GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str());
 					}
 				}
@@ -173,12 +173,12 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 						auto errorMsg = static_cast<const char*>(compileError ? compileError->GetBufferPointer() : nullptr);
 						if (errorMsg)
 						{
-							DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): vertex shader compilation error '%s'\n",
+							DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): vertex shader compilation error '%s'\n",
 								GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str(), errorMsg);
 						}
 						else
 						{
-							DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): vertex shader compilation error\n",
+							DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): vertex shader compilation error\n",
 								GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str());
 						}
 					}
@@ -190,7 +190,7 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 				{
 					if (threadPool->IsDebugLogsEnabled())
 					{
-						DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): pixel shader compiled\n",
+						DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): pixel shader compiled\n",
 							GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str());
 					}
 				}
@@ -201,12 +201,12 @@ void SDXShaderManager::LoadShaders(const std::vector<std::filesystem::path>& pat
 						auto errorMsg = static_cast<const char*>(compileError ? compileError->GetBufferPointer() : nullptr);
 						if (errorMsg)
 						{
-							DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): pixel shader compilation error '%s'\n",
+							DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): pixel shader compilation error '%s'\n",
 								GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str(), errorMsg);
 						}
 						else
 						{
-							DebugMsg("[%s] SDXShaderManager::LoadShaders('%s'): pixel shader compilation error\n",
+							DebugMsg("[%s] SShaderManagerWindows::LoadShaders('%s'): pixel shader compilation error\n",
 								GetTimeStamp(std::chrono::system_clock::now()).c_str(), name.c_str());
 						}
 					}

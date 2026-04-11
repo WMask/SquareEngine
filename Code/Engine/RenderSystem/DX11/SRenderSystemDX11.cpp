@@ -5,7 +5,7 @@
 #ifdef WIN32
 
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
-#include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/Windows/SUtilsWindows.h"
 #include "Application/SApplicationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -220,7 +220,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	// init managers
 	shaderManager.Init(context.pool);
-	textureManager.Init(context.pool);
+	textureManager.Init(context.pool, this);
 	meshManager.Init(context.pool, this);
 
 	cachedCameraPos2d = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
@@ -382,7 +382,7 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 	}
 
 	// request load & compile
-	shaderManager.LoadShaders(paths, [this](const SDXShaderManager::SCompiledShader& shaderData)
+	shaderManager.LoadShaders(paths, [this](const SShaderManagerWindows::SCompiledShader& shaderData)
 	{
 		if (!d3dDevice)
 		{
@@ -441,7 +441,7 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 
 void SRenderSystemDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
 {
-	textureManager.LoadCubemap(path, type, d3dDevice.Get());
+	textureManager.LoadCubemap(path, type);
 	constantBuffers.UpdateCubemapSettings(*this);
 }
 
@@ -489,25 +489,38 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 
 ID3D11ShaderResourceView* SRenderSystemDX11::FindCubemap(ECubemapType type) const
 {
-	return textureManager.FindCubemap(type);
+	auto cubemap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(type));
+	if (cubemap)
+	{
+		return cubemap->view.Get();
+	}
+
+	return nullptr;
 }
 
 std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
 {
-	SSize2 size{};
-	ID3D11Texture2D* texture{};
-	ID3D11ShaderResourceView* view{};
-	if (textureManager.FindTexture(id, &texture, &view, &size))
+	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
+	if (texture)
 	{
-		return { view, size };
+		return { texture->view.Get(), texture->texSize };
 	}
 
-	return { view, size };
+	return { nullptr, SConst::ZeroSSize2 };
 }
 
 bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
 {
-	return meshManager.FindMesh(id, outMaterials, outVB, outIB);
+	auto mesh = static_cast<SMeshDataDX11*>(meshManager.FindMesh(id));
+	if (mesh)
+	{
+		if (outMaterials) *outMaterials = mesh->materials;
+		if (outVB) *outVB = mesh->vb.Get();
+		if (outIB) *outIB = mesh->ib.Get();
+		return true;
+	}
+
+	return false;
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -515,8 +528,8 @@ void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
 	S_TRY
 
 	shaderManager.Update();
-	textureManager.Update(d3dDevice.Get());
-	meshManager.Update(d3dDevice.Get());
+	textureManager.Update();
+	meshManager.Update();
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Update()") }
 }
@@ -547,10 +560,10 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 		cachedRenderSystemSize.width, cachedRenderSystemSize.height, context.gameTime);
 	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
 
-	auto diffuseMap = textureManager.FindCubemap(ECubemapType::Diffuse);
-	if (diffuseMap) deviceContext->PSSetShaderResources(4, 1, &diffuseMap);
-	auto specularMap = textureManager.FindCubemap(ECubemapType::Specular);
-	if (specularMap) deviceContext->PSSetShaderResources(5, 1, &specularMap);
+	auto diffuseMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Diffuse));
+	if (diffuseMap) deviceContext->PSSetShaderResources(4, 1, diffuseMap->view.GetAddressOf());
+	auto specularMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Specular));
+	if (specularMap) deviceContext->PSSetShaderResources(5, 1, specularMap->view.GetAddressOf());
 
 	meshRender.Render(context.deltaSeconds);
 
@@ -709,6 +722,131 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 void SRenderSystemDX11::SetMode(SAppMode mode)
 {
 	if (swapChain) swapChain->SetFullscreenState((mode == SAppMode::Fullscreen), nullptr);
+}
+
+std::shared_ptr<STextureBase> SRenderSystemDX11::CreateTexture(const STextureData& textureData)
+{
+	D3D11_SUBRESOURCE_DATA initData = {
+		textureData.data.data(),
+		static_cast<UINT>(textureData.texSize.width * 4),
+		static_cast<UINT>(textureData.data.size())
+	};
+
+	// create texture
+	D3D11_TEXTURE2D_DESC desc{};
+	desc.Width = textureData.texSize.width;
+	desc.Height = textureData.texSize.height;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.SampleDesc.Count = 1;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	ComPtr<ID3D11Texture2D> newTexture;
+	if (SUCCEEDED(d3dDevice->CreateTexture2D(&desc, &initData, newTexture.GetAddressOf())))
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+		SRVDesc.Format = desc.Format;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MipLevels = 1;
+
+		ComPtr<ID3D11ShaderResourceView> newView;
+		if (SUCCEEDED(d3dDevice->CreateShaderResourceView(newTexture.Get(), &SRVDesc, newView.GetAddressOf())))
+		{
+			auto outTexture = std::make_shared<STextureDataDX11>();
+			outTexture->texture = std::move(newTexture);
+			outTexture->view = std::move(newView);
+			outTexture->texSize = textureData.texSize;
+			return outTexture;
+		}
+	}
+
+	return nullptr;
+}
+
+std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapData& cubemapData)
+{
+	auto outCubemap = std::make_shared<SCubemapDataDX11>();
+
+	if (FAILED(DirectX::CreateDDSTextureFromMemory(
+		d3dDevice.Get(), cubemapData.data.data(), cubemapData.data.size(),
+		outCubemap->texture.GetAddressOf(), outCubemap->view.GetAddressOf())))
+	{
+		return nullptr;
+	}
+
+	return outCubemap;
+}
+
+std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
+{
+	auto outMesh = std::make_shared<SMeshDataDX11>();
+
+	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferDesc.ByteWidth = sizeof(SVertex) * meshData.vertices.size();
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA bufferData{};
+	bufferData.pSysMem = meshData.vertices.data();
+
+	// create vertex buffer
+	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, outMesh->vb.GetAddressOf())))
+	{
+		DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): Cannot create vertex buffer\n",
+			GetTimeStamp(std::chrono::system_clock::now()).c_str());
+		return nullptr;
+	}
+
+	// create index buffer
+	bufferDesc.ByteWidth = sizeof(std::uint16_t) * meshData.indices.size();
+	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferData.pSysMem = meshData.indices.data();
+
+	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, outMesh->ib.GetAddressOf())))
+	{
+		DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): Cannot create index buffer\n",
+			GetTimeStamp(std::chrono::system_clock::now()).c_str());
+		return nullptr;
+	}
+
+	outMesh->materials = meshData.materials;
+
+	// load textures
+	for (auto& material : meshData.materials)
+	{
+		SPathList paths;
+		auto [baseView, baseSize] = FindTexture(ResourceID<STexID>(material.baseTexture.string()));
+		if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
+		auto [normView, normSize] = FindTexture(ResourceID<STexID>(material.normTexture.string()));
+		if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
+		auto [ormView, ormSize] = FindTexture(ResourceID<STexID>(material.rmaTexture.string()));
+		if (!ormView && !material.rmaTexture.empty()) paths.push_back(material.rmaTexture);
+		auto [emiView, emiSize] = FindTexture(ResourceID<STexID>(material.emiTexture.string()));
+		if (!ormView && !material.emiTexture.empty()) paths.push_back(material.emiTexture);
+
+		if (!paths.empty())
+		{
+			static auto onLoaded = [](std::vector<std::filesystem::path>& textures)
+			{
+				for (auto& texture : textures)
+				{
+					DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): material texture loaded '%s'\n",
+						GetTimeStamp(std::chrono::system_clock::now()).c_str(), texture.string().c_str());
+				}
+			};
+			textureManager.PreloadTextures(paths, onLoaded);
+		}
+	}
+
+	DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): mesh '%s' created and added to cache\n",
+		GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.name.c_str());
+
+	return outMesh;
+}
+
+std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateSkeletalMesh(const SMesh& data)
+{
+	return nullptr;
 }
 
 #endif // WIN32

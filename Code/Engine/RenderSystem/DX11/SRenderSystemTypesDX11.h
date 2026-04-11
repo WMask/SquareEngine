@@ -57,6 +57,29 @@ struct SShaderDataDX11 : public IRenderSystem::SShaderData
 	ID3DBlob* vsCode{};
 };
 
+/** DirectX 11 cubemap data */
+struct SCubemapDataDX11 : public STextureBase
+{
+	ComPtr<ID3D11Resource> texture;
+	ComPtr<ID3D11ShaderResourceView> view;
+};
+
+/** DirectX 11 texture data */
+struct STextureDataDX11 : public SCubemapDataDX11
+{
+	SSize2 texSize{};
+};
+
+/** DirectX 11 mesh data */
+struct SMeshDataDX11 : public SMeshBase
+{
+	std::vector<SMaterial> materials;
+	//
+	ComPtr<ID3D11Buffer> vb;
+	//
+	ComPtr<ID3D11Buffer> ib;
+};
+
 
 /***************************************************************************
 * DirectX 11 render system interface
@@ -75,7 +98,7 @@ public:
 	//
 	virtual class SConstantBuffersDX11& GetConstantBuffers() noexcept = 0;
 	//
-	virtual class STextureManagerDX11& GetTextureManager() noexcept = 0;
+	virtual class STextureManagerWindows& GetTextureManager() noexcept = 0;
 	//
 	virtual ID3D11DeviceContext* GetDeviceContext() const noexcept = 0;
 	//

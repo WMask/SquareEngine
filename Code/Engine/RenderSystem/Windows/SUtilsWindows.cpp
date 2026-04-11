@@ -1,10 +1,10 @@
 /***************************************************************************
-* SWindowsUtils.h
+* SUtilsWindows.h
 */
 
 #ifdef WIN32
 
-#include "RenderSystem/Windows/SWindowsUtils.h"
+#include "RenderSystem/Windows/SUtilsWindows.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 

@@ -1,5 +1,5 @@
 /***************************************************************************
-* SDXShaderManager.h
+* SShaderManagerWindows.h
 */
 
 #pragma once
@@ -15,7 +15,7 @@
 /***************************************************************************
 * DirectX shader manager
 */
-class SDXShaderManager
+class SShaderManagerWindows
 {
 public:
 	//
@@ -38,9 +38,9 @@ public:
 
 public:
 	//
-	SDXShaderManager() : threadPool{} {}
+	SShaderManagerWindows() : threadPool{} {}
 	//
-	~SDXShaderManager();
+	~SShaderManagerWindows();
 	//
 	void Init(IThreadPool* threadPool);
 	//

@@ -409,6 +409,13 @@ namespace SConvert
 		std::memcpy(&result,  &m4._11, sizeof(float) * 16);
 		return result;
 	}
+
+	inline DirectX::XMMATRIX ToXMatrix(const SMatrix4& m)
+	{
+		DirectX::XMFLOAT4X4 m4;
+		std::memcpy(&m4._11 , m.m, sizeof(float) * 16);
+		return DirectX::XMLoadFloat4x4(&m4);
+	}
 }
 
 #endif // USING_DXMATH

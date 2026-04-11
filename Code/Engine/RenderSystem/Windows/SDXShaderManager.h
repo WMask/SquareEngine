@@ -4,29 +4,13 @@
 
 #pragma once
 
-#include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 #include "Core/ThreadPool/SThreadPoolInterface.h"
 #include "Core/ThreadPool/Fifo4.h"
 #include "Core/SUtils.h"
 
-#include <d3d11.h>
 #include <d3dcompiler.h>
-#include <wrl.h>
 
-using Microsoft::WRL::ComPtr;
-
-
-/** DirectX 11 shader data */
-struct SShaderDataDX11 : public IRenderSystem::SShaderData
-{
-	ComPtr<ID3D11VertexShader> vs;
-	//
-	ComPtr<ID3D11PixelShader> ps;
-	//
-	ComPtr<ID3D11InputLayout> layout;
-	//
-	ID3DBlob* vsCode{};
-};
 
 /***************************************************************************
 * DirectX shader manager

@@ -2,22 +2,25 @@
 
 #include "ShaderUtils.hlsli"
 
-cbuffer VS_WVP_BUFFER : register(b0)
+cbuffer VSMatrixBuffer : register(b0)
 {
-	row_major float4x4 mTrans;
-	row_major float4x4 mView;
-	row_major float4x4 mProj;
+	float4x4 mWorld;
+	float4x4 mView;
+	float4x4 mProj;
+	float3x3 mNormal;
 };
 
-cbuffer VS_SETTINGS_BUFFER : register(b1)
+cbuffer VSPSSettingsBuffer : register(b1)
 {
 	float4 vGlobalTint;
+	float4 vCameraPos;
+	float4 vViewDir;
 };
 
-struct VS_INPUT
+struct VSInputTxInst
 {
     uint   vVertexID : SV_VertexID;
-	float3 vPosition : POSITION;
+	float3 vPosition : SV_Position;
 	float3 iPosition : INSTANCEPOS;
 	float  iRotation : INSTANCEROT;
 	float2 iScale    : INSTANCESCALE;
@@ -25,16 +28,23 @@ struct VS_INPUT
 	float2 iTexUV[4] : INSTANCEUV;
 };
 
-struct VS_OUT
+struct VSOutputTxClr
 {
-	float4 vPosition : SV_POSITION;
-	float4 vColor    : COLOR0;
+	float4 vPosition : SV_Position;
+	float4 vColor    : COLOR;
 	float2 vTexUV    : TEXCOORD;
 };
 
-VS_OUT VShader(VS_INPUT input)
+struct PSInputTxClr
 {
-	VS_OUT output;
+	float4 vPosition : SV_Position;
+	float4 vColor    : COLOR;
+	float2 vTexUV    : TEXCOORD;
+};
+
+VSOutputTxClr VShader(VSInputTxInst input)
+{
+	VSOutputTxClr output;
 
 	float2 vPos2D = (input.vPosition.xy * input.iScale);
 	float2 vRotatedPos2D = SRotate2D(vPos2D, input.iRotation);
@@ -43,7 +53,7 @@ VS_OUT VShader(VS_INPUT input)
 		vRotatedPos2D + input.iPosition.xy,
 		1.0 - input.iPosition.z,
 		1.0);
-	float4x4 mWVP = mul(mTrans, mul(mView, mProj));
+	float4x4 mWVP = mul(mWorld, mul(mView, mProj));
 
 	output.vPosition = mul(vWorldPos, mWVP);
 	output.vColor = input.iColor[input.vVertexID];
@@ -52,17 +62,11 @@ VS_OUT VShader(VS_INPUT input)
 	return output;
 }
 
-Texture2D tex2D;
+Texture2D<float4> AlbedoTexture : register(t0);
+sampler SurfaceSampler : register(s0);
 
-SamplerState linearSampler
+float4 PShader(PSInputTxClr input) : SV_Target0
 {
-	Filter = MIN_MAG_MIP_LINEAR;
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-float4 PShader(float4 vPosition : SV_POSITION, float4 vColor : COLOR0, float2 vCoord : TEXCOORD) : SV_TARGET
-{
-	float4 vTexColor = tex2D.Sample(linearSampler, vCoord);
-	return vTexColor * vColor * vGlobalTint;
+	float4 vTexColor = AlbedoTexture.Sample(SurfaceSampler, input.vTexUV);
+	return vTexColor * input.vColor * vGlobalTint;
 }

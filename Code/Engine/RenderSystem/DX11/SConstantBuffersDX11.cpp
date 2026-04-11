@@ -3,7 +3,7 @@
 */
 
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
-#include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 #include "Core/SException.h"
 #include "Core/STypes.h"
 #include "Core/SMath.h"
@@ -12,9 +12,10 @@
 
 struct SWVPBuffer
 {
-	SMatrix4 mTrans;
+	SMatrix4 mWorld;
 	SMatrix4 mView;
 	SMatrix4 mProj;
+	DirectX::XMVECTOR mWorldInverse[3];
 };
 
 SConstantBuffersDX11::~SConstantBuffersDX11()
@@ -31,7 +32,7 @@ void SConstantBuffersDX11::Shutdown()
 	defaultTexture.Reset();
 	settingsBuffer.Reset();
 	lightsBuffer.Reset();
-	meshBuffer.Reset();
+	materialBuffer.Reset();
 }
 
 void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
@@ -51,7 +52,7 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	wvpData.mView = SMath::LookAtMatrix(
 		camera.GetPosition(SCameraSpace::Camera2D),
 		camera.GetTarget(SCameraSpace::Camera2D), true);
-	wvpData.mTrans = SConst::IdentitySMatrix4;
+	wvpData.mWorld = SConst::IdentitySMatrix4;
 	subResData.pSysMem = &wvpData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, wvpMatrixBuffer.GetAddressOf())))
 	{
@@ -63,6 +64,10 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	settingsData.worldTint = SConvert::ToVector4(SConst::White3);
 	settingsData.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
 	settingsData.viewDir = SConvert::ToVector4(camera.GetViewDir());
+	settingsData.bHasDiffuseCubemap = FALSE;
+	settingsData.bHasSpecularCubemap = FALSE;
+	settingsData.diffuseAmount = 1.0f;
+	settingsData.specularAmount = 1.0f;
 	subResData.pSysMem = &settingsData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, settingsBuffer.GetAddressOf())))
 	{
@@ -80,9 +85,8 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 
 	SMaterialBuffer materialData{};
 	cbDesc.ByteWidth = Align16<SMaterialBuffer>();
-	lightsData.numLights = 0u;
 	subResData.pSysMem = &materialData;
-	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, meshBuffer.GetAddressOf())))
+	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, materialBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");
 	}
@@ -91,9 +95,9 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	d3dDeviceContext->VSSetConstantBuffers(0, 1, wvpMatrixBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
 	d3dDeviceContext->PSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(2, 1, meshBuffer.GetAddressOf());
-	d3dDeviceContext->PSSetConstantBuffers(2, 1, meshBuffer.GetAddressOf());
-	d3dDeviceContext->VSSetConstantBuffers(3, 1, lightsBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(2, 1, materialBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(2, 1, materialBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(3, 1, lightsBuffer.GetAddressOf());
 
 	// create vertex buffer
 	DX11SPRITEVERTEX data[] = {
@@ -179,34 +183,41 @@ void SConstantBuffersDX11::ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContex
 {
 	if (d3dDeviceContext)
 	{
-		SWVPBuffer wvpData;
-		wvpData.mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
-		wvpData.mView = SMath::LookAtMatrix(
+		SMatrix4 mWorld = SMath::ScaleMatrix2(worldScale);
+		SMatrix4 mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
+		SMatrix4 mInvertY = SMath::ScaleMatrix2({ 1.0f, -1.0f });
+		SMatrix4 mView = SMath::LookAtMatrix(
 			camera.GetPosition(SCameraSpace::Camera2D),
-			camera.GetTarget(SCameraSpace::Camera2D), true);
-		wvpData.mTrans = SMath::ScaleMatrix2(worldScale);
+			camera.GetTarget(SCameraSpace::Camera2D));
+		SWVPBuffer wvpData{ SMath::TransposeM4(mWorld), SMath::TransposeM4(mView), SMath::TransposeM4(mProj) * mInvertY };
 		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
 	}
 }
 
-void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera, std::uint32_t width, std::uint32_t height)
+void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+	std::uint32_t width, std::uint32_t height, float gameTime)
 {
 	if (d3dDeviceContext)
 	{
-		SWVPBuffer wvpData;
+		SMatrix4 mWorld = SMath::RotationMatrixY(cosf(gameTime) * 2.f);
 		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
-		wvpData.mProj = SMath::ProjectionMatrix(camera.GetFOV(), aspectRatio, 0.1f, 10000.0f);
-		wvpData.mView = SMath::LookAtMatrix(
+		SMatrix4 mProj = SMath::ProjectionMatrix(camera.GetFOV(), aspectRatio, 0.1f, 10000.0f);
+		SMatrix4 mView = SMath::LookAtMatrix(
 			camera.GetPosition(SCameraSpace::Camera3D), camera.GetTarget(SCameraSpace::Camera3D));
-		wvpData.mTrans = SMath::ScaleMatrix3(SConst::OneSVector3);
+		SWVPBuffer wvpData{ SMath::TransposeM4(mWorld), SMath::TransposeM4(mView), SMath::TransposeM4(mProj) };
+		const DirectX::XMMATRIX worldInverse = SConvert::ToXMatrix(SMath::InverseM4(mWorld));
+		wvpData.mWorldInverse[0] = worldInverse.r[0];
+		wvpData.mWorldInverse[1] = worldInverse.r[1];
+		wvpData.mWorldInverse[2] = worldInverse.r[2];
 		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
 	}
 }
 
-void SConstantBuffersDX11::UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceContext,
-	const SCamera& camera, const std::optional<SColor3>& globalTint, float envCubemapAmount)
+void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderSystem,
+	const SCamera& camera, const std::optional<SColor3>& globalTint)
 {
-	if (settingsBuffer)
+	auto deviceContext = renderSystem.GetDeviceContext();
+	if (deviceContext && settingsBuffer)
 	{
 		SSettingsBuffer settings{};
 		settings.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
@@ -217,17 +228,11 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceCo
 		else
 			settings.worldTint = SConst::OneSVector4;
 
-		if (envCubemapAmount >= 0.0f)
-		{
-			settings.bHasEnvCubemap = TRUE;
-			settings.envCubemapAmount = envCubemapAmount;
-		}
-		else
-		{
-			settings.bHasEnvCubemap = FALSE;
-			settings.envCubemapAmount = envCubemapAmount;
-		}
+		settings.bHasDiffuseCubemap = renderSystem.FindCubemap(ECubemapType::Diffuse) ? TRUE : FALSE;
+		settings.bHasSpecularCubemap = renderSystem.FindCubemap(ECubemapType::Specular) ? TRUE : FALSE;
+		settings.diffuseAmount = renderSystem.GetCubemapAmount(ECubemapType::Diffuse);
+		settings.specularAmount = renderSystem.GetCubemapAmount(ECubemapType::Specular);
 
-		d3dDeviceContext->UpdateSubresource(settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
+		deviceContext->UpdateSubresource(settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
 	}
 }

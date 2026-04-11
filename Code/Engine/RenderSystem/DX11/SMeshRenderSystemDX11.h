@@ -5,21 +5,8 @@
 #pragma once
 
 #include "Core/STypes.h"
-#include "RenderSystem/SRenderSystemInterface.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 
-#include <d3d11.h>
-#include <wrl.h>
-
-using Microsoft::WRL::ComPtr;
-
-
-struct DX11MESHINSTANCE
-{
-	SVector3 pos;
-	SQuat    rotation;
-	SVector3 scale;
-	SColor3F tint;
-};
 
 /***************************************************************************
 * Static mesh render system
@@ -28,7 +15,7 @@ class SMeshRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	SMeshRenderSystemDX11(class SRenderSystemDX11& renderSystem);
+	SMeshRenderSystemDX11(class IRenderSystemDX11& renderSystem);
 	//
 	~SMeshRenderSystemDX11();
 	//
@@ -48,9 +35,7 @@ protected:
 
 protected:
 	//
-	class SRenderSystemDX11& renderSystemDX11;
-	//
-	ID3D11DeviceContext* d3dDeviceContext;
+	IRenderSystemDX11& renderSystemDX11;
 	//
 	ComPtr<ID3D11Buffer> instanceBuffer;
 	//

@@ -4,24 +4,21 @@
 
 #pragma once
 
-#include "RenderSystem/SRenderSystemInterface.h"
-#include "RenderSystem/Windows/SDXShaderManager.h"
-#include "RenderSystem/Windows/SWindowsUtils.h"
-#include "RenderSystem/DX11/SMeshManagerDX11.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 #include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SConstantBuffersDX11.h"
+#include "RenderSystem/DX11/SMeshManagerDX11.h"
 #include "RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STextRenderSystemDX11.h"
 #include "RenderSystem/DX11/SMeshRenderSystemDX11.h"
+#include "RenderSystem/Windows/SDXShaderManager.h"
+#include "RenderSystem/Windows/SWindowsUtils.h"
 
 #include <d3d11_4.h>
 #include <dxgi1_4.h>
 #include <directxmath.h>
-#include <wrl.h>
-
-using Microsoft::WRL::ComPtr;
 
 #pragma warning(disable : 4251)
 
@@ -29,31 +26,35 @@ using Microsoft::WRL::ComPtr;
 /***************************************************************************
 * DirectX 11 render system
 */
-class SRenderSystemDX11 : public IRenderSystemEx
+class SRenderSystemDX11 : public IRenderSystemDX11
 {
 public:
 	//
 	SRenderSystemDX11();
+
+
+public:// IRenderSystemDX11 interface implementation
 	//
-	const SShaderDataDX11* FindShader(const std::string& name) const;
+	virtual const SShaderDataDX11* FindShader(const std::string& name) const override;
 	//
-	std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const;
+	virtual ID3D11ShaderResourceView* FindCubemap(ECubemapType type) const override;
 	//
-	ID3D11ShaderResourceView* GetCubemap() const { return textureManager.GetCubemap(); }
+	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const override;
 	//
-	bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const;
+	virtual bool FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials,
+		ID3D11Buffer** outVB, ID3D11Buffer** outIB) const override;
 	//
-	SConstantBuffersDX11& GetConstantBuffers() noexcept { return constantBuffers; }
+	virtual SConstantBuffersDX11& GetConstantBuffers() noexcept override { return constantBuffers; }
 	//
-	ID3D11DeviceContext* GetD3D11DeviceContext() const noexcept { return deviceContext.Get(); }
+	virtual STextureManagerDX11& GetTextureManager() noexcept override { return textureManager; }
 	//
-	ID3D11Device* GetD3D11Device() const noexcept { return d3dDevice.Get(); }
+	virtual ID3D11DeviceContext* GetDeviceContext() const noexcept override { return deviceContext.Get(); }
 	//
-	STextureManagerDX11& GetTextureManager() { return textureManager; }
+	virtual ID3D11Device* GetDevice() const noexcept override { return d3dDevice.Get(); }
 	//
-	IWorld* GetWorld() const noexcept { return world; }
+	virtual IWorld* GetWorld() const noexcept override { return world; }
 	//
-	bool IsNeedDebugTrace() const noexcept { return bCachedNeedDebugTrace; }
+	virtual bool IsNeedDebugTrace() const noexcept override { return bCachedNeedDebugTrace; }
 
 
 public:// IRenderSystem interface implementation
@@ -64,11 +65,13 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
 	//
-	virtual void SetCubemap(const std::filesystem::path& path, float amount) override;
+	virtual void LoadCubemap(const std::filesystem::path& path, ECubemapType type) override;
 	//
-	virtual void SetCubemapAmount(float amount) override;
+	virtual void RemoveCubemap(ECubemapType type) override;
 	//
-	virtual void RemoveCubemap() override;
+	virtual void SetCubemapAmount(float amount, ECubemapType type) override;
+	//
+	virtual float GetCubemapAmount(ECubemapType type) const noexcept override;
 	//
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
@@ -160,6 +163,10 @@ protected:
 	ComPtr<ID3D11BlendState> blendState;
 	//
 	ComPtr<ID3D11RasterizerState> rasterizerState;
+	//
+	ComPtr<ID3D11SamplerState> surfaceSampler;
+	//
+	ComPtr<ID3D11SamplerState> IBLSampler;
 
 
 protected:
@@ -168,7 +175,9 @@ protected:
 	//
 	std::uint32_t drawCalls = 0;
 	//
-	float envCubemapAmount = 0.0f;
+	float diffuseCubemapAmount = 1.0f;
+	//
+	float specularCubemapAmount = 1.0f;
 	//
 	IWorld* world{};
 

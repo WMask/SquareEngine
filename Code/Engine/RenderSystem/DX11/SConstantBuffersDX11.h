@@ -6,20 +6,10 @@
 
 #include "Core/STypes.h"
 #include "World/SCamera.h"
-
-#include <d3d11.h>
-#include <wrl.h>
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
 #include <string>
 #include <map>
 
-using Microsoft::WRL::ComPtr;
-
-
-/** Sprite vertex data */
-struct DX11SPRITEVERTEX
-{
-	SVector3 pos;
-};
 
 /***************************************************************************
 * Constant buffers
@@ -39,10 +29,10 @@ public:
 		SVector2 worldScale, std::uint32_t width, std::uint32_t height);
 	//
 	void ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
-		std::uint32_t width, std::uint32_t height);
+		std::uint32_t width, std::uint32_t height, float gameTime);
 	//
-	void UpdateSettingsBuffer(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
-		const std::optional<SColor3>& globalTint, float envCubemapAmount);
+	void UpdateSettingsBuffer(const class IRenderSystemDX11& renderSystem, const SCamera& camera,
+		const std::optional<SColor3>& globalTint);
 	//
 	void Shutdown();
 
@@ -63,6 +53,6 @@ public:
 	//
 	ComPtr<ID3D11Buffer> lightsBuffer;
 	//
-	ComPtr<ID3D11Buffer> meshBuffer;
+	ComPtr<ID3D11Buffer> materialBuffer;
 
 };

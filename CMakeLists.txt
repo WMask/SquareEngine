@@ -10,15 +10,18 @@ project(SquareEngine)
 
 set(PROJECT_FILES_DIR "Projects/${CMAKE_SYSTEM_NAME}")
 set(ENGINE_SOURCE_DIR "Code/Engine")
-set(THIRD_PARTY_DIR "Code/ThirdParty")
+set(SHADERS_DIR "Code/Shaders")
 set(SAMPLES_SOURCE_DIR "Code/Samples/${CMAKE_SYSTEM_NAME}")
 set(TOOLS_SOURCE_DIR "Code/Tools")
 set(CMAKE_SUPPRESS_REGENERATION true)
 
+set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(ZLIB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ZLIB_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(ZLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(PNG_SHARED OFF CACHE BOOL "" FORCE)
 set(PNG_TESTS OFF CACHE BOOL "" FORCE)
 set(PNG_TOOLS OFF CACHE BOOL "" FORCE)
 
@@ -63,6 +66,12 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+	DirectXTK
+	GIT_REPOSITORY https://github.com/microsoft/DirectXTK.git
+	GIT_TAG        mar2026
+)
+
+FetchContent_Declare(
 	zlib
 	GIT_REPOSITORY https://github.com/madler/zlib.git
 	GIT_TAG        v1.3.2
@@ -103,6 +112,11 @@ message("--\n-- Downloading ufbx 0.21.3 ...\n--")
 
 FetchContent_MakeAvailable(ufbx)
 FetchContent_GetProperties(ufbx)
+
+message("--\n-- Downloading DirectXTK mar2026 ...\n--")
+
+FetchContent_MakeAvailable(DirectXTK)
+FetchContent_GetProperties(DirectXTK)
 
 message("--\n-- Downloading zlib 1.3.2 ...\n--")
 
@@ -172,10 +186,10 @@ target_link_directories(SCore PRIVATE
     ${png_BINARY_DIR}
 )
 target_link_libraries(SCore PRIVATE
-    $<$<CONFIG:Debug>:ufbx zd libpng16d>
-    $<$<CONFIG:Release>:ufbx z libpng16>
+    $<$<CONFIG:Debug>:ufbx zsd libpng16_staticd>
+    $<$<CONFIG:Release>:ufbx zs libpng16_static>
 )
-add_dependencies(SCore ufbx zlib PNG::PNG)
+add_dependencies(SCore ufbx zlib png_static)
 
 
 add_library(SWorld SHARED
@@ -264,10 +278,11 @@ target_include_directories(SRenderSystem
 	PUBLIC
 		${ENGINE_SOURCE_DIR}
 		${entt_SOURCE_DIR}/src
+		${DirectXTK_SOURCE_DIR}/Inc
 )
 target_compile_features(SRenderSystem PUBLIC cxx_std_20)
-target_link_libraries(SRenderSystem SCore SApplication SWorld)
-add_dependencies(SRenderSystem SCore SApplication SWorld)
+target_link_libraries(SRenderSystem SCore SApplication SWorld DirectXTK)
+add_dependencies(SRenderSystem SCore SApplication SWorld DirectXTK)
 
 ## Add Sample projects ##
 
@@ -332,14 +347,6 @@ target_link_libraries(FontTool SCore)
 
 
 if (WIN32)
-	add_custom_command(TARGET SCore POST_BUILD
-		COMMAND cmd.exe /c if "$(Configuration)" == "Debug" "${CMAKE_COMMAND}" -E copy_if_different
-			"${zlib_BINARY_DIR}/Debug/zd.dll" "Debug"
-			"${png_BINARY_DIR}/Debug/libpng16d.dll" "Debug"
-		COMMAND cmd.exe /c if "$(Configuration)" == "Release" "${CMAKE_COMMAND}" -E copy_if_different
-			"${zlib_BINARY_DIR}/Release/z.dll" "Release"
-			"${png_BINARY_DIR}/Release/libpng16.dll" "Release"
-	)
 	target_compile_definitions(SCore PRIVATE
         UNICODE
         _UNICODE

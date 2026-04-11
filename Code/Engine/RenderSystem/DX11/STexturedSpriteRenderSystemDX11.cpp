@@ -3,14 +3,15 @@
 */
 
 #include "RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h"
-#include "RenderSystem/DX11/SRenderSystemDX11.h"
+#include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
+#include "RenderSystem/DX11/SConstantBuffersDX11.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
 
 
 static const char* TexturedSpriteShaderName = "TexturedSprite2d.shader";
 
-STexturedSpriteRenderSystemDX11::STexturedSpriteRenderSystemDX11(SRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
+STexturedSpriteRenderSystemDX11::STexturedSpriteRenderSystemDX11(IRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
 {
 }
 
@@ -26,7 +27,6 @@ void STexturedSpriteRenderSystemDX11::Shutdown()
 		instanceBuffer.Reset();
 	}
 
-	d3dDeviceContext = nullptr;
 	spriteVertexBuffer = nullptr;
 	spriteIndexBuffer = nullptr;
 }
@@ -46,11 +46,10 @@ void STexturedSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderDa
 {
 	S_TRY
 
-	d3dDeviceContext = renderSystemDX11.GetD3D11DeviceContext();
+	auto& shaderDataDX11 = static_cast<SShaderDataDX11&>(shaderData);
 	spriteVertexBuffer = renderSystemDX11.GetConstantBuffers().spriteVertexBuffer.Get();
 	spriteIndexBuffer = renderSystemDX11.GetConstantBuffers().spriteIndexBuffer.Get();
-	auto& shaderDataDX11 = static_cast<SShaderDataDX11&>(shaderData);
-	auto d3dDevice = renderSystemDX11.GetD3D11Device();
+	auto d3dDevice = renderSystemDX11.GetDevice();
 	if (!d3dDevice)
 	{
 		throw std::exception("Invalid render device");
@@ -59,7 +58,7 @@ void STexturedSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderDa
 	// create input layouts
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{ "POSITION",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,   D3D11_INPUT_PER_VERTEX_DATA,   0 },
+		{ "SV_Position",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,   D3D11_INPUT_PER_VERTEX_DATA,   0 },
 		{ "INSTANCEPOS",   0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,   D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 		{ "INSTANCEROT",   0, DXGI_FORMAT_R32_FLOAT,          1, 12,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 		{ "INSTANCESCALE", 0, DXGI_FORMAT_R32G32_FLOAT,       1, 16,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
@@ -99,9 +98,10 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 {
 	S_TRY
 
+	auto deviceContext = renderSystemDX11.GetDeviceContext();
 	auto shader = renderSystemDX11.FindShader(shaderName);
 	auto world = renderSystemDX11.GetWorld();
-	if (!shader || !world || !d3dDeviceContext || !spriteVertexBuffer || !spriteIndexBuffer || !instanceBuffer)
+	if (!deviceContext || !shader || !world || !spriteVertexBuffer || !spriteIndexBuffer || !instanceBuffer)
 	{
 		if (renderSystemDX11.IsNeedDebugTrace())
 		{
@@ -115,12 +115,12 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	ID3D11Buffer* buffers[2] = { spriteVertexBuffer, instanceBuffer.Get() };
 	static UINT strides[2] = { sizeof(DX11SPRITEVERTEX), sizeof(DX11TEXTUREDSPRITEINSTANCE) };
 	static UINT offsets[2] = { 0, 0 };
-	d3dDeviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
-	d3dDeviceContext->IASetIndexBuffer(spriteIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-	d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	d3dDeviceContext->IASetInputLayout(shader->layout.Get());
-	d3dDeviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
-	d3dDeviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
+	deviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
+	deviceContext->IASetIndexBuffer(spriteIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	deviceContext->IASetInputLayout(shader->layout.Get());
+	deviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
+	deviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
 	// prepare cached state
 	if (batchData.capacity() < SConst::MaxInstancedSpritesCount) batchData.reserve(SConst::MaxInstancedSpritesCount);
@@ -199,27 +199,24 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 
 void STexturedSpriteRenderSystemDX11::RenderBatch()
 {
-	if (!cachedTexView)
+	auto deviceContext = renderSystemDX11.GetDeviceContext();
+	if (deviceContext && cachedTexView)
 	{
-		// skip rendering if texture not loaded yet
-		return;
+		// fill instanced vertex buffer
+		const std::uint32_t numInstances = batchData.size();
+		D3D11_MAPPED_SUBRESOURCE mappedResource{};
+		if (FAILED(deviceContext->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
+		{
+			throw std::exception("Cannot update vertex buffer");
+		}
+		memcpy(mappedResource.pData, batchData.data(), sizeof(DX11TEXTUREDSPRITEINSTANCE) * numInstances);
+		deviceContext->Unmap(instanceBuffer.Get(), 0);
+
+		// render sprites
+		deviceContext->PSSetShaderResources(0, 1, &cachedTexView);
+		deviceContext->DrawIndexedInstanced(4, numInstances, 0, 0, 0);
+		batchesRendered++;
 	}
 
-	// fill instanced vertex buffer
-	const std::uint32_t numInstances = batchData.size();
-	D3D11_MAPPED_SUBRESOURCE mappedResource{};
-	if (FAILED(d3dDeviceContext->Map(instanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource)))
-	{
-		throw std::exception("Cannot update vertex buffer");
-	}
-	memcpy(mappedResource.pData, batchData.data(), sizeof(DX11TEXTUREDSPRITEINSTANCE) * numInstances);
-	d3dDeviceContext->Unmap(instanceBuffer.Get(), 0);
-
-	// render sprites
-	d3dDeviceContext->PSSetShaderResources(0, 1, &cachedTexView);
-	d3dDeviceContext->DrawIndexedInstanced(4, numInstances, 0, 0, 0);
-
-	// cleanup batch data
 	batchData.clear();
-	batchesRendered++;
 }

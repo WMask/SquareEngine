@@ -343,10 +343,6 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 					SVertex* v = &vertices[numVertices++];
 					v->pos = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
 					v->norm = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
-					if (node->mesh->vertex_tangent.exists)
-					{
-						v->tangent = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_tangent, index));
-					}
 					v->uv = SConvert::ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
 					v->uv.y = 1.0f - v->uv.y;
 				}
@@ -387,7 +383,7 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 			// add new material part to the mesh
 			const ufbx_material* material = node->mesh->materials[part.index];
-			std::string baseTexture, normTexture, ormTexture;
+			std::string baseTexture, normTexture, rmaTexture, emiTexture;
 			if (material->textures.count > 0)
 			{
 				baseTexture = material->pbr.base_color.texture ? material->pbr.base_color.texture->filename.data : "";
@@ -402,17 +398,21 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 					normTexture = material->pbr.normal_map.texture->filename.data;
 					std::replace(normTexture.begin(), normTexture.end(), '\\', '/');
 				}
+				if (material->pbr.roughness.texture)
+				{
+					rmaTexture = material->pbr.roughness.texture->filename.data;
+					std::replace(rmaTexture.begin(), rmaTexture.end(), '\\', '/');
+				}
 				if (material->pbr.emission_color.texture)
 				{
-					// texture in emission, amount = 0
-					ormTexture = material->pbr.emission_color.texture->filename.data;
-					std::replace(ormTexture.begin(), ormTexture.end(), '\\', '/');
+					emiTexture = material->pbr.emission_color.texture->filename.data;
+					std::replace(emiTexture.begin(), emiTexture.end(), '\\', '/');
 				}
 			}
 
 			mesh.indices.insert(mesh.indices.end(), tmpIndices.begin(), tmpIndices.end());
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), ormTexture.c_str(),
+			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str(),
 				static_cast<std::uint16_t>(indexOffset),
 				static_cast<std::uint16_t>(numVertices),
 				static_cast<std::uint16_t>(numIndices));

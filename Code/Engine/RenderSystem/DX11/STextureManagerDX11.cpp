@@ -9,19 +9,16 @@
 #include "Core/SException.h"
 #include "Core/SUtils.h"
 
-#define USE_DIRECTX_TK 1
-#if USE_DIRECTX_TK
-// Install directxtk_desktop_win10 by Nuget package manager
-# include <DDSTextureLoader.h>
-# pragma comment(lib, "DirectXTK.lib")
-#endif
-
 #include <vector>
 #include <cmath>
+#include <DDSTextureLoader.h>
+
+#pragma comment(lib, "DirectXTK.lib")
 
 
 namespace SConst
 {
+    static const std::uint32_t MaxCubemaps = 8u;
     static const std::uint32_t MaxTextures = 64u;
     static const std::uint32_t MaxTexturesPerFrame = 8u;
     static const std::uint32_t MaxPendingWait = 64u;
@@ -35,6 +32,7 @@ STextureManagerDX11::~STextureManagerDX11()
 void STextureManagerDX11::Init(IThreadPool* inThreadPool)
 {
     threadPool = inThreadPool;
+    loadedCubemaps = std::make_shared<TCircularFIFOCubemapQueue>(SConst::MaxCubemaps);
     loadedTextures = std::make_shared<TCircularFIFOTextureQueue>(SConst::MaxTextures);
     texturesCache.reserve(128);
 }
@@ -44,8 +42,8 @@ void STextureManagerDX11::Shutdown()
     ClearCache(nullptr);
     pendingLoadingMap.clear();
     loadedTextures.reset();
+    loadedCubemaps.reset();
     threadPool = nullptr;
-    RemoveCubemap();
 }
 
 bool STextureManagerDX11::FindTexture(STexID id, ID3D11Texture2D** outTexture,
@@ -53,10 +51,10 @@ bool STextureManagerDX11::FindTexture(STexID id, ID3D11Texture2D** outTexture,
 {
     if (texturesCache.contains(id))
     {
-        const auto& it = texturesCache.find(id);
+        const auto it = texturesCache.find(id);
         auto& texData = it->second;
-        *outTexture = texData.texture.Get();
-        *outView = texData.view.Get();
+        if (outTexture) *outTexture = texData.texture.Get();
+        if (outView) *outView = texData.view.Get();
         if (outTexSize) *outTexSize = texData.texSize;
         return true;
     }
@@ -64,21 +62,55 @@ bool STextureManagerDX11::FindTexture(STexID id, ID3D11Texture2D** outTexture,
     return false;
 }
 
-bool STextureManagerDX11::SetCubemap(const std::filesystem::path& path, ID3D11Device* d3dDevice)
+void STextureManagerDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type, ID3D11Device* d3dDevice)
 {
-#if USE_DIRECTX_TK
-    if (FAILED(DirectX::CreateDDSTextureFromFile(d3dDevice, path.c_str(), cubemap.GetAddressOf(), cubemapView.GetAddressOf())))
+    DebugMsg("[%s] STextureManagerDX11::LoadCubemap(): begin loading '%s', type=%s\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(),
+        SConst::GetNameByType(type).data());
+
+    auto LoadCubemapTask = [this, path, type]()
     {
-        throw std::exception("STextureManagerDX11::SetCubemap(): cannot load cubemap texture");
-    }
-#endif
-    return cubemapView;
+        try
+        {
+            SCubemapData cubemap;
+            cubemap.data = ReadBinaryFile(path);
+            if (!cubemap.data.empty())
+            {
+                cubemap.type = type;
+
+                // write in thread pool space
+                loadedCubemaps->push(cubemap);
+            }
+        }
+        catch (const std::exception&)
+        {
+            DebugMsg("[%s] STextureManagerDX11::LoadCubemap(): cannot load '%s', type=%s\n",
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(),
+                SConst::GetNameByType(type).data());
+        }
+    };
+
+    // send task to thread pool
+    threadPool->AddTask(LoadCubemapTask, "Load cubemap");
 }
 
-void STextureManagerDX11::RemoveCubemap()
+ID3D11ShaderResourceView* STextureManagerDX11::FindCubemap(ECubemapType type) const
 {
-    if (cubemapView) cubemapView.Reset();
-    if (cubemap) cubemap.Reset();
+    auto it = cubemapsCache.find(type);
+    if (it != cubemapsCache.end())
+    {
+        return it->second.view.Get();
+    }
+
+    return nullptr;
+}
+
+void STextureManagerDX11::RemoveCubemap(ECubemapType type)
+{
+    if (cubemapsCache.contains(type))
+    {
+        cubemapsCache.erase(type);
+    }
 }
 
 void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
@@ -89,20 +121,39 @@ void STextureManagerDX11::Update(ID3D11Device* d3dDevice)
     {
         for (std::uint32_t i = 0; i < SConst::MaxTexturesPerFrame; i++)
         {
+            STextureData textureData{};
+            SCubemapData cubemapData{};
+
             // read in game thread space
-            STextureData data{};
-            if (loadedTextures->pop(data))
+            if (loadedTextures->pop(textureData))
             {
                 STextureDataDX11 texture{};
-                if (!CreateTexture(d3dDevice, data, texture))
+                if (!CreateTexture(d3dDevice, textureData, texture))
                 {
                     throw std::exception("Cannot create texture");
                 }
 
-                texturesCache.emplace(data.id, std::move(texture));
+                texturesCache.emplace(textureData.id, std::move(texture));
 
                 DebugMsg("[%s] STextureManagerDX11::Update(): texture id=%u created and added to cache\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), data.id);
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), textureData.id);
+            }
+            else if (loadedCubemaps->pop(cubemapData))
+            {
+                SCubemapDataDX11 data;
+                if (FAILED(DirectX::CreateDDSTextureFromMemory(d3dDevice,
+                    cubemapData.data.data(), cubemapData.data.size(),
+                    data.texture.GetAddressOf(), data.view.GetAddressOf())))
+                {
+                    throw std::exception("Cannot create cubemap");
+                }
+
+                RemoveCubemap(cubemapData.type);
+                cubemapsCache.emplace(cubemapData.type, data);
+
+                DebugMsg("[%s] STextureManagerDX11::Update(): cubemap type=%s created and added to cache\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(),
+                    SConst::GetNameByType(cubemapData.type).data());
             }
             else
             {
@@ -348,6 +399,8 @@ void STextureManagerDX11::ClearCache(IWorld* world)
     {
         texturesCache.clear();
     }
+
+    cubemapsCache.clear();
 
     S_CATCH{ S_THROW("STextureManagerDX11::ClearCache()") }
 }

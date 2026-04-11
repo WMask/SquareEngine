@@ -40,14 +40,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			movingEntity = context.gui->MakeColoredSprite(registry,
 				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
-				SColor3(255, 0, 0), SColor3(0, 255, 0),
-				SColor3(0, 0, 255), SColor3(255, 255, 255)
+				SColor3{ 255, 0, 0 }, SColor3{ 0, 255, 0 },
+				SColor3{ 0, 0, 255 }, SColor3{ 255, 255, 255 }
 			);
 
 			rotatingEntity = context.gui->MakeColoredSprite(registry,
 				SVector3{ 750.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },
-				SColor3(0, 255, 0), SColor3(255, 255, 255),
-				SColor3(255, 255, 0), SColor3(255, 255, 255)
+				SColor3{ 0, 255, 0 }, SColor3{ 255, 255, 255 },
+				SColor3{ 255, 255, 0 }, SColor3{ 255, 255, 255 }
 			);
 
 			texturedEntity = context.gui->MakeTexturedSprite(registry, treeTex,

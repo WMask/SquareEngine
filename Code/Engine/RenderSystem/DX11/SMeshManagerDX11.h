@@ -28,7 +28,7 @@ public:
 	//
 	~SMeshManagerDX11();
 	//
-	void Init(IThreadPool* threadPool, class SRenderSystemDX11* renderSystem);
+	void Init(IThreadPool* threadPool, class IRenderSystemDX11* renderSystem);
 	//
 	void Shutdown();
 	//
@@ -96,7 +96,7 @@ protected:
 	//
 	TPreloadDelegatesCache preloadDelegatesCache;
 	//
-	class SRenderSystemDX11* renderSystem;
+	class IRenderSystemDX11* renderSystem;
 	//
 	IThreadPool* threadPool;
 

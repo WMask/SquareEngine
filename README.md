@@ -11,6 +11,4 @@
 - mkdir Build
 - cd Build
 - cmake ..
-- cmake --build ./_deps/png-build --config Debug
-- cmake --build ./_deps/png-build --config Release
 - Open generated project in Build directory and build all

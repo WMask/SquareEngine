@@ -33,8 +33,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
 		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
-		float rotation = 0.73f;
-		float elevation = 10.0f;
+		static float rotation = 2.1f;
+		static float elevation = 150.0f;
 
 		struct GuiListener
 		{
@@ -66,12 +66,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						{
 							pbrMesh.bVisible = false;
 							normalMesh.bVisible = true;
+							rotation = 1.55f;
 						}
 						// show pbr mesh
 						else if (button.id == pbrMeshButtonId)
 						{
 							pbrMesh.bVisible = true;
 							normalMesh.bVisible = false;
+							rotation = -0.6f;
 						}
 						// toggle pbr mesh normals
 						else if (button.id == normalsButtonId)
@@ -109,7 +111,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			// load resources
-			context.render->LoadCubemap("../../Assets/EnvironmentDiffuse.dds", ECubemapType::Diffuse);
 			context.render->LoadCubemap("../../Assets/EnvironmentSpecular.dds", ECubemapType::Specular);
 			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
@@ -155,6 +156,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
+					transform.pos = SVector3{ 0.0f, 20.0f, 0.0f };
+					transform.scale = transform.scale * 1.2f;
+					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
+
 					pbrMeshEntity = registry.create();
 					registry.emplace<SStaticMeshComponent>(pbrMeshEntity, meshInstance.id);
 					registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
@@ -167,8 +172,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
-					transform.scale = transform.scale * 0.8f;
-					transform.pos.y = transform.pos.y + 32.0f;
+					transform.pos = SVector3{ 0.0f, -60.0f, 0.0f };
+					transform.scale = transform.scale * 0.85f;
+					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
 
 					normalMeshEntity = registry.create();
 					registry.emplace<SStaticMeshComponent>(normalMeshEntity, meshInstance.id, false);
@@ -177,7 +183,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			});
 
 			// add light
-			SVector3 lightDir = SMath::Normalize(SVector3{ 0.0f, -0.8f, 0.5f });
+			SVector3 lightDir = SMath::Normalize(SVector3{ -0.8f, -0.8f, -0.8f });
 			context.world->AddDirectionalLight("DirectionalLight", lightDir, SConst::White3);
 		};
 
@@ -204,16 +210,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 				if (keys[SKeys::Left])
 				{
-					rotation += context.deltaSeconds * 3.0f;
+					rotation += context.deltaSeconds * 1.5f;
 				}
 				if (keys[SKeys::Right])
 				{
-					rotation -= context.deltaSeconds * 3.0f;
+					rotation -= context.deltaSeconds * 1.5f;
 				}
 
 				// set camera
 				context.world->GetCamera().Set(
-					SVector3{ 70.0f * cos(rotation), elevation, 70.0f * sin(rotation) },
+					SVector3{ 250.0f * cos(rotation), elevation, 250.0f * sin(rotation) },
 					SVector3{ 0.0f, 0.0f, 0.0f }, 60.0f
 				);
 			}

@@ -36,9 +36,10 @@ std::pair<SLightID, bool> SWorld::AddDirectionalLight(const std::string_view& na
 {
 	if (lights.size() < SConst::MaxLightsCount)
 	{
+		const SVector3 nd = SMath::Normalize(direction);
 		SLightID id = ResourceID<SLightID>(name);
 		SLight light {
-			SVector4 { direction.x, direction.y, direction.z, SConst::DirectionLightType },
+			SVector4 { nd.x, nd.y, nd.z, SConst::DirectionLightType },
 			SVector4 {
 				static_cast<float>(color.r) / 255.0f,
 				static_cast<float>(color.g) / 255.0f,

@@ -49,6 +49,12 @@ public:
 	* Cubemap amount (0 - 1) */
 	virtual float GetCubemapAmount(ECubemapType type) const noexcept = 0;
 	/**
+	* Image-based lighting amount (0 - 1) */
+	virtual void SetIBLAmount(float amount) = 0;
+	/**
+	* Image-based lighting amount (0 - 1) */
+	virtual float GetIBLAmount() const noexcept = 0;
+	/**
 	* Load mesh scene instances and call delegate.
 	* Loads meshes with material textures if instance's mesh not loaded yet.
 	*/

@@ -46,9 +46,11 @@ protected:
 	//
 	std::vector<DX11MESHINSTANCE> batchData;
 	//
-	std::vector<SMaterial> cachedMaterials;
+	std::vector<SMeshMaterial> cachedMaterials;
 	//
 	SMaterialBuffer cachedMaterialFlags;
+	//
+	DXGI_FORMAT cachedFormat;
 	//
 	ID3D11Buffer* cachedVB;
 	//

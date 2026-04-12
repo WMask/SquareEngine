@@ -34,10 +34,25 @@ public:
 	void UpdateSettingsBuffer(const class IRenderSystemDX11& renderSystem, const SCamera& camera,
 		const std::optional<SColor3>& globalTint);
 	//
+	void UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialBuffer& materials);
+	//
+	void UpdateLightSettings(const IRenderSystemDX11& renderSystem, const SLightsBuffer& lights);
+	//
+	void UpdateCubemapSettings(const IRenderSystemDX11& renderSystem);
+	//
 	void Shutdown();
 
 
 public:
+	//
+	ID3D11ShaderResourceView* GetDefaultTexture() const { return defaultTextureView.Get(); }
+	//
+	ID3D11Buffer* GetSpriteVB() const { return spriteVertexBuffer.Get(); }
+	//
+	ID3D11Buffer* GetSpriteIB() const { return spriteIndexBuffer.Get(); }
+
+
+protected:
 	//
 	ComPtr<ID3D11ShaderResourceView> defaultTextureView;
 	//
@@ -50,6 +65,8 @@ public:
 	ComPtr<ID3D11Buffer> wvpMatrixBuffer;
 	//
 	ComPtr<ID3D11Buffer> settingsBuffer;
+	//
+	ComPtr<ID3D11Buffer> cubemapsBuffer;
 	//
 	ComPtr<ID3D11Buffer> lightsBuffer;
 	//

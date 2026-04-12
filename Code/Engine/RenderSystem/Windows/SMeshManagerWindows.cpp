@@ -1,12 +1,12 @@
 /***************************************************************************
-* SMeshManagerDX11.h
+* SMeshManagerWindows.h
 */
 
 #ifdef WIN32
 
-#include "RenderSystem/DX11/SMeshManagerDX11.h"
-#include "RenderSystem/DX11/STextureManagerDX11.h"
 #include "RenderSystem/DX11/SRenderSystemTypesDX11.h"
+#include "RenderSystem/Windows/SMeshManagerWindows.h"
+#include "RenderSystem/Windows/STextureManagerWindows.h"
 #include "RenderSystem/SECSComponents.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -22,90 +22,109 @@ namespace SConst
     static const std::uint32_t MaxMeshesPerFrame = 8u;
 }
 
-SMeshManagerDX11::~SMeshManagerDX11()
+SMeshManagerWindows::~SMeshManagerWindows()
 {
     Shutdown();
 }
 
-void SMeshManagerDX11::Init(IThreadPool* inThreadPool, IRenderSystemDX11* inRenderSystem)
+void SMeshManagerWindows::Init(IThreadPool* inThreadPool, IMeshLifetime* inMeshLifetime)
 {
     threadPool = inThreadPool;
-    renderSystem = inRenderSystem;
-    loadedMeshes = std::make_shared<TCircularFIFOTextureQueue>(SConst::MaxMeshes);
-    auto initialIds = std::make_shared<std::forward_list<SMeshID>>();
-    meshesCacheIds.store(initialIds, std::memory_order_release);
+    meshLifetime = inMeshLifetime;
     meshesCache.reserve(128);
 }
 
-void SMeshManagerDX11::Shutdown()
+void SMeshManagerWindows::Shutdown()
 {
+    if (!meshLifetime) return;
+
     ClearCache(nullptr);
-    auto empty = std::make_shared<std::forward_list<SMeshID>>();
-    meshesCacheIds.store(empty);
-    loadedMeshes.reset();
     threadPool = nullptr;
+    meshLifetime = nullptr;
+
+    {
+        TLockGuard guard(sync);
+        TMeshQueue meshes;
+        loadedMeshes.swap(meshes);
+        meshesCacheIds.clear();
+    }
 }
 
-bool SMeshManagerDX11::FindMesh(SMeshID id, std::vector<SMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
+SMeshBase* SMeshManagerWindows::FindMesh(SMeshID id) const
+{
+    auto it = meshesCache.find(id);
+    if (it != meshesCache.end())
+    {
+        return it->second.get();
+    }
+
+    return nullptr;
+}
+
+bool SMeshManagerWindows::RemoveMesh(SMeshID id)
 {
     if (meshesCache.contains(id))
     {
-        const auto& it = meshesCache.find(id);
-        auto& texData = it->second;
-        *outVB = texData.vb.Get();
-        *outIB = texData.ib.Get();
-        *outMaterials = texData.materials;
+        meshesCache.erase(id);
         return true;
     }
 
     return false;
 }
 
-void SMeshManagerDX11::Update(ID3D11Device* d3dDevice)
+void SMeshManagerWindows::Update()
 {
+    if (!meshLifetime) return;
+
     S_TRY
 
-    if (d3dDevice && loadedMeshes)
+    for (std::uint32_t i = 0; i < SConst::MaxMeshesPerFrame; i++)
     {
-        for (std::uint32_t i = 0; i < SConst::MaxMeshesPerFrame; i++)
+        bool bBreak = false;
+
+        SMeshData meshData;
         {
-            bool bBreak = false;
-
-            // read in game thread space
-            SMeshData meshData{};
-            if (loadedMeshes->pop(meshData))
+            TLockGuard guard(sync);
+            if (!loadedMeshes.empty())
             {
-                for (auto& data : meshData.meshes)
-                {
-                    SMeshDataDX11 mesh{};
-                    if (!CreateMesh(d3dDevice, data, mesh))
-                    {
-                        throw std::exception("Cannot create mesh");
-                    }
+                // read in game thread space
+                meshData = loadedMeshes.front();
+                loadedMeshes.pop();
+            }
+        }
 
-                    meshesCache.emplace(data.id, std::move(mesh));
+        if (!meshData.meshes.empty() || !meshData.instances.empty())
+        {
+            for (auto& data : meshData.meshes)
+            {
+                auto mesh = meshLifetime->CreateMesh(data);
+                if (!mesh)
+                {
+                    throw std::exception("Cannot create mesh");
                 }
 
-                UpdateCacheIds();
-            }
-            else
-            {
-                bBreak = true;
+                meshesCache.emplace(data.id, mesh);
             }
 
-            if (!preloadDelegatesCache.empty() || !instancesDelegatesCache.empty())
-            {
-                CheckLoadFinished(meshData);
-            }
-
-            if (bBreak) break;
+            UpdateCacheIds();
         }
+        else
+        {
+            bBreak = true;
+        }
+
+        if (!preloadDelegatesCache.empty() || !instancesDelegatesCache.empty())
+        {
+            CheckLoadFinished(meshData);
+        }
+
+        if (bBreak) break;
     }
 
-    S_CATCH{ S_THROW("SMeshManagerDX11::Update()"); }
+    S_CATCH{ S_THROW("SMeshManagerWindows::Update()"); }
 }
 
-void SMeshManagerDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
+void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
     instancesDelegatesCache.emplace_back(path, delegate);
 
@@ -117,11 +136,12 @@ void SMeshManagerDX11::LoadStaticMeshInstances(const std::filesystem::path& path
             meshesData.id = ResourceID<SMeshID>(path.string());
 
             // write in thread pool space
-            loadedMeshes->push(meshesData);
+            TLockGuard guard(sync);
+            loadedMeshes.push(meshesData);
         }
         else
         {
-            DebugMsg("[%s] SMeshManagerDX11::LoadStaticMeshInstances(): cannot load '%s'\n",
+            DebugMsg("[%s] SMeshManagerWindows::LoadStaticMeshInstances(): cannot load '%s'\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
         }
     };
@@ -130,7 +150,7 @@ void SMeshManagerDX11::LoadStaticMeshInstances(const std::filesystem::path& path
     threadPool->AddTask(LoadInstancesTask, "Load mesh instances");
 }
 
-void SMeshManagerDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
+void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
 {
     preloadDelegatesCache.emplace_back(path, delegate);
 
@@ -142,11 +162,12 @@ void SMeshManagerDX11::PreloadStaticMeshes(const std::filesystem::path& path, On
             meshesData.id = ResourceID<SMeshID>(path.string());
 
             // write in thread pool space
-            loadedMeshes->push(meshesData);
+            TLockGuard guard(sync);
+            loadedMeshes.push(meshesData);
         }
         else
         {
-            DebugMsg("[%s] SMeshManagerDX11::PreloadStaticMeshes(): cannot load '%s'\n",
+            DebugMsg("[%s] SMeshManagerWindows::PreloadStaticMeshes(): cannot load '%s'\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
         }
     };
@@ -155,26 +176,30 @@ void SMeshManagerDX11::PreloadStaticMeshes(const std::filesystem::path& path, On
     threadPool->AddTask(PreloadMeshesTask, "Preload meshes");
 }
 
-bool SMeshManagerDX11::LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData)
+bool SMeshManagerWindows::LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData)
 {
     try
     {
         // read in thread pool space
-        auto cachedIdsCopy = meshesCacheIds.load(std::memory_order_acquire);
+        TMeshesCacheIds cachedIdsCopy;
+        {
+            TLockGuard guard(sync);
+            cachedIdsCopy = meshesCacheIds;
+        }
 
-        LoadFbxStaticMeshes(path, groupId, *cachedIdsCopy.get(), meshesData.meshes, meshesData.instances);
+        LoadFbxStaticMeshes(path, groupId, cachedIdsCopy, meshesData.meshes, meshesData.instances);
     }
     catch (const std::exception& ex)
     {
-        DebugMsg("[%s] SMeshManagerDX11::LoadMeshData(): %s\n",
+        DebugMsg("[%s] SMeshManagerWindows::LoadMeshData(): %s\n",
             GetTimeStamp(std::chrono::system_clock::now()).c_str(), ex.what());
         return false;
     }
 
     return true;
 }
-
-bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, SMeshDataDX11& outMesh)
+/*
+bool SMeshManagerWindows::CreateMesh(ID3D11Device* device, const SMesh& meshData, SMeshDataDX11& outMesh)
 {
     D3D11_BUFFER_DESC bufferDesc{};
     bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
@@ -186,7 +211,7 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
     // create vertex buffer
     if (FAILED(device->CreateBuffer(&bufferDesc, &bufferData, outMesh.vb.GetAddressOf())))
     {
-        DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): Cannot create vertex buffer\n",
+        DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): Cannot create vertex buffer\n",
             GetTimeStamp(std::chrono::system_clock::now()).c_str());
         return false;
     }
@@ -198,7 +223,7 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
 
     if (FAILED(device->CreateBuffer(&bufferDesc, &bufferData, outMesh.ib.GetAddressOf())))
     {
-        DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): Cannot create index buffer\n",
+        DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): Cannot create index buffer\n",
             GetTimeStamp(std::chrono::system_clock::now()).c_str());
         return false;
     }
@@ -226,7 +251,7 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
                 {
                     for (auto& texture : textures)
                     {
-                        DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): material texture loaded '%s'\n",
+                        DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): material texture loaded '%s'\n",
                             GetTimeStamp(std::chrono::system_clock::now()).c_str(), texture.string().c_str());
                     }
                 };
@@ -235,13 +260,13 @@ bool SMeshManagerDX11::CreateMesh(ID3D11Device* device, const SMesh& meshData, S
         }
     }
 
-    DebugMsg("[%s] SMeshManagerDX11::CreateMesh(): mesh '%s' created and added to cache\n",
+    DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): mesh '%s' created and added to cache\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.name.c_str());
 
     return true;
 }
-
-void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
+*/
+void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData)
 {
     std::forward_list<TInstancesDelegatesCache::const_iterator> eraseList1;
     std::forward_list<TPreloadDelegatesCache::const_iterator> eraseList2;
@@ -263,13 +288,13 @@ void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
 
             if (!meshData.meshes.empty())
             {
-                DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
+                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
             }
 
             if (!meshData.instances.empty())
             {
-                DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): instances from '%s' loaded\n",
+                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): instances from '%s' loaded\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
             }
         }
@@ -290,7 +315,7 @@ void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
                 it->second(it->first);
             }
 
-            DebugMsg("[%s] SMeshManagerDX11::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
+            DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
         }
     }
@@ -306,7 +331,7 @@ void SMeshManagerDX11::CheckLoadFinished(const SMeshData& meshData)
     }
 }
 
-void SMeshManagerDX11::ClearCache(IWorld* world)
+void SMeshManagerWindows::ClearCache(IWorld* world)
 {
     S_TRY
 
@@ -342,16 +367,17 @@ void SMeshManagerDX11::ClearCache(IWorld* world)
 
     UpdateCacheIds();
 
-    S_CATCH{ S_THROW("SMeshManagerDX11::ClearCache()") }
+    S_CATCH{ S_THROW("SMeshManagerWindows::ClearCache()") }
 }
 
-void SMeshManagerDX11::UpdateCacheIds()
+void SMeshManagerWindows::UpdateCacheIds()
 {
     auto keysView = meshesCache | std::views::keys;
-    auto updatedIds = std::make_shared<std::forward_list<SMeshID>>(keysView.begin(), keysView.end());
+    auto updatedIds = std::forward_list<SMeshID>(keysView.begin(), keysView.end());
 
     // write in game thread space
-    meshesCacheIds.store(updatedIds, std::memory_order_release);
+    TLockGuard guard(sync);
+    meshesCacheIds = updatedIds;
 }
 
 #endif // WIN32

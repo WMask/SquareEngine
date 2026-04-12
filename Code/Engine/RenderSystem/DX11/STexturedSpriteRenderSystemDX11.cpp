@@ -47,8 +47,8 @@ void STexturedSpriteRenderSystemDX11::Setup(IRenderSystem::SShaderData& shaderDa
 	S_TRY
 
 	auto& shaderDataDX11 = static_cast<SShaderDataDX11&>(shaderData);
-	spriteVertexBuffer = renderSystemDX11.GetConstantBuffers().spriteVertexBuffer.Get();
-	spriteIndexBuffer = renderSystemDX11.GetConstantBuffers().spriteIndexBuffer.Get();
+	spriteVertexBuffer = renderSystemDX11.GetConstantBuffers().GetSpriteVB();
+	spriteIndexBuffer = renderSystemDX11.GetConstantBuffers().GetSpriteIB();
 	auto d3dDevice = renderSystemDX11.GetDevice();
 	if (!d3dDevice)
 	{

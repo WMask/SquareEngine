@@ -31,6 +31,7 @@ void SConstantBuffersDX11::Shutdown()
 	defaultTextureView.Reset();
 	defaultTexture.Reset();
 	settingsBuffer.Reset();
+	cubemapsBuffer.Reset();
 	lightsBuffer.Reset();
 	materialBuffer.Reset();
 }
@@ -64,12 +65,21 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	settingsData.worldTint = SConvert::ToVector4(SConst::White3);
 	settingsData.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
 	settingsData.viewDir = SConvert::ToVector4(camera.GetViewDir());
-	settingsData.bHasDiffuseCubemap = FALSE;
-	settingsData.bHasSpecularCubemap = FALSE;
-	settingsData.diffuseAmount = 1.0f;
-	settingsData.specularAmount = 1.0f;
 	subResData.pSysMem = &settingsData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, settingsBuffer.GetAddressOf())))
+	{
+		throw std::exception("Cannot create constant buffer");
+	}
+
+	SCubemapsBuffer cubemapsData{};
+	cbDesc.ByteWidth = Align16<SCubemapsBuffer>();
+	cubemapsData.bHasDiffuseCubemap = FALSE;
+	cubemapsData.bHasSpecularCubemap = FALSE;
+	cubemapsData.diffuseAmount = 1.0f;
+	cubemapsData.specularAmount = 1.0f;
+	cubemapsData.IBLAmount = 0.5f;
+	subResData.pSysMem = &cubemapsData;
+	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, cubemapsBuffer.GetAddressOf())))
 	{
 		throw std::exception("Cannot create constant buffer");
 	}
@@ -97,7 +107,8 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	d3dDeviceContext->PSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(2, 1, materialBuffer.GetAddressOf());
 	d3dDeviceContext->PSSetConstantBuffers(2, 1, materialBuffer.GetAddressOf());
-	d3dDeviceContext->PSSetConstantBuffers(3, 1, lightsBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(3, 1, cubemapsBuffer.GetAddressOf());
+	d3dDeviceContext->PSSetConstantBuffers(4, 1, lightsBuffer.GetAddressOf());
 
 	// create vertex buffer
 	DX11SPRITEVERTEX data[] = {
@@ -199,7 +210,7 @@ void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContex
 {
 	if (d3dDeviceContext)
 	{
-		SMatrix4 mWorld = SMath::RotationMatrixY(cosf(gameTime) * 2.f);
+		SMatrix4 mWorld = SMath::RotationMatrixY(cosf(gameTime) * 0.0f);
 		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 		SMatrix4 mProj = SMath::ProjectionMatrix(camera.GetFOV(), aspectRatio, 0.1f, 10000.0f);
 		SMatrix4 mView = SMath::LookAtMatrix(
@@ -228,11 +239,40 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderS
 		else
 			settings.worldTint = SConst::OneSVector4;
 
-		settings.bHasDiffuseCubemap = renderSystem.FindCubemap(ECubemapType::Diffuse) ? TRUE : FALSE;
-		settings.bHasSpecularCubemap = renderSystem.FindCubemap(ECubemapType::Specular) ? TRUE : FALSE;
-		settings.diffuseAmount = renderSystem.GetCubemapAmount(ECubemapType::Diffuse);
-		settings.specularAmount = renderSystem.GetCubemapAmount(ECubemapType::Specular);
-
 		deviceContext->UpdateSubresource(settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
+	}
+}
+
+void SConstantBuffersDX11::UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialBuffer& materials)
+{
+	auto deviceContext = renderSystem.GetDeviceContext();
+	if (deviceContext && materialBuffer)
+	{
+		deviceContext->UpdateSubresource(materialBuffer.Get(), 0, NULL, &materials, 0, 0);
+	}
+}
+
+void SConstantBuffersDX11::UpdateLightSettings(const IRenderSystemDX11& renderSystem, const SLightsBuffer& lights)
+{
+	auto deviceContext = renderSystem.GetDeviceContext();
+	if (deviceContext && lightsBuffer)
+	{
+		deviceContext->UpdateSubresource(lightsBuffer.Get(), 0, NULL, &lights, 0, 0);
+	}
+}
+
+void SConstantBuffersDX11::UpdateCubemapSettings(const IRenderSystemDX11& renderSystem)
+{
+	auto deviceContext = renderSystem.GetDeviceContext();
+	if (deviceContext && cubemapsBuffer)
+	{
+		SCubemapsBuffer cubemaps{};
+		cubemaps.bHasDiffuseCubemap = renderSystem.FindCubemap(ECubemapType::Diffuse) ? TRUE : FALSE;
+		cubemaps.bHasSpecularCubemap = renderSystem.FindCubemap(ECubemapType::Specular) ? TRUE : FALSE;
+		cubemaps.diffuseAmount = renderSystem.GetCubemapAmount(ECubemapType::Diffuse);
+		cubemaps.specularAmount = renderSystem.GetCubemapAmount(ECubemapType::Specular);
+		cubemaps.IBLAmount = renderSystem.GetIBLAmount();
+
+		deviceContext->UpdateSubresource(cubemapsBuffer.Get(), 0, NULL, &cubemaps, 0, 0);
 	}
 }

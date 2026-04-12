@@ -561,10 +561,10 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 		cachedRenderSystemSize.width, cachedRenderSystemSize.height, context.gameTime);
 	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
 
-	auto diffuseMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Diffuse));
-	if (diffuseMap) deviceContext->PSSetShaderResources(4, 1, diffuseMap->view.GetAddressOf());
 	auto specularMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Specular));
-	if (specularMap) deviceContext->PSSetShaderResources(5, 1, specularMap->view.GetAddressOf());
+	if (specularMap) deviceContext->PSSetShaderResources(4, 1, specularMap->view.GetAddressOf());
+	auto diffuseMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Diffuse));
+	if (diffuseMap) deviceContext->PSSetShaderResources(5, 1, diffuseMap->view.GetAddressOf());
 
 	meshRender.Render(context.deltaSeconds);
 

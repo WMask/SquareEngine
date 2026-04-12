@@ -89,6 +89,7 @@ struct SVertex
 {
 	SVector3 pos;
 	SVector3 norm;
+	SVector3 tangent;
 	SVector2 uv;
 };
 

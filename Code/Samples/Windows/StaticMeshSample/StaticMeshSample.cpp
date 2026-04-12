@@ -33,8 +33,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		const STextID controlsTextId = ResourceID<STextID>(SConst::ControlsTextKey);
 		const STextID fpsTextId = ResourceID<STextID>(SConst::FpsTextKey);
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
-		static float rotation = -0.6f;
-		static float elevation = 120.0f;
+		static float rotation = 2.1f;
+		static float elevation = 150.0f;
 
 		struct GuiListener
 		{
@@ -111,7 +111,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			// load resources
-			context.render->LoadCubemap("../../Assets/EnvironmentDiffuse.dds", ECubemapType::Diffuse);
 			context.render->LoadCubemap("../../Assets/EnvironmentSpecular.dds", ECubemapType::Specular);
 			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
@@ -158,6 +157,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
 					transform.pos = SVector3{ 0.0f, 20.0f, 0.0f };
+					transform.scale = transform.scale * 1.2f;
 					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
 
 					pbrMeshEntity = registry.create();
@@ -172,7 +172,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
-					transform.pos = SVector3{ 0.0f, -85.0f, 0.0f };
+					transform.pos = SVector3{ 0.0f, -60.0f, 0.0f };
 					transform.scale = transform.scale * 0.85f;
 					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
 
@@ -210,11 +210,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 				if (keys[SKeys::Left])
 				{
-					rotation += context.deltaSeconds * 3.0f;
+					rotation += context.deltaSeconds * 1.5f;
 				}
 				if (keys[SKeys::Right])
 				{
-					rotation -= context.deltaSeconds * 3.0f;
+					rotation -= context.deltaSeconds * 1.5f;
 				}
 
 				// set camera

@@ -343,6 +343,10 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 					SVertex* v = &vertices[numVertices++];
 					v->pos = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
 					v->norm = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
+					if (node->mesh->vertex_tangent.exists)
+					{
+						v->tangent = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_tangent, index));
+					}
 					v->uv = SConvert::ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
 					v->uv.y = 1.0f - v->uv.y;
 				}
@@ -411,8 +415,8 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			}
 
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(),
-				emiTexture.c_str(), indexOffset, numVertices, numIndices);
+			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str(),
+				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices));
 
 			indexOffset += numIndices;
 		}

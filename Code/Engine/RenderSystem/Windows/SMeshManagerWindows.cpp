@@ -36,8 +36,11 @@ void SMeshManagerWindows::Init(IThreadPool* inThreadPool, IMeshLifetime* inMeshL
 
 void SMeshManagerWindows::Shutdown()
 {
+    if (!meshLifetime) return;
+
     ClearCache(nullptr);
     threadPool = nullptr;
+    meshLifetime = nullptr;
 
     {
         TLockGuard guard(sync);

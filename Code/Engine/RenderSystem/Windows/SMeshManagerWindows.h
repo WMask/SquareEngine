@@ -77,10 +77,10 @@ protected:
 	//
 	TMeshQueue loadedMeshes;
 	//
-	SLockableCS sync;
+	IMeshLifetime* meshLifetime;
 	//
 	IThreadPool* threadPool;
 	//
-	IMeshLifetime* meshLifetime;
+	std::mutex sync;
 
 };

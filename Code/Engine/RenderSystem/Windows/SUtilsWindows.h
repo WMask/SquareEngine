@@ -19,14 +19,7 @@ namespace SConst
 	static const DXGI_FORMAT DefaultBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 }
 
-/** Lockable critical section */
-struct SLockableCS : public CriticalSection
-{
-	void lock() { Lock(); }
-	void unlock() { ::LeaveCriticalSection(&cs_); }
-};
-
-using TLockGuard = std::lock_guard<SLockableCS>;
+using TLockGuard = std::lock_guard<std::mutex>;
 
 /** Find display mode */
 bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxRefreshRate, DXGI_MODE_DESC* outMode);

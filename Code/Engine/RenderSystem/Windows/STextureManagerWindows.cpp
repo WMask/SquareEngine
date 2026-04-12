@@ -39,13 +39,16 @@ void STextureManagerWindows::Init(IThreadPool* inThreadPool, ITextureLifetime* i
 
 void STextureManagerWindows::Shutdown()
 {
+    if (!textureLifetime) return;
+
     ClearCache(nullptr);
     threadPool = nullptr;
+    textureLifetime = nullptr;
 
     {
         TLockGuard guard(sync);
-        TCubemapQueue cubemaps;
         TTextureQueue textures;
+        TCubemapQueue cubemaps;
         loadedTextures.swap(textures);
         loadedCubemaps.swap(cubemaps);
     }

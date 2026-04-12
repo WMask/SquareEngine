@@ -84,10 +84,10 @@ protected:
 	//
 	TCubemapQueue loadedCubemaps;
 	//
-	SLockableCS sync;
+	ITextureLifetime* textureLifetime;
 	//
 	IThreadPool* threadPool;
 	//
-	ITextureLifetime* textureLifetime;
+	std::mutex sync;
 
 };

@@ -26,9 +26,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	try
 	{
-		entt::entity treeEntity;
-		SColor4F tint = SConst::White4F;
+		static const SWidgetID toggleButtonId = ResourceID<SWidgetID>(SConst::ToggleButtonWidget);
+		static const SWidgetID applyButtonId = ResourceID<SWidgetID>(SConst::ApplyButtonWidget);
+		static const SWidgetID fpsTextId = ResourceID<SWidgetID>(SConst::FpsTextWidget);
 		SColor4F targetTint = SConst::White4F;
+		SColor4F tint = SConst::White4F;
+		entt::entity treeEntity;
 		float lerp = 1.0f;
 		bool bUseGreen = true;
 
@@ -41,13 +44,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		struct GuiListener
 		{
-			GuiListener()
-			{
-				toggleButtonId = ResourceID<SWidgetID>(SConst::ToggleButtonWidget);
-				applyButtonId = ResourceID<SWidgetID>(SConst::ApplyButtonWidget);
-				fpsTextId = ResourceID<SWidgetID>(SConst::FpsTextWidget);
-			}
-			//
 			void onMouseButtonEvent(const SMouseButtonEvent& event)
 			{
 				if (!registry || !locale) return;
@@ -74,9 +70,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			//
 			entt::registry* registry{};
 			ILocalization* locale{};
-			SWidgetID toggleButtonId;
-			SWidgetID applyButtonId;
-			SWidgetID fpsTextId;
 		};
 		GuiListener listener;
 
@@ -122,19 +115,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// toggle button
 			auto toggleText = ResourceID<STextID>(SConst::ToggleTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId, listener.toggleButtonId,
+			context.gui->MakeButtonWithText(registry, buttonsTex, toggleText, fontId, toggleButtonId,
 				SVector3{ 700.0f, 500.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// apply button
 			auto applyText = ResourceID<STextID>(SConst::ApplyTextKey);
-			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId, listener.applyButtonId,
+			context.gui->MakeButtonWithText(registry, buttonsTex, applyText, fontId, applyButtonId,
 				SVector3{ 300.0f, 500.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 
 			// fps text
 			auto fpsText = ResourceID<STextID>(SConst::FpsTextKey);
-			context.gui->MakeText(registry, listener.fpsTextId, fpsText, fontId,
+			context.gui->MakeText(registry, fpsTextId, fpsText, fontId,
 				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }, SConst::White4F
 			);
 		};

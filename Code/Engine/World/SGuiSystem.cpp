@@ -229,7 +229,9 @@ void SGuiSystem::OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& 
 				sliderComponent->sliderValue =
 					(clampedX - draggableComponent->area.left) /
 					(draggableComponent->area.right - draggableComponent->area.left);
-				sliderComponent->value = (sliderComponent->maxValue - sliderComponent->minValue) * sliderComponent->sliderValue;
+				sliderComponent->value = sliderComponent->minValue
+					+ (sliderComponent->maxValue - sliderComponent->minValue)
+					* sliderComponent->sliderValue;
 			}
 		}
 	});
@@ -359,7 +361,7 @@ std::pair<entt::entity, entt::entity> SGuiSystem::MakeSlider(entt::registry& reg
 		pos.x - size.width / 2.0f, pos.y,
 		pos.x + size.width / 2.0f, pos.y
 	};
-	const float sliderValue = value / (maxValue - minValue);
+	const float sliderValue = (value - minValue) / (maxValue - minValue);
 	const float btnUVWidth = (texSize.height / 2.0f) / texSize.width;
 	const SSize2F buttonSize{ size.height, size.height };
 	const SSize2F sliderSize{ size.width, texSize.height / 2.0f };

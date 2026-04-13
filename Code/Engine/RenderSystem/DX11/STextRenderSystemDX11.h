@@ -57,6 +57,10 @@ protected:
 	//
 	STexID cachedTexId;
 	//
+	STexID cachedFontId;
+	//
+	SColor4F cachedTextColor;
+	//
 	std::uint32_t numGlyphs;
 	//
 	std::uint32_t batchesRendered;

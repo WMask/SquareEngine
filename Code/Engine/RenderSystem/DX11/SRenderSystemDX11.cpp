@@ -483,6 +483,27 @@ void SRenderSystemDX11::RemoveCubemap(ECubemapType type)
 	constantBuffers.UpdateCubemapSettings(*this);
 }
 
+void SRenderSystemDX11::SetGlobalTint(const SColor3F& color)
+{
+	globalTint = SConvert::ToColor4(color);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
+}
+
+void SRenderSystemDX11::SetBackLight(const SColor3F& color)
+{
+	backLight = SConvert::ToColor4(color);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
+}
+
+void SRenderSystemDX11::SetGammaCorrection(const SColor3F& color)
+{
+	pbrGammaCorrection = SConvert::ToColor4(color);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
+}
+
 void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
 	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
@@ -591,7 +612,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	// render 3d frame
 	constantBuffers.ApplyTransform3D(deviceContext.Get(), world->GetCamera(),
 		cachedRenderSystemSize.width, cachedRenderSystemSize.height, context.gameTime);
-	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
 
 	auto specularMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Specular));
 	if (specularMap) deviceContext->PSSetShaderResources(4, 1, specularMap->view.GetAddressOf());
@@ -636,17 +658,8 @@ void SRenderSystemDX11::Subscribe(const SAppContext& inContext)
 	SAppContext context = inContext;
 
 	context.world->onLightsChanged.connect<&SRenderSystemDX11::OnLightsChanged>(this);
-	context.world->onGlobalTintChanged.connect<&SRenderSystemDX11::OnGlobalTintChanged>(this);
 	context.world->GetCamera().onViewChanged.connect<&SRenderSystemDX11::OnCameraViewChanged>(this);
 	context.world->GetScale().onScaleChanged.connect<&SRenderSystemDX11::OnWorldScaleChanged>(this);
-}
-
-void SRenderSystemDX11::OnGlobalTintChanged(SColor3 globalTint)
-{
-	if (deviceContext && world)
-	{
-		constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
-	}
 }
 
 void SRenderSystemDX11::OnWorldScaleChanged(SVector2 worldScale)

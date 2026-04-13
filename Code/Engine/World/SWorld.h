@@ -53,10 +53,6 @@ public:// IWorld interface implementation
 	virtual const IFontSystem& GetFonts() const override { return fonts; }
 	//
 	virtual IFontSystem& GetFonts() override { return fonts; }
-	//
-	virtual void SetGlobalTint(const std::optional<SColor3>& tint) override;
-	//
-	virtual std::optional<SColor3> GetGlobalTint() const { return globalTint; }
 
 
 protected:
@@ -80,7 +76,5 @@ protected:
 	SCamera camera{};
 	//
 	SFontSystem fonts;
-	//
-	std::optional<SColor3> globalTint;
 
 };

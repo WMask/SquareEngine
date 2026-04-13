@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Core/STypes.h"
+#include "Core/SMath.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -45,12 +45,21 @@ struct SSingleMatrixBuffer
 /** Render settings */
 struct SSettingsBuffer
 {
-	SVector4 worldTint;
-	//
 	SVector4 cameraPos;
 	//
 	SVector4 viewDir;
+	// for black screen effect
+	SColor4F globalTint = SConst::White4F;
+	// for 3d meshes
+	SColor4F backLight = SConst::White4F / 3.0f;
+	// apply correction on final pbr color of 3d meshes
+	SColor4F pbrGammaCorrection = SConst::White4F;
 };
+
+namespace SConst
+{
+	static const SSettingsBuffer DefaultRenderSettings{};
+}
 
 /** Cubemaps settings */
 struct SCubemapsBuffer
@@ -59,11 +68,9 @@ struct SCubemapsBuffer
 	//
 	std::uint32_t bHasSpecularCubemap;
 	//
-	float diffuseAmount;
+	float diffuseAmount = 1.0f;
 	//
-	float specularAmount;
-	//
-	float IBLAmount;
+	float specularAmount = 1.0f;
 };
 
 /** Lights settings */

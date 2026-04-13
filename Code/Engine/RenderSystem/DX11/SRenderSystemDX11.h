@@ -78,9 +78,17 @@ public:// IRenderSystem interface implementation
 	//
 	virtual float GetCubemapAmount(ECubemapType type) const noexcept override;
 	//
-	virtual void SetIBLAmount(float amount) override { IBLAmount = amount; }
+	virtual void SetGlobalTint(const SColor3F& color) override;
 	//
-	virtual float GetIBLAmount() const noexcept { return IBLAmount; }
+	virtual SColor3F GetGlobalTint() const override { return globalTint; }
+	//
+	virtual void SetBackLight(const SColor3F& color) override;
+	//
+	virtual SColor3F GetBackLight() const noexcept { return backLight; }
+	//
+	virtual void SetGammaCorrection(const SColor3F& color) override;
+	//
+	virtual SColor3F GetGammaCorrection() const noexcept { return pbrGammaCorrection; }
 	//
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
@@ -142,8 +150,6 @@ protected:
 	//
 	void CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height);
 	//
-	void OnGlobalTintChanged(SColor3 globalTint);
-	//
 	void OnWorldScaleChanged(SVector2 worldScale);
 	//
 	void OnCameraViewChanged(const SCamera& camera);
@@ -204,7 +210,11 @@ protected:
 	//
 	float specularCubemapAmount = 1.0f;
 	//
-	float IBLAmount = 0.5f;
+	SColor4F globalTint = SConst::DefaultRenderSettings.globalTint;
+	//
+	SColor4F backLight = SConst::DefaultRenderSettings.backLight;
+	//
+	SColor4F pbrGammaCorrection = SConst::DefaultRenderSettings.pbrGammaCorrection;
 	//
 	IWorld* world{};
 

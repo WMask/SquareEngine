@@ -32,7 +32,7 @@ public:
 		std::uint32_t width, std::uint32_t height, float gameTime);
 	//
 	void UpdateSettingsBuffer(const class IRenderSystemDX11& renderSystem, const SCamera& camera,
-		const std::optional<SColor3>& globalTint);
+		const SColor4F& globalTint, const SColor4F& backLight, const SColor4F& pbrGammaCorrection);
 	//
 	void UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialFlagsBuffer& materials);
 	//

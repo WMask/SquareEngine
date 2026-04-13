@@ -109,9 +109,6 @@ class IWorld : public SUncopyable
 {
 public:
 	/**
-	* Subscribe to get changes of sprites global tint */
-	entt::delegate<void(SColor3)> onGlobalTintChanged;
-	/**
 	* Subscribe to get changes of lights */
 	entt::delegate<void(const IWorld&)> onLightsChanged;
 
@@ -165,12 +162,6 @@ public:
 	/**
 	* Get fonts */
 	virtual IFontSystem& GetFonts() = 0;
-	/**
-	* Set global sprites and widgets tint color (default White) */
-	virtual void SetGlobalTint(const std::optional<SColor3>& tint) = 0;
-	/**
-	* Get global sprites and widgets tint color (default White) */
-	virtual std::optional<SColor3> GetGlobalTint() const = 0;
 
 };
 

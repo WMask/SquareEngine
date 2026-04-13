@@ -203,6 +203,7 @@ namespace SConst
 	static const SColor3 White3 = SColor3{ 255, 255, 255 };
 	static const SColor3F White3F = SColor3F{ 1.0f, 1.0f, 1.0f };
 	static const SColor4F White4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+	static const SColor4F Black4F = SColor4F{ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 namespace SConvert
@@ -239,6 +240,21 @@ namespace SConvert
 	inline SColor4F ToColor4(const SVector4& v)
 	{
 		return SColor4F{ v.x, v.y, v.z, v.w };
+	}
+
+	inline SColor4F ToColor4(const SColor3F& color)
+	{
+		return SColor4F{ color.r, color.g, color.b, 1.0f };
+	}
+
+	inline SColor4F ToColor4(const SColor3& color)
+	{
+		return SColor4F{
+			static_cast<float>(color.r) / 255.0f,
+			static_cast<float>(color.g) / 255.0f,
+			static_cast<float>(color.b) / 255.0f,
+			1.0f
+		};
 	}
 
 #if USING_DXMATH

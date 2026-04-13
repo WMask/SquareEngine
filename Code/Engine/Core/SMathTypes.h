@@ -258,6 +258,10 @@ namespace SConvert
 	{
 		return SVector2{ size.width, size.height };
 	}
+	inline SVector2 ToVector2(const SPoint2& p)
+	{
+		return SVector2{ static_cast<float>(p.x), static_cast<float>(p.y) };
+	}
 	inline SSize2F ToSize2F(const SSize2& size)
 	{
 		return SSize2F{ static_cast<float>(size.width), static_cast<float>(size.height) };

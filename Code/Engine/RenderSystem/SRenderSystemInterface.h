@@ -38,6 +38,9 @@ public:
 	* Load textures and call delegate */
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
 	/**
+	* Get texture size in pixels */
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const = 0;
+	/**
 	* Load cubemap from dds file */
 	virtual void LoadCubemap(const std::filesystem::path& path, ECubemapType type) = 0;
 	//
@@ -62,6 +65,9 @@ public:
 	/**
 	* Load meshes with material textures and call delegate */
 	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) = 0;
+	/**
+	* Get mesh materials */
+	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const = 0;
 	/**
 	* Remove all graphics objects: textures, fonts etc. */
 	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;

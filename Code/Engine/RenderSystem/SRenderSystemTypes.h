@@ -80,21 +80,21 @@ struct SLightsBuffer
 };
 
 /** Material flags */
-struct SMaterialBuffer
+struct SMaterialFlagsBuffer
 {
-	std::int32_t bHasBaseTexture;
-	std::int32_t bHasNormTexture;
-	std::int32_t bHasRMATexture; // r - roughness, g - metallic, b - AO
-	std::int32_t bHasEmiTexture; // rgb - emissive
+	std::uint32_t bHasBaseTexture;
+	std::uint32_t bHasNormTexture; // rgb - tangent space normal
+	std::uint32_t bHasRMATexture;  // r - roughness, g - metallic, b - AO
+	std::uint32_t bHasEmiTexture;  // rgb - emissive
 };
 
 /** Sprite flags */
 struct SSpriteFlagsBuffer
 {
-	std::int32_t bHasAnimation;
-	std::int32_t bHasColor;
-	std::int32_t bHasCustomUV;
-	std::int32_t bHasTexture;
+	std::uint32_t bHasAnimation;
+	std::uint32_t bHasColor;
+	std::uint32_t bHasCustomUV;
+	std::uint32_t bHasTexture;
 };
 
 /** Align buffer size */

@@ -6,6 +6,7 @@
 
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/Windows/SUtilsWindows.h"
+#include "RenderSystem/SECSComponents.h"
 #include "Application/SApplicationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -439,6 +440,17 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 	textureManager.PreloadTextures(paths, delegate);
 }
 
+std::pair<SSize2, bool> SRenderSystemDX11::GetTextureSize(STexID id) const
+{
+	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
+	if (texture)
+	{
+		return { texture->texSize, true };
+	}
+
+	return { SConst::ZeroSSize2, false };
+}
+
 void SRenderSystemDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
 {
 	textureManager.LoadCubemap(path, type);
@@ -479,6 +491,26 @@ void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& pat
 void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
 {
 	meshManager.PreloadStaticMeshes(path, delegate);
+}
+
+std::pair<std::vector<SMeshMaterial>, bool> SRenderSystemDX11::FindMeshMaterials(entt::entity entity) const
+{
+	std::vector<SMeshMaterial> materials;
+
+	if (world)
+	{
+		const auto& registry = world->GetEntities();
+		auto mesh = registry.try_get<SStaticMeshComponent>(entity);
+		if (mesh)
+		{
+			if (FindMesh(mesh->id, nullptr, &materials, nullptr, nullptr))
+			{
+				return { materials, true };
+			}
+		}
+	}
+
+	return { materials, false };
 }
 
 const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) const

@@ -68,6 +68,8 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
 	//
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const override;
+	//
 	virtual void LoadCubemap(const std::filesystem::path& path, ECubemapType type) override;
 	//
 	virtual void RemoveCubemap(ECubemapType type) override;
@@ -83,6 +85,8 @@ public:// IRenderSystem interface implementation
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
 	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) override;
+	//
+	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const override;
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//

@@ -25,47 +25,78 @@ struct SSpriteComponent
 struct SSpriteUV
 {
 	SVector2 uvs[4];
+
+public:
+	//
+	inline void SetDefaultUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetTopHalfUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 0.5f };
+		uvs[3] = SVector2{ 0.0f, 0.5f };
+	}
+	//
+	inline void SetBottomHalfUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.5f };
+		uvs[1] = SVector2{ 0.0f, 0.5f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetLeftTopUV()
+	{
+		uvs[0] = SVector2{ 0.5f, 0.0f };
+		uvs[1] = SVector2{ 0.0f, 0.0f };
+		uvs[2] = SVector2{ 0.5f, 0.5f };
+		uvs[3] = SVector2{ 0.0f, 0.5f };
+	}
+	//
+	inline void SetRightTopUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.0f };
+		uvs[1] = SVector2{ 0.5f, 0.0f };
+		uvs[2] = SVector2{ 1.0f, 0.5f };
+		uvs[3] = SVector2{ 0.5f, 0.5f };
+	}
+	//
+	inline void SetLeftBottomUV()
+	{
+		uvs[0] = SVector2{ 0.5f, 0.5f };
+		uvs[1] = SVector2{ 0.0f, 0.5f };
+		uvs[2] = SVector2{ 0.5f, 1.0f };
+		uvs[3] = SVector2{ 0.0f, 1.0f };
+	}
+	//
+	inline void SetRightBottomUV()
+	{
+		uvs[0] = SVector2{ 1.0f, 0.5f };
+		uvs[1] = SVector2{ 0.5f, 0.5f };
+		uvs[2] = SVector2{ 1.0f, 1.0f };
+		uvs[3] = SVector2{ 0.5f, 1.0f };
+	}
+	//
+	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
+	{
+		uvs[0] = rt;
+		uvs[1] = lt;
+		uvs[2] = rb;
+		uvs[3] = lb;
+	}
 };
 
 /** Sprite UV component */
 struct SSpriteUVComponent
 {
 	SSpriteUV uvs;
-
-
-public:
-	//
-	inline void SetDefaultUV()
-	{
-		uvs.uvs[0] = SVector2{ 1.0f, 0.0f };
-		uvs.uvs[1] = SVector2{ 0.0f, 0.0f };
-		uvs.uvs[2] = SVector2{ 1.0f, 1.0f };
-		uvs.uvs[3] = SVector2{ 0.0f, 1.0f };
-	}
-	//
-	inline void SetTopHalfUV()
-	{
-		uvs.uvs[0] = SVector2{ 1.0f, 0.0f };
-		uvs.uvs[1] = SVector2{ 0.0f, 0.0f };
-		uvs.uvs[2] = SVector2{ 1.0f, 0.5f };
-		uvs.uvs[3] = SVector2{ 0.0f, 0.5f };
-	}
-	//
-	inline void SetBottomHalfUV()
-	{
-		uvs.uvs[0] = SVector2{ 1.0f, 0.5f };
-		uvs.uvs[1] = SVector2{ 0.0f, 0.5f };
-		uvs.uvs[2] = SVector2{ 1.0f, 1.0f };
-		uvs.uvs[3] = SVector2{ 0.0f, 1.0f };
-	}
-	//
-	inline void SetUV(const SVector2& lt, const SVector2& rt, const SVector2& rb, const SVector2& lb)
-	{
-		uvs.uvs[0] = rt;
-		uvs.uvs[1] = lt;
-		uvs.uvs[2] = rb;
-		uvs.uvs[3] = lb;
-	}
 };
 
 
@@ -160,8 +191,8 @@ public:
 			const float xf = static_cast<float>(x * frameSize.width) / static_cast<float>(texSize.width);
 			const float yf = static_cast<float>(y * frameSize.height) / static_cast<float>(texSize.height);
 
-			outUV.uvs[0] = SVector2{ xf + xs, yf }; // rt
-			outUV.uvs[1] = SVector2{ xf,      yf }; // lt
+			outUV.uvs[0] = SVector2{ xf + xs, yf };      // rt
+			outUV.uvs[1] = SVector2{ xf,      yf };      // lt
 			outUV.uvs[2] = SVector2{ xf + xs, yf + ys }; // rb
 			outUV.uvs[3] = SVector2{ xf,      yf + ys }; // lb
 		}
@@ -229,9 +260,47 @@ struct SButtonComponent
 	//
 	SVector3 initialTextPos;
 	//
+	SSpriteUV normalUV;
+	//
+	SSpriteUV pressedUV;
+};
+
+/** Checkbox component */
+struct SCheckboxComponent
+{
+	SSpriteUV normalUV;
+	//
 	SSpriteUV pressedUV;
 	//
-	SSpriteUV normalUV;
+	SSpriteUV normalCheckedUV;
+	//
+	SSpriteUV pressedCheckedUV;
+	//
+	bool bChecked;
+};
+
+/** Slider component */
+struct SSliderComponent
+{
+	// 0.0 - 1.0
+	float sliderValue;
+	//
+	float minValue;
+	//
+	float maxValue;
+	// (maxValue - minValue) * sliderValue
+	float value;
+};
+
+/** Draggable widget component */
+struct SDragComponent
+{
+	// initial cursor offset
+	SVector2 offset;
+	//
+	SRectF area;
+	//
+	bool bDragging = false;
 };
 
 
@@ -245,7 +314,7 @@ struct SStaticMeshComponent
 	//
 	SColor3 tint = SConst::White3;
 	// set to 0 to disable texture
-	SMaterialBuffer flags{ 1, 1, 1, 1 };
+	SMaterialFlagsBuffer flags{ 1u, 1u, 1u, 1u };
 };
 
 

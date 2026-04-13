@@ -34,7 +34,7 @@ public:
 	void UpdateSettingsBuffer(const class IRenderSystemDX11& renderSystem, const SCamera& camera,
 		const std::optional<SColor3>& globalTint);
 	//
-	void UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialBuffer& materials);
+	void UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialFlagsBuffer& materials);
 	//
 	void UpdateLightSettings(const IRenderSystemDX11& renderSystem, const SLightsBuffer& lights);
 	//

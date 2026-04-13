@@ -93,8 +93,8 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create constant buffer");
 	}
 
-	SMaterialBuffer materialData{};
-	cbDesc.ByteWidth = Align16<SMaterialBuffer>();
+	SMaterialFlagsBuffer materialData{};
+	cbDesc.ByteWidth = Align16<SMaterialFlagsBuffer>();
 	subResData.pSysMem = &materialData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, materialBuffer.GetAddressOf())))
 	{
@@ -243,7 +243,7 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderS
 	}
 }
 
-void SConstantBuffersDX11::UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialBuffer& materials)
+void SConstantBuffersDX11::UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialFlagsBuffer& materials)
 {
 	auto deviceContext = renderSystem.GetDeviceContext();
 	if (deviceContext && materialBuffer)

@@ -48,7 +48,7 @@ protected:
 	//
 	std::vector<SMeshMaterial> cachedMaterials;
 	//
-	SMaterialBuffer cachedMaterialFlags;
+	SMaterialFlagsBuffer cachedMaterialFlags;
 	//
 	DXGI_FORMAT cachedFormat;
 	//

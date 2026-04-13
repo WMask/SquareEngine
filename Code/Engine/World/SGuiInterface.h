@@ -92,10 +92,17 @@ public:
 	//
 	virtual entt::entity MakeText(entt::registry& registry, SWidgetID widgetId, STextID text, SFontID font,
 		const SVector3& pos, const SSize2F& size, SColor4F color, STextAlign align = STextAlign::Middle) = 0;
-	//
+	// returns button entity and text entity
 	virtual std::pair<entt::entity, entt::entity> MakeButtonWithText(entt::registry& registry,
 		STexID texture, STextID text, SFontID font, SWidgetID btnWidget,
-		const SVector3& pos, const SSize2F& size, SColor4F color) = 0;
+		const SVector3& pos, const SSize2F& size, SColor4F color = SConst::White4F, SColor4F textColor = SConst::White4F) = 0;
+	//
+	virtual entt::entity MakeCheckbox(entt::registry& registry, STexID texture, SWidgetID widgetId,
+		bool bChecked, const SVector3& pos, const SSize2F& size, SColor4F color = SConst::White4F) = 0;
+	// returns button entity and slider background entity
+	virtual std::pair<entt::entity, entt::entity> MakeSlider(entt::registry& registry, STexID texture, SWidgetID widgetId,
+		float value, float minValue, float maxValue, const SVector3& pos, const SSize2F& size, const SSize2F& texSize,
+		SColor4F color = SConst::White4F) = 0;
 
 };
 

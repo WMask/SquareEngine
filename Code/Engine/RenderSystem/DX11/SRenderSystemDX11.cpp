@@ -6,6 +6,7 @@
 
 #include "RenderSystem/DX11/SRenderSystemDX11.h"
 #include "RenderSystem/Windows/SUtilsWindows.h"
+#include "RenderSystem/SECSComponents.h"
 #include "Application/SApplicationInterface.h"
 #include "Core/SException.h"
 #include "Core/SUtils.h"
@@ -439,6 +440,17 @@ void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoaded
 	textureManager.PreloadTextures(paths, delegate);
 }
 
+std::pair<SSize2, bool> SRenderSystemDX11::GetTextureSize(STexID id) const
+{
+	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
+	if (texture)
+	{
+		return { texture->texSize, true };
+	}
+
+	return { SConst::ZeroSSize2, false };
+}
+
 void SRenderSystemDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
 {
 	textureManager.LoadCubemap(path, type);
@@ -471,6 +483,27 @@ void SRenderSystemDX11::RemoveCubemap(ECubemapType type)
 	constantBuffers.UpdateCubemapSettings(*this);
 }
 
+void SRenderSystemDX11::SetGlobalTint(const SColor3F& color)
+{
+	globalTint = SConvert::ToColor4(color);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
+}
+
+void SRenderSystemDX11::SetBackLight(const SColor3F& color)
+{
+	backLight = SConvert::ToColor4(color);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
+}
+
+void SRenderSystemDX11::SetGammaCorrection(const SColor3F& color)
+{
+	pbrGammaCorrection = SConvert::ToColor4(color);
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
+}
+
 void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
 	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
@@ -479,6 +512,26 @@ void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& pat
 void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
 {
 	meshManager.PreloadStaticMeshes(path, delegate);
+}
+
+std::pair<std::vector<SMeshMaterial>, bool> SRenderSystemDX11::FindMeshMaterials(entt::entity entity) const
+{
+	std::vector<SMeshMaterial> materials;
+
+	if (world)
+	{
+		const auto& registry = world->GetEntities();
+		auto mesh = registry.try_get<SStaticMeshComponent>(entity);
+		if (mesh)
+		{
+			if (FindMesh(mesh->id, nullptr, &materials, nullptr, nullptr))
+			{
+				return { materials, true };
+			}
+		}
+	}
+
+	return { materials, false };
 }
 
 const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) const
@@ -559,7 +612,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	// render 3d frame
 	constantBuffers.ApplyTransform3D(deviceContext.Get(), world->GetCamera(),
 		cachedRenderSystemSize.width, cachedRenderSystemSize.height, context.gameTime);
-	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
+	constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(),
+		globalTint, backLight, pbrGammaCorrection);
 
 	auto specularMap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(ECubemapType::Specular));
 	if (specularMap) deviceContext->PSSetShaderResources(4, 1, specularMap->view.GetAddressOf());
@@ -604,17 +658,8 @@ void SRenderSystemDX11::Subscribe(const SAppContext& inContext)
 	SAppContext context = inContext;
 
 	context.world->onLightsChanged.connect<&SRenderSystemDX11::OnLightsChanged>(this);
-	context.world->onGlobalTintChanged.connect<&SRenderSystemDX11::OnGlobalTintChanged>(this);
 	context.world->GetCamera().onViewChanged.connect<&SRenderSystemDX11::OnCameraViewChanged>(this);
 	context.world->GetScale().onScaleChanged.connect<&SRenderSystemDX11::OnWorldScaleChanged>(this);
-}
-
-void SRenderSystemDX11::OnGlobalTintChanged(SColor3 globalTint)
-{
-	if (deviceContext && world)
-	{
-		constantBuffers.UpdateSettingsBuffer(*this, world->GetCamera(), world->GetGlobalTint());
-	}
 }
 
 void SRenderSystemDX11::OnWorldScaleChanged(SVector2 worldScale)

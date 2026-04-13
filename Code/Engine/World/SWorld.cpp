@@ -115,15 +115,6 @@ SLightsBuffer SWorld::GetLightsData() const
 	return data;
 }
 
-void SWorld::SetGlobalTint(const std::optional<SColor3>& tint)
-{
-	if (globalTint != tint)
-	{
-		globalTint = tint;
-		onGlobalTintChanged(globalTint.value());
-	}
-}
-
 void SWorld::UpdateWorldScale(SSize2 newScreenSize)
 {
 	worldScale.UpdateWorldScale(newScreenSize);

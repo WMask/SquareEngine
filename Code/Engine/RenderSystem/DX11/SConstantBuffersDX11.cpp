@@ -62,7 +62,6 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 
 	SSettingsBuffer settingsData{};
 	cbDesc.ByteWidth = Align16<SSettingsBuffer>();
-	settingsData.worldTint = SConvert::ToVector4(SConst::White3);
 	settingsData.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
 	settingsData.viewDir = SConvert::ToVector4(camera.GetViewDir());
 	subResData.pSysMem = &settingsData;
@@ -77,7 +76,6 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	cubemapsData.bHasSpecularCubemap = FALSE;
 	cubemapsData.diffuseAmount = 1.0f;
 	cubemapsData.specularAmount = 1.0f;
-	cubemapsData.IBLAmount = 0.5f;
 	subResData.pSysMem = &cubemapsData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, cubemapsBuffer.GetAddressOf())))
 	{
@@ -93,8 +91,8 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create constant buffer");
 	}
 
-	SMaterialBuffer materialData{};
-	cbDesc.ByteWidth = Align16<SMaterialBuffer>();
+	SMaterialFlagsBuffer materialData{};
+	cbDesc.ByteWidth = Align16<SMaterialFlagsBuffer>();
 	subResData.pSysMem = &materialData;
 	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, materialBuffer.GetAddressOf())))
 	{
@@ -224,8 +222,8 @@ void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContex
 	}
 }
 
-void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderSystem,
-	const SCamera& camera, const std::optional<SColor3>& globalTint)
+void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderSystem, const SCamera& camera,
+	const SColor4F& inGlobalTint, const SColor4F& inBackLight, const SColor4F& inPbrGammaCorrection)
 {
 	auto deviceContext = renderSystem.GetDeviceContext();
 	if (deviceContext && settingsBuffer)
@@ -233,17 +231,15 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderS
 		SSettingsBuffer settings{};
 		settings.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
 		settings.viewDir = SConvert::ToVector4(camera.GetViewDir());
-
-		if (globalTint.has_value())
-			settings.worldTint = SConvert::ToVector4(globalTint.value());
-		else
-			settings.worldTint = SConst::OneSVector4;
+		settings.globalTint = inGlobalTint;
+		settings.backLight = inBackLight;
+		settings.pbrGammaCorrection = inPbrGammaCorrection;
 
 		deviceContext->UpdateSubresource(settingsBuffer.Get(), 0, NULL, &settings, 0, 0);
 	}
 }
 
-void SConstantBuffersDX11::UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialBuffer& materials)
+void SConstantBuffersDX11::UpdateMaterialFlags(const IRenderSystemDX11& renderSystem, const SMaterialFlagsBuffer& materials)
 {
 	auto deviceContext = renderSystem.GetDeviceContext();
 	if (deviceContext && materialBuffer)
@@ -271,7 +267,6 @@ void SConstantBuffersDX11::UpdateCubemapSettings(const IRenderSystemDX11& render
 		cubemaps.bHasSpecularCubemap = renderSystem.FindCubemap(ECubemapType::Specular) ? TRUE : FALSE;
 		cubemaps.diffuseAmount = renderSystem.GetCubemapAmount(ECubemapType::Diffuse);
 		cubemaps.specularAmount = renderSystem.GetCubemapAmount(ECubemapType::Specular);
-		cubemaps.IBLAmount = renderSystem.GetIBLAmount();
 
 		deviceContext->UpdateSubresource(cubemapsBuffer.Get(), 0, NULL, &cubemaps, 0, 0);
 	}

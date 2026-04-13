@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Core/CoreModule.h"
-#include "Core/SMathTypes.h"
+#include "Core/STypes.h"
 
 
 /***************************************************************************
@@ -220,6 +220,31 @@ inline SSize2F operator/(const SSize2F& v1, const SSize2F& v2)
 inline SVector2 operator*(const SSize2F& size, const SVector2& v)
 {
 	return SVector2{ size.width * v.x, size.height * v.y };
+}
+
+
+/***************************************************************************
+* Colors
+*/
+
+inline SColor4F operator/(const SColor4F& clr, float s)
+{
+	return SColor4F{ clr.r / s, clr.g / s, clr.b / s, clr.a };
+}
+
+inline SColor4F operator*(const SColor4F& clr, float s)
+{
+	return SColor4F{ clr.r * s, clr.g * s, clr.b * s, clr.a };
+}
+
+inline SColor3F operator/(const SColor3F& clr, float s)
+{
+	return SColor3F{ clr.r / s, clr.g / s, clr.b / s };
+}
+
+inline SColor3F operator*(const SColor3F& clr, float s)
+{
+	return SColor3F{ clr.r * s, clr.g * s, clr.b * s };
 }
 
 

@@ -12,9 +12,9 @@ cbuffer VSMatrixBuffer : register(b0)
 
 cbuffer VSPSSettingsBuffer : register(b1)
 {
-	float4 vGlobalTint;
 	float4 vCameraPos;
 	float4 vViewDir;
+	float4 vGlobalTint;
 };
 
 struct VSInputTxInst

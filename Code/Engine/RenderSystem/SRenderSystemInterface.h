@@ -38,6 +38,9 @@ public:
 	* Load textures and call delegate */
 	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
 	/**
+	* Get texture size in pixels */
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const = 0;
+	/**
 	* Load cubemap from dds file */
 	virtual void LoadCubemap(const std::filesystem::path& path, ECubemapType type) = 0;
 	//
@@ -49,11 +52,23 @@ public:
 	* Cubemap amount (0 - 1) */
 	virtual float GetCubemapAmount(ECubemapType type) const noexcept = 0;
 	/**
-	* Image-based lighting amount (0 - 1) */
-	virtual void SetIBLAmount(float amount) = 0;
+	* Set global shaders tint color */
+	virtual void SetGlobalTint(const SColor3F& tint) = 0;
 	/**
-	* Image-based lighting amount (0 - 1) */
-	virtual float GetIBLAmount() const noexcept = 0;
+	* Get global shaders tint color */
+	virtual SColor3F GetGlobalTint() const = 0;
+	/**
+	* Back light color for 3d world */
+	virtual void SetBackLight(const SColor3F& color) = 0;
+	/**
+	* Back light color for 3d world */
+	virtual SColor3F GetBackLight() const noexcept = 0;
+	/**
+	* Gamma correction on final pbr color */
+	virtual void SetGammaCorrection(const SColor3F& color) = 0;
+	/**
+	* Gamma correction on final pbr color */
+	virtual SColor3F GetGammaCorrection() const noexcept = 0;
 	/**
 	* Load mesh scene instances and call delegate.
 	* Loads meshes with material textures if instance's mesh not loaded yet.
@@ -62,6 +77,9 @@ public:
 	/**
 	* Load meshes with material textures and call delegate */
 	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) = 0;
+	/**
+	* Get mesh materials */
+	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const = 0;
 	/**
 	* Remove all graphics objects: textures, fonts etc. */
 	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;

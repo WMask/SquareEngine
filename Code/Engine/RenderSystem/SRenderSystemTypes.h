@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Core/STypes.h"
+#include "Core/SMath.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -45,12 +45,21 @@ struct SSingleMatrixBuffer
 /** Render settings */
 struct SSettingsBuffer
 {
-	SVector4 worldTint;
-	//
 	SVector4 cameraPos;
 	//
 	SVector4 viewDir;
+	// for black screen effect
+	SColor4F globalTint = SConst::White4F;
+	// for 3d meshes
+	SColor4F backLight = SConst::White4F / 3.0f;
+	// apply correction on final pbr color of 3d meshes
+	SColor4F pbrGammaCorrection = SConst::White4F;
 };
+
+namespace SConst
+{
+	static const SSettingsBuffer DefaultRenderSettings{};
+}
 
 /** Cubemaps settings */
 struct SCubemapsBuffer
@@ -59,11 +68,9 @@ struct SCubemapsBuffer
 	//
 	std::uint32_t bHasSpecularCubemap;
 	//
-	float diffuseAmount;
+	float diffuseAmount = 1.0f;
 	//
-	float specularAmount;
-	//
-	float IBLAmount;
+	float specularAmount = 1.0f;
 };
 
 /** Lights settings */
@@ -80,21 +87,21 @@ struct SLightsBuffer
 };
 
 /** Material flags */
-struct SMaterialBuffer
+struct SMaterialFlagsBuffer
 {
-	std::int32_t bHasBaseTexture;
-	std::int32_t bHasNormTexture;
-	std::int32_t bHasRMATexture; // r - roughness, g - metallic, b - AO
-	std::int32_t bHasEmiTexture; // rgb - emissive
+	std::uint32_t bHasBaseTexture;
+	std::uint32_t bHasNormTexture; // rgb - tangent space normal
+	std::uint32_t bHasRMATexture;  // r - roughness, g - metallic, b - AO
+	std::uint32_t bHasEmiTexture;  // rgb - emissive
 };
 
 /** Sprite flags */
 struct SSpriteFlagsBuffer
 {
-	std::int32_t bHasAnimation;
-	std::int32_t bHasColor;
-	std::int32_t bHasCustomUV;
-	std::int32_t bHasTexture;
+	std::uint32_t bHasAnimation;
+	std::uint32_t bHasColor;
+	std::uint32_t bHasCustomUV;
+	std::uint32_t bHasTexture;
 };
 
 /** Align buffer size */

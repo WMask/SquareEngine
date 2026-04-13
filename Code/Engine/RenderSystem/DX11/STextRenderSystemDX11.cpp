@@ -120,9 +120,11 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 	// prepare cached state
 	if (batchData.capacity() < SConst::MaxInstancedSpritesCount) batchData.reserve(SConst::MaxInstancedSpritesCount);
 	cachedTexView = nullptr;
+	cachedTextColor = SConst::White4F;
+	cachedFontId = 0u;
+	cachedTexId = 0u;
 	batchesRendered = 0u;
 	numGlyphs = 0u;
-	cachedTexId = 0u;
 
 	// render sprites
 	const auto& registry = world->GetEntities();
@@ -138,19 +140,29 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 		if (!widgetComponent.bVisible) return;
 
 		const IFontSystem& fonts = world->GetFonts();
+		bool bForceDraw = false;
+
+		// get text
 		auto [text, bTextFound] = fonts.GetLocale()->Get(textComponent.textId);
 		if (!bTextFound)
 		{
-			DebugMsg("[%s] STextRenderSystemDX11::Render(): cannot find text id=%d\n",
+			DebugMsg("[%s] STextRenderSystemDX11::Render(): cannot find text id=%u\n",
 				GetTimeStamp(std::chrono::system_clock::now()).c_str(), textComponent.textId);
 			return;
 		}
 
+		// get texture
 		auto [texId, bTexFound] = fonts.GetTextureId(textComponent.fontId, fonts.GetLocale()->GetCulture());
+		if (texId != cachedTexId && cachedTexId != 0u)
+		{
+			bForceDraw = true;
+		}
+
+		cachedTexId = texId;
+
 		if (!cachedTexView)
 		{
 			auto [view, texSize] = renderSystemDX11.FindTexture(texId);
-			cachedTexId = texId;
 			cachedTexSize = texSize;
 			cachedTexView = view;
 		}
@@ -165,6 +177,13 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 				GetTimeStamp(std::chrono::system_clock::now()).c_str(), textComponent.textId);
 			return;
 		}
+
+		if (textComponent.fontId != cachedFontId && cachedFontId != 0u)
+		{
+			bForceDraw = true;
+		}
+
+		cachedFontId = textComponent.fontId;
 
 		// compute text align
 		glyphOffset = 0.0f;
@@ -187,6 +206,13 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 			SSpriteUV tmpUV;
 			textComponent.GenerateGlyphUV(glyph, SConvert::ToSize2F(cachedTexSize), tmpUV);
 
+			if (textComponent.color != cachedTextColor && cachedTextColor != SConst::White4F)
+			{
+				bForceDraw = true;
+			}
+
+			cachedTextColor = textComponent.color;
+
 			// store instance data
 			DX11TEXTGLYPHINSTANCE instance{};
 			instance.pos = spriteComponent.position;
@@ -197,7 +223,7 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 			batchData.push_back(instance);
 			glyphOffset += glyph.size.width;
 
-			if (batchData.size() == SConst::MaxInstancedSpritesCount)
+			if (batchData.size() == SConst::MaxInstancedSpritesCount || bForceDraw)
 			{
 				// render if max number reached
 				RenderBatch();
@@ -206,12 +232,18 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 			numGlyphs++;
 		}
 
-		if (!batchData.empty())
+		if (!batchData.empty() && bForceDraw)
 		{
-			// render full string
+			// render if changed
 			RenderBatch();
 		}
 	});
+
+	if (!batchData.empty())
+	{
+		// render last
+		RenderBatch();
+	}
 
 	if (renderSystemDX11.IsNeedDebugTrace())
 	{

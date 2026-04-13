@@ -14,9 +14,11 @@ cbuffer VSMatrixBuffer : register(b0)
 
 cbuffer VSPSSettingsBuffer : register(b1)
 {
-	float4 vGlobalTint;
 	float4 vCameraPos;
 	float4 vViewDir;
+	float4 vGlobalTint;
+	float4 vBackLight;
+	float4 vPbrGammaCorrection;
 };
 
 cbuffer VSPSMaterialBuffer : register(b2)
@@ -33,7 +35,6 @@ cbuffer PSCubemapsBuffer : register(b3)
 	uint  bHasSpecularCubemap; // specular reflection (irradiance)
 	float diffuseAmount;
 	float specularAmount;
-	float IBLAmount;           // image-based lighting or normal lighting
 };
 
 cbuffer PSLightsBuffer : register(b4)
@@ -199,18 +200,18 @@ float4 PShader(PSInputNmTx input) : SV_Target0
 		// Environment cubemap reflection
 		float3 vDir = reflect(-V, N);
 		float3 vEnvColor = SpecularTexture.Sample(CubemapSampler, vDir).rgb;
-		float3 vFresnelAmount = lerp(float3(1.0, 1.0, 1.0), NdotL, 0.7);
+		float3 vFresnelAmount = lerp(float3(1.0, 1.0, 1.0), NdotL, 0.5); // Reduce env amount on dark side
 		float3 vEnvAmount = FresnelSchlick(max(dot(N, V), 0.0), F0) * vFresnelAmount;
-		float3 vIndirectSpecular = vEnvColor * vEnvAmount * metallic * 2.5;
+		float3 vIndirectSpecular = vEnvColor * vEnvAmount * metallic * specularAmount * 2.5;
 
 		// Apply directional light
 		vFinalColor = (vDiffuse + vSpecular) * vRadiance * NdotL + vIndirectSpecular;
-		vFinalColor *= 3.5;
+		vFinalColor = vFinalColor * vPbrGammaCorrection.rgb * 3.5;
 	}
 
 	// Apply back light
-	float3 vBackLight = vAlbedo.rgb * NdotL2;
-	vFinalColor += vBackLight * (1.0 - metallic) * 0.3;
+	float3 vBackColor = vAlbedo.rgb * vBackLight * NdotL2 * (1.0 - metallic);
+	vFinalColor += vBackColor;
 
 	// Apply Ambient Occlusion
 	vFinalColor *= ao;

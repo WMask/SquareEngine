@@ -50,7 +50,14 @@ public: // IGuiSystem interface implementation
 	//
 	virtual std::pair<entt::entity, entt::entity> MakeButtonWithText(entt::registry& registry,
 		STexID texture, STextID text, SFontID font, SWidgetID btnWidget,
-		const SVector3& pos, const SSize2F& size, SColor4F color) override;
+		const SVector3& pos, const SSize2F& size, SColor4F color, SColor4F textColor) override;
+	//
+	virtual entt::entity MakeCheckbox(entt::registry& registry, STexID texture, SWidgetID widgetId,
+		bool bChecked, const SVector3& pos, const SSize2F& size, SColor4F color) override;
+	//
+	virtual std::pair<entt::entity, entt::entity> MakeSlider(entt::registry& registry, STexID texture, SWidgetID widgetId,
+		float value, float minValue, float maxValue, const SVector3& pos, const SSize2F& size, const SSize2F& texSize,
+		SColor4F color) override;
 
 
 protected:

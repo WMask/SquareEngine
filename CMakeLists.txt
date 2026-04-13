@@ -251,10 +251,15 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemModule.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemTypes.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/SRenderSystemInterface.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.cpp
-    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SUtilsWindows.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SUtilsWindows.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/STextureManagerWindows.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/STextureManagerWindows.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SMeshManagerWindows.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SMeshManagerWindows.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SShaderManagerWindows.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SShaderManagerWindows.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemTypesDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
@@ -267,10 +272,6 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.h
-    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 )
@@ -406,22 +407,25 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/Application/Windows/SWindowsApplication.cpp
 	)
 	source_group("Header Files\\Windows" FILES
-		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.h
-		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SUtilsWindows.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SShaderManagerWindows.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/STextureManagerWindows.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SMeshManagerWindows.h
 	)
 	source_group("Source Files\\Windows" FILES
-		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SWindowsUtils.cpp
-		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SDXShaderManager.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SUtilsWindows.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SShaderManagerWindows.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/STextureManagerWindows.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SMeshManagerWindows.cpp
 	)
 	source_group("Header Files\\DX11" FILES
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemTypesDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.h
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
 	source_group("Source Files\\DX11" FILES
@@ -431,8 +435,6 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextureManagerDX11.cpp
-		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshManagerDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)
 endif()

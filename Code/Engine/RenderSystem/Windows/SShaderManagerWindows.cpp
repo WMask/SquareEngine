@@ -72,7 +72,7 @@ void SShaderManagerWindows::Update()
 		{
 			if (!data.psCode.Get() || !data.vsCode.Get())
 			{
-				throw std::exception("SDXShaderManager::Update(): cannot load or compile shader");
+				throw std::exception("SShaderManagerWindows::Update(): cannot load or compile shader");
 			}
 
 			data.delegate(data);

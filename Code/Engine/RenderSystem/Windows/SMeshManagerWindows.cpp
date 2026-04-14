@@ -66,6 +66,7 @@ bool SMeshManagerWindows::RemoveMesh(SMeshID id)
     if (meshesCache.contains(id))
     {
         meshesCache.erase(id);
+        UpdateCacheIds();
         return true;
     }
 
@@ -198,74 +199,7 @@ bool SMeshManagerWindows::LoadMeshData(const std::filesystem::path& path, SGroup
 
     return true;
 }
-/*
-bool SMeshManagerWindows::CreateMesh(ID3D11Device* device, const SMesh& meshData, SMeshDataDX11& outMesh)
-{
-    D3D11_BUFFER_DESC bufferDesc{};
-    bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-    bufferDesc.ByteWidth = sizeof(SVertex) * meshData.vertices.size();
-    bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA bufferData{};
-    bufferData.pSysMem = meshData.vertices.data();
 
-    // create vertex buffer
-    if (FAILED(device->CreateBuffer(&bufferDesc, &bufferData, outMesh.vb.GetAddressOf())))
-    {
-        DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): Cannot create vertex buffer\n",
-            GetTimeStamp(std::chrono::system_clock::now()).c_str());
-        return false;
-    }
-
-    // create index buffer
-    bufferDesc.ByteWidth = sizeof(std::uint16_t) * meshData.indices.size();
-    bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    bufferData.pSysMem = meshData.indices.data();
-
-    if (FAILED(device->CreateBuffer(&bufferDesc, &bufferData, outMesh.ib.GetAddressOf())))
-    {
-        DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): Cannot create index buffer\n",
-            GetTimeStamp(std::chrono::system_clock::now()).c_str());
-        return false;
-    }
-
-    outMesh.materials = meshData.materials;
-
-    // load textures
-    if (renderSystem)
-    {
-        for (auto& material : meshData.materials)
-        {
-            SPathList paths;
-            auto [baseView, baseSize] = renderSystem->FindTexture(ResourceID<STexID>(material.baseTexture.string()));
-            if (!baseView && !material.baseTexture.empty()) paths.push_back(material.baseTexture);
-            auto [normView, normSize] = renderSystem->FindTexture(ResourceID<STexID>(material.normTexture.string()));
-            if (!normView && !material.normTexture.empty()) paths.push_back(material.normTexture);
-            auto [ormView, ormSize] = renderSystem->FindTexture(ResourceID<STexID>(material.rmaTexture.string()));
-            if (!ormView && !material.rmaTexture.empty()) paths.push_back(material.rmaTexture);
-            auto [emiView, emiSize] = renderSystem->FindTexture(ResourceID<STexID>(material.emiTexture.string()));
-            if (!ormView && !material.emiTexture.empty()) paths.push_back(material.emiTexture);
-
-            if (!paths.empty())
-            {
-                static auto onLoaded = [](std::vector<std::filesystem::path>& textures)
-                {
-                    for (auto& texture : textures)
-                    {
-                        DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): material texture loaded '%s'\n",
-                            GetTimeStamp(std::chrono::system_clock::now()).c_str(), texture.string().c_str());
-                    }
-                };
-                renderSystem->GetTextureManager().PreloadTextures(paths, onLoaded);
-            }
-        }
-    }
-
-    DebugMsg("[%s] SMeshManagerWindows::CreateMesh(): mesh '%s' created and added to cache\n",
-        GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.name.c_str());
-
-    return true;
-}
-*/
 void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData)
 {
     std::forward_list<TInstancesDelegatesCache::const_iterator> eraseList1;
@@ -341,15 +275,15 @@ void SMeshManagerWindows::ClearCache(IWorld* world)
         const auto& registry = world->GetEntities();
         const auto& view = registry.view<SStaticMeshComponent>();
 
-        view.each([&aliveMeshList](const SStaticMeshComponent& meshComponent) {
+        view.each([&aliveMeshList](const SStaticMeshComponent& meshComponent)
+        {
             aliveMeshList.insert(meshComponent.id);
         });
 
         std::set<STexID> eraseTexList;
         for (auto tex : meshesCache)
         {
-            const bool bNotFound = (aliveMeshList.find(tex.first) == aliveMeshList.end());
-            if (bNotFound)
+            if (!aliveMeshList.contains(tex.first))
             {
                 eraseTexList.insert(tex.first);
             }

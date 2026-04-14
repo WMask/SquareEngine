@@ -165,13 +165,24 @@ STexID STextureManagerWindows::LoadTexture(const std::filesystem::path& path)
 
 void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
 {
-    preloadDelegatesCache.emplace_back(paths, delegate);
-
-    auto PreloadTexturesTask = [this, paths]()
+    // transform paths to ids
+    TTexIDList ids(paths.size());
+    auto texIds = std::transform(paths.begin(), paths.end(), ids.begin(),
+        [](const std::filesystem::path& path)->STexID
     {
-        for (auto& path : paths)
+        return ResourceID<STexID>(path.string());
+    });
+
+    // cache delegate and ids
+    preloadDelegatesCache.emplace_back(ids, delegate);
+
+    auto PreloadTexturesTask = [this, paths, ids]()
+    {
+        for (auto i = 0; i < paths.size(); i++)
         {
-            STexID id = ResourceID<STexID>(path.string());
+            auto& path = paths[i];
+            auto id = ids[i];
+
             DebugMsg("[%s] STextureManagerWindows::PreloadTextures(): begin loading '%s', id=%u\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
 
@@ -314,9 +325,8 @@ void STextureManagerWindows::CheckPreloadFinished()
     {
         bool bAllLoaded = true;
 
-        for (auto path : it->first)
+        for (auto id : it->first)
         {
-            auto id = ResourceID<STexID>(path.string());
             if (!texturesCache.contains(id))
             {
                 bAllLoaded = false;

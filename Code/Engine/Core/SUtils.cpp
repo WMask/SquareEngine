@@ -15,7 +15,8 @@
 
 namespace SConst
 {
-	static const std::uint32_t MAX_PNG_SIZE = 4096u;
+	static const std::uint32_t MaxPngSize = 4096u;
+	static const std::uint32_t Max16bitIndex = std::numeric_limits<std::uint16_t>::max();
 }
 
 
@@ -152,8 +153,8 @@ void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth,
 
 	std::uint32_t width = png_get_image_width(png_ptr, info_ptr);
 	std::uint32_t height = png_get_image_height(png_ptr, info_ptr);
-	if (!InRange(width, 0u, SConst::MAX_PNG_SIZE + 1) ||
-		!InRange(height, 0u, SConst::MAX_PNG_SIZE + 1))
+	if (!InRange(width, 0u, SConst::MaxPngSize) ||
+		!InRange(height, 0u, SConst::MaxPngSize))
 	{
 		throw std::exception("Invalid image size");
 	}
@@ -250,7 +251,7 @@ namespace SConvert
 }
 
 void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
-	std::forward_list<SMeshID>& meshesCache, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances)
+	std::forward_list<SMeshID>& cachedMeshesIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances)
 {
 	S_TRY
 
@@ -293,7 +294,7 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 		// skip cashed mesh
 		bool bSkipCached = false;
-		for (auto& otherId : meshesCache)
+		for (auto otherId : cachedMeshesIds)
 		{
 			if (mesh.id == otherId)
 			{
@@ -399,19 +400,19 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 				}
 			}
 
-			static const std::uint32_t max16bitIndex = std::numeric_limits<std::uint16_t>::max();
-			const bool bUseIndices16bit = (numIndices < max16bitIndex);
+			const bool bUseIndices16bit = (numIndices < SConst::Max16bitIndex);
 			if (bUseIndices16bit)
 			{
 				mesh.indices16.resize(indices.size());
-				for (auto j = 0; j < indices.size(); j++)
+				std::transform(indices.begin(), indices.end(), mesh.indices16.begin(),
+					[](std::uint32_t index)->std::uint16_t
 				{
-					mesh.indices16[j] = static_cast<std::uint16_t>(indices[j]);
-				}
+					return static_cast<std::uint16_t>(index);
+				});
 			}
 			else
 			{
-				mesh.indices32 = indices;
+				mesh.indices32 = std::move(indices);
 			}
 
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);

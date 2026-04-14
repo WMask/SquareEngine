@@ -22,7 +22,7 @@ namespace SConst
 }
 
 /** Textures delegate */
-using OnTexturesLoadedDelegate = std::function<void(std::vector<std::filesystem::path>&)>;
+using OnTexturesLoadedDelegate = std::function<void(std::vector<STexID>&)>;
 /** Mesh instances delegate */
 using OnMeshInstancesLoadedDelegate = std::function<void(std::filesystem::path, const std::vector<SMeshInstance>&)>;
 /** Meshes delegate */

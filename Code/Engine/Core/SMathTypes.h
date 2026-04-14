@@ -45,7 +45,7 @@ using SQuat = SVector4;
 // Object 3D transform
 struct STransform
 {
-	SVector3 pos;
+	SVector3 position;
 	SQuat rotation;
 	SVector3 scale;
 };

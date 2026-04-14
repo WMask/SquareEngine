@@ -15,13 +15,13 @@ using Microsoft::WRL::ComPtr;
 /** Sprite vertex data */
 struct DX11SPRITEVERTEX
 {
-	SVector3 pos;
+	SVector3 position;
 };
 
 /** Colored sprite */
 struct DX11COLOREDSPRITEINSTANCE
 {
-	SVector3 pos;
+	SVector3 position;
 	float    rotation;
 	SVector2 scale;
 	SColor4F colors[4];
@@ -30,7 +30,7 @@ struct DX11COLOREDSPRITEINSTANCE
 /** Text glyph data */
 struct DX11TEXTGLYPHINSTANCE
 {
-	SVector3 pos;
+	SVector3 position;
 	SVector2 scale;
 	SColor4F color;
 	SVector2 uvs[4];
@@ -39,7 +39,7 @@ struct DX11TEXTGLYPHINSTANCE
 /** Mesh instance data */
 struct DX11MESHINSTANCE
 {
-	SVector3 pos;
+	SVector3 position;
 	SQuat    rotation;
 	SVector3 scale;
 	SColor3F tint;

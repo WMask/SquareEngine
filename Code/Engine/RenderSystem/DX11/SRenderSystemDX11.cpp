@@ -888,14 +888,7 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 			outMesh->materials.emplace_back(baseTexId, normTexId, rmaTexId, emiTexId,
 				material.firstIndex, material.numVertices, material.numIndices);
 
-			static auto onLoaded = [](std::vector<std::filesystem::path>& textures)
-			{
-				for (auto& texture : textures)
-				{
-					DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): material texture loaded '%s'\n",
-						GetTimeStamp(std::chrono::system_clock::now()).c_str(), texture.string().c_str());
-				}
-			};
+			static auto onLoaded = [](std::vector<STexID>&) {};
 			textureManager.PreloadTextures(paths, onLoaded);
 		}
 	}

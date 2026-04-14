@@ -215,8 +215,8 @@ void STextRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 
 			// store instance data
 			DX11TEXTGLYPHINSTANCE instance{};
-			instance.pos = spriteComponent.position;
-			instance.pos.x += glyphOffset + alignOffset + glyph.size.width / 2.0f;
+			instance.position = spriteComponent.position;
+			instance.position.x += glyphOffset + alignOffset + glyph.size.width / 2.0f;
 			instance.scale = SConvert::ToVector2(glyph.size);
 			instance.color = textComponent.color;
 			memcpy(instance.uvs, tmpUV.uvs, sizeof(SVector2) * 4);

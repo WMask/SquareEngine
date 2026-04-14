@@ -5,7 +5,9 @@
 #ifndef SHADER_UTILS_HLSLI
 #define SHADER_UTILS_HLSLI
 
-static const uint MaxLights = 64;
+static const uint  kMaxLights = 64;
+static const float kGammaCorrectionScale = 3.5;
+static const float kIndirectSpecularScale = 2.5;
 static const float PI = 3.14159265;
 
 typedef float4 Quaternion;

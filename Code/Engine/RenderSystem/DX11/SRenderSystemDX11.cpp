@@ -350,6 +350,7 @@ void SRenderSystemDX11::Shutdown()
 	meshManager.Shutdown();
 	textureManager.Shutdown();
 	shaderManager.Shutdown();
+	cubemapMIPLevels.clear();
 	rasterizerState.Reset();
 	surfaceSampler.Reset();
 	IBLSampler.Reset();
@@ -540,6 +541,17 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 	return (shaderIt == shaders.end()) ? nullptr : &shaderIt->second;
 }
 
+std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
+{
+	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
+	if (texture)
+	{
+		return { texture->view.Get(), texture->texSize };
+	}
+
+	return { nullptr, SConst::ZeroSSize2 };
+}
+
 ID3D11ShaderResourceView* SRenderSystemDX11::FindCubemap(ECubemapType type) const
 {
 	auto cubemap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(type));
@@ -551,15 +563,15 @@ ID3D11ShaderResourceView* SRenderSystemDX11::FindCubemap(ECubemapType type) cons
 	return nullptr;
 }
 
-std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
+std::uint32_t SRenderSystemDX11::GetCubemapMaxMipLevel(ECubemapType type) const noexcept
 {
-	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
-	if (texture)
+	auto it = cubemapMIPLevels.find(type);
+	if (it != cubemapMIPLevels.end())
 	{
-		return { texture->view.Get(), texture->texSize };
+		return it->second;
 	}
 
-	return { nullptr, SConst::ZeroSSize2 };
+	return 1u;
 }
 
 bool SRenderSystemDX11::FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
@@ -819,6 +831,27 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapDat
 		outCubemap->texture.GetAddressOf(), outCubemap->view.GetAddressOf())))
 	{
 		return nullptr;
+	}
+
+	if (outCubemap->view)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC desc{};
+		outCubemap->view->GetDesc(&desc);
+		const std::uint32_t mipLevels = static_cast<std::uint32_t>(desc.TextureCube.MipLevels);
+
+		bool bNeedUpdateConstants = false;
+		auto it = cubemapMIPLevels.find(cubemapData.type);
+		if (it == cubemapMIPLevels.end() || it->second != mipLevels)
+		{
+			bNeedUpdateConstants = true;
+		}
+
+		cubemapMIPLevels.insert_or_assign(cubemapData.type, mipLevels);
+
+		if (bNeedUpdateConstants)
+		{
+			constantBuffers.UpdateCubemapSettings(*this);
+		}
 	}
 
 	return outCubemap;

@@ -35,6 +35,7 @@ cbuffer PSCubemapsBuffer : register(b3)
 	uint  bHasSpecularCubemap; // specular reflection (irradiance)
 	float diffuseAmount;
 	float specularAmount;
+	uint  maxCubemapMipLevels;
 };
 
 cbuffer PSLightsBuffer : register(b4)
@@ -199,7 +200,8 @@ float4 PShader(PSInputNmTx input) : SV_Target0
 
 		// Environment cubemap specular reflection
 		float3 vDir = reflect(-V, N);
-		float3 vEnvColor = SpecularTexture.Sample(CubemapSampler, vDir).rgb;
+		float mip = roughness * maxCubemapMipLevels;
+		float3 vEnvColor = SpecularTexture.SampleLevel(CubemapSampler, vDir, mip).rgb;
 		float3 vFresnelAmount = lerp(float3(1.0, 1.0, 1.0), NdotL, 0.5); // Reduce env amount on dark side
 		float3 vEnvAmount = FresnelSchlick(max(dot(N, V), 0.0), F0) * vFresnelAmount;
 		float3 vIndirectSpecular = vEnvColor * vEnvAmount * specularAmount * kIndirectSpecularScale;

@@ -267,6 +267,7 @@ void SConstantBuffersDX11::UpdateCubemapSettings(const IRenderSystemDX11& render
 		cubemaps.bHasSpecularCubemap = renderSystem.FindCubemap(ECubemapType::Specular) ? TRUE : FALSE;
 		cubemaps.diffuseAmount = renderSystem.GetCubemapAmount(ECubemapType::Diffuse);
 		cubemaps.specularAmount = renderSystem.GetCubemapAmount(ECubemapType::Specular);
+		cubemaps.maxCubemapMipLevels = renderSystem.GetCubemapMaxMipLevel(ECubemapType::Specular);
 
 		deviceContext->UpdateSubresource(cubemapsBuffer.Get(), 0, NULL, &cubemaps, 0, 0);
 	}

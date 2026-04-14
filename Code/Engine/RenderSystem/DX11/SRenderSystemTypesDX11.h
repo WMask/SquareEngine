@@ -62,11 +62,14 @@ struct SCubemapDataDX11 : public STextureBase
 {
 	ComPtr<ID3D11Resource> texture;
 	ComPtr<ID3D11ShaderResourceView> view;
+	std::uint32_t maxMipLevels = 1u;
 };
 
 /** DirectX 11 texture data */
-struct STextureDataDX11 : public SCubemapDataDX11
+struct STextureDataDX11 : public STextureBase
 {
+	ComPtr<ID3D11Resource> texture;
+	ComPtr<ID3D11ShaderResourceView> view;
 	SSize2 texSize{};
 };
 
@@ -93,6 +96,8 @@ public:
 	virtual const SShaderDataDX11* FindShader(const std::string& name) const = 0;
 	//
 	virtual ID3D11ShaderResourceView* FindCubemap(ECubemapType type) const = 0;
+	//
+	virtual std::uint32_t GetCubemapMaxMipLevel(ECubemapType type) const noexcept = 0;
 	//
 	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const = 0;
 	//

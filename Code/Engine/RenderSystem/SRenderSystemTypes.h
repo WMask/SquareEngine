@@ -71,6 +71,8 @@ struct SCubemapsBuffer
 	float diffuseAmount = 1.0f;
 	//
 	float specularAmount = 1.0f;
+	//
+	std::uint32_t maxCubemapMipLevels = 1u;
 };
 
 /** Lights settings */

@@ -40,9 +40,11 @@ public:// IRenderSystemDX11 interface implementation
 	//
 	virtual const SShaderDataDX11* FindShader(const std::string& name) const override;
 	//
+	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const override;
+	//
 	virtual ID3D11ShaderResourceView* FindCubemap(ECubemapType type) const override;
 	//
-	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const override;
+	virtual std::uint32_t GetCubemapMaxMipLevel(ECubemapType type) const noexcept override;
 	//
 	virtual bool FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials,
 		ID3D11Buffer** outVB, ID3D11Buffer** outIB) const override;
@@ -159,6 +161,8 @@ protected:
 
 protected:
 	//
+	using TCubemapMIPLevels = std::unordered_map<ECubemapType, std::uint32_t>;
+	//
 	SColoredSpriteRenderSystemDX11 coloredSpriteRender;
 	//
 	STexturedSpriteRenderSystemDX11 texturedSpriteRender;
@@ -176,6 +180,8 @@ protected:
 	SShaderManagerWindows shaderManager;
 	//
 	SMeshManagerWindows meshManager;
+	//
+	TCubemapMIPLevels cubemapMIPLevels;
 	//
 	ComPtr<IDXGISwapChain4> swapChain;
 	//

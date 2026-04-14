@@ -27,6 +27,7 @@ struct SWin32Handles
 {
     SAppContext& appContext;
     IRenderSystemEx* renderEx;
+    BOOL bTrackingMouse;
 };
 
 
@@ -188,7 +189,7 @@ void SWindowsApplication::Run()
 
     // set WndProc handles
     SWin32Handles handles{
-        context, renderSystem.get()
+        context, renderSystem.get(), FALSE
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
 
@@ -389,6 +390,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case WM_MOUSEMOVE:
             if (guiSystem) guiSystem->OnMouseMove(x, y, handles->appContext);
+            if (handles && !handles->bTrackingMouse)
+            {
+                TRACKMOUSEEVENT tme;
+                tme.cbSize = sizeof(TRACKMOUSEEVENT);
+                tme.dwFlags = TME_LEAVE;
+                tme.hwndTrack = hWnd;
+                if (TrackMouseEvent(&tme))
+                {
+                    handles->bTrackingMouse = TRUE;
+                }
+            }
+            break;
+        case WM_MOUSELEAVE:
+            if (guiSystem) guiSystem->OnMouseLeave();
+            if (handles) handles->bTrackingMouse = FALSE;
             break;
         case WM_LBUTTONDOWN:
             if (guiSystem) guiSystem->OnMouseButton(SMouseBtn::Left, SKeyState::Down, x, y, handles->appContext);

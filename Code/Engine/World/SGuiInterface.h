@@ -71,6 +71,8 @@ public:
 		std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
 	//
 	virtual void OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& context) = 0;
+	// mouse leave game window
+	virtual void OnMouseLeave() = 0;
 
 
 public:

@@ -237,6 +237,25 @@ void SGuiSystem::OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& 
 	});
 }
 
+void SGuiSystem::OnMouseLeave()
+{
+	if (!world) return;
+
+	auto& registry = world->GetEntities();
+	const auto& buttonsView = registry.view<SWidgetComponent, SDragComponent>();
+	buttonsView.each([this](
+		const entt::entity entity,
+		SWidgetComponent& widgetComponent,
+		SDragComponent& dragComponent)
+	{
+		// draggable button
+		if (dragComponent.bDragging)
+		{
+			dragComponent.bDragging = false;
+		}
+	});
+}
+
 entt::entity SGuiSystem::MakeColoredSprite(entt::registry& registry,
 	const SVector3& pos, const SSize2F& size, SColor4F color)
 {
@@ -368,9 +387,6 @@ std::pair<entt::entity, entt::entity> SGuiSystem::MakeSlider(entt::registry& reg
 	const SVector3 buttonPos = SVector3{ area.left + size.width * sliderValue, pos.y, pos.z + 0.05f };
 	SSpriteUV normal, pressed, slider;
 	slider.SetBottomHalfUV();
-	// add small uv offset from 0.5 and 1.0
-	slider.uvs[0].y = slider.uvs[1].y = slider.uvs[0].y + 0.02f;
-	slider.uvs[2].y = slider.uvs[3].y = slider.uvs[2].y - 0.02f;
 	pressed.SetTopHalfUV();
 	normal.SetTopHalfUV();
 	normal.uvs[0].x = normal.uvs[2].x = btnUVWidth;

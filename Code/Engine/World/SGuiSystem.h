@@ -30,6 +30,8 @@ public: // IGuiSystem interface implementation
 	//
 	virtual void OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& context) override;
 	//
+	virtual void OnMouseLeave() override;
+	//
 	virtual entt::entity MakeColoredSprite(entt::registry& registry,
 		const SVector3& pos, const SSize2F& size, SColor4F color) override;
 	//

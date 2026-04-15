@@ -29,6 +29,8 @@ public:
 	* Default constructor */
 	SWindowsApplication();
 	//
+	void SetFocusState(bool inHasFocus) { bHasFocus = inHasFocus; }
+	//
 	using SClock = std::chrono::high_resolution_clock;
 	//
 	using SDuration = std::chrono::duration<float>;
@@ -66,13 +68,15 @@ public: // IApplication interface implementation
 	//
 	virtual SSize2 GetWindowSize() const noexcept override { return windowSize; }
 	//
+	virtual bool IsWindowHasFocus() const noexcept { return bHasFocus; }
+	//
 	virtual void SetConfig(const SAppConfig& newConfig) noexcept override { cfg = newConfig; }
 	//
 	virtual const SAppConfig& GetConfig() const noexcept override { return cfg; }
 	//
 	virtual void Run() override;
 	//
-	virtual void RequestQuit() noexcept override { quit = true; }
+	virtual void RequestQuit() noexcept override { bQuit = true; }
 
 
 protected:
@@ -89,8 +93,6 @@ protected:
 	std::string cmds;
 	//
 	std::int32_t cmdsCount;
-	//
-	bool quit{};
 	//
 	SSize2 windowSize;
 	//
@@ -109,6 +111,10 @@ protected:
 	std::uint32_t accumulatedFrames;
 	//
 	float accumulatedTime{};
+	//
+	bool bHasFocus{};
+	//
+	bool bQuit{};
 
 
 protected:

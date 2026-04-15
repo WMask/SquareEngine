@@ -75,6 +75,9 @@ public:
 	* Get client window size pixels */
 	virtual SSize2 GetWindowSize() const noexcept = 0;
 	/**
+	* Get application window state */
+	virtual bool IsWindowHasFocus() const noexcept = 0;
+	/**
 	* Set application config */
 	virtual void SetConfig(const SAppConfig& newConfig) noexcept = 0;
 	/**

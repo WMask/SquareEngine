@@ -165,7 +165,7 @@ void STexturedSpriteRenderSystemDX11::Render(float deltaSeconds, float gameTime)
 
 		// store instance data
 		DX11TEXTUREDSPRITEINSTANCE instance{};
-		instance.pos = spriteComponent.position;
+		instance.position = spriteComponent.position;
 		instance.rotation = spriteComponent.rotation;
 		instance.scale = SConvert::ToVector2(spriteComponent.size);
 		memcpy(instance.colors, coloredComponent.colors, sizeof(SColor4F) * 4);

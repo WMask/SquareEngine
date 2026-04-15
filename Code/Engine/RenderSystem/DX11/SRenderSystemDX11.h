@@ -11,13 +11,13 @@
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STextRenderSystemDX11.h"
 #include "RenderSystem/DX11/SMeshRenderSystemDX11.h"
+#include "RenderSystem/DX11/SFXAARenderSystemDX11.h"
 #include "RenderSystem/Windows/SMeshManagerWindows.h"
 #include "RenderSystem/Windows/STextureManagerWindows.h"
 #include "RenderSystem/Windows/SShaderManagerWindows.h"
 #include "RenderSystem/Windows/SUtilsWindows.h"
 
 #include <d3d11_4.h>
-#include <dxgi1_4.h>
 #include <directxmath.h>
 
 #pragma warning(disable : 4251)
@@ -106,7 +106,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void UpdateCamera(const SCamera& camera) override;
 	//
-	virtual SSize2 GetRenderSize() const noexcept override { return cachedRenderSystemSize; }
+	virtual SSize2 GetScreenSize() const noexcept override { return cachedRenderSystemSize; }
 	//
 	virtual SRSStats GetStats() const noexcept override { return cachedStats; }
 	//
@@ -150,13 +150,48 @@ protected:// IMeshLifetime interface implementation
 
 protected:
 	//
-	void CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height);
+	bool IsDisplayHDR10(IDXGIFactory2* factory);
+	//
+	void UpdateColorSpace();
+	//
+	void CreateRenderTargetAndDepthStencil(std::uint32_t width, std::uint32_t height);
 	//
 	void OnWorldScaleChanged(SVector2 worldScale);
 	//
 	void OnCameraViewChanged(const SCamera& camera);
 	//
 	void OnLightsChanged(const IWorld& world);
+
+
+protected:
+	//
+	ComPtr<IDXGIFactory2> dxGIFactory;
+	//
+	ComPtr<ID3D11Device> d3dDevice;
+	//
+	ComPtr<IDXGISwapChain4> swapChain;
+	//
+	ComPtr<ID3D11DeviceContext> deviceContext;
+	//
+	ComPtr<ID3D11Texture2D> renderTarget;
+	//
+	ComPtr<ID3D11RenderTargetView> renderTargetView;
+	//
+	ComPtr<ID3D11Texture2D> depthStencil;
+	//
+	ComPtr<ID3D11DepthStencilView> depthStencilView;
+	//
+	ComPtr<ID3D11DepthStencilState> depthStencilState;
+	//
+	ComPtr<ID3D11BlendState> blendState;
+	//
+	ComPtr<ID3D11RasterizerState> rasterizerState;
+	//
+	ComPtr<ID3D11SamplerState> surfaceSampler;
+	//
+	ComPtr<ID3D11SamplerState> cubemapSampler;
+	//
+	ComPtr<ID3D11SamplerState> pointSampler;
 
 
 protected:
@@ -173,6 +208,8 @@ protected:
 	//
 	SMeshRenderSystemDX11 meshRender;
 	//
+	SFXAARenderSystemDX11 fxaaRender;
+	//
 	SConstantBuffersDX11 constantBuffers;
 	//
 	STextureManagerWindows textureManager;
@@ -181,36 +218,41 @@ protected:
 	//
 	SMeshManagerWindows meshManager;
 	//
+	SRenderTarget sdrScene;
+	//
+	SRenderTarget hdrScene;
+	//
 	TCubemapMIPLevels cubemapMIPLevels;
-	//
-	ComPtr<IDXGISwapChain4> swapChain;
-	//
-	ComPtr<ID3D11Device> d3dDevice;
-	//
-	ComPtr<ID3D11DeviceContext> deviceContext;
-	//
-	ComPtr<ID3D11RenderTargetView> renderTargetView;
-	//
-	ComPtr<ID3D11Texture2D> depthStencil;
-	//
-	ComPtr<ID3D11DepthStencilState> depthStencilState;
-	//
-	ComPtr<ID3D11DepthStencilView> depthStencilView;
-	//
-	ComPtr<ID3D11BlendState> blendState;
-	//
-	ComPtr<ID3D11RasterizerState> rasterizerState;
-	//
-	ComPtr<ID3D11SamplerState> surfaceSampler;
-	//
-	ComPtr<ID3D11SamplerState> IBLSampler;
 
 
 protected:
 	//
 	std::unordered_map<std::string, SShaderDataDX11> shaders;
 	//
+	DXGI_FORMAT backBufferFormat = SConst::DefaultBackBufferFormat;
+	//
+	DXGI_COLOR_SPACE_TYPE colorSpace = SConst::DefaultSDRColorSpace;
+	//
 	std::uint32_t drawCalls = 0;
+	//
+	UINT swapChainFlags = 0u;
+	//
+	BOOL bFlipPresent = FALSE;
+	//
+	BOOL bAllowTearing = FALSE;
+	//
+	BOOL bAllowFXAA = FALSE;
+	//
+	BOOL bAllowHDR = FALSE;
+	//
+	SAppMode appMode;
+	//
+	IWorld* world{};
+	//
+	HWND hWnd{};
+
+
+protected:
 	//
 	float diffuseCubemapAmount = 1.0f;
 	//
@@ -221,8 +263,6 @@ protected:
 	SColor4F backLight = SConst::DefaultRenderSettings.backLight;
 	//
 	SColor4F pbrGammaCorrection = SConst::DefaultRenderSettings.pbrGammaCorrection;
-	//
-	IWorld* world{};
 
 
 protected:

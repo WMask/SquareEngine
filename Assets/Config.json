@@ -6,9 +6,11 @@
     },
     "Engine":
 	{
-        "bAllowFullscreen": false,
-		"bHighFrequencyTimer": false,
+        "bVSync": true,
         "bNoDelay": false,
-        "bVSync": true
+		"bHighFrequencyTimer": false,
+        "bAllowResolutionChange": false,
+        "bEnableFXAA": false,
+        "bEnableHDR": false
     }
 }

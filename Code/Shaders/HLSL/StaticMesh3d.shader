@@ -17,6 +17,8 @@ cbuffer VSPSSettingsBuffer : register(b1)
 	float4 vCameraPos;
 	float4 vViewDir;
 	float4 vGlobalTint;
+	float2 vScreenSize;
+	float2 padding;
 	float4 vBackLight;
 	float4 vPbrGammaCorrection;
 };

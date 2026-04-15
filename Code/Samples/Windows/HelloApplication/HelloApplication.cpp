@@ -161,7 +161,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			app->SetConfig(cfg);
 			app->SetWindowSize(cfg.WinWidth, cfg.WinHeight);
 			app->SetFeature(SAppFeature::HighFrequencyTimer, cfg.bHighFrequencyTimer);
-			app->SetFeature(SAppFeature::AllowFullscreen, cfg.bAllowFullscreen);
 			app->SetFeature(SAppFeature::NoDelay, cfg.bNoDelay);
 			app->SetFeature(SAppFeature::VSync, cfg.bVSync);
 		}

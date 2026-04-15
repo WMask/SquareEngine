@@ -42,10 +42,16 @@ enum class SAppFeature {
 	* On Windows changes this value for whole OS that may increase power usage. */
 	HighFrequencyTimer,
 	/**
-	* [bool] Set fullscreen mode type.
+	* [bool] Set monitor fullscreen mode type.
 	* If true: actually changes monitor resolution. If VSync true: FPS - equal to monitor highest refresh rate.
 	* If false: fake windowed fullscreen mode. If VSync true: FPS - default OS refresh rate. */
-	AllowFullscreen,
+	AllowResolutionChange,
+	/**
+	* [bool] Enable FXAA anti aliasing */
+	EnableFXAA,
+	/**
+	* [bool] Enable HDR rendering */
+	EnableHDR,
 	/**
 	* [SColor3] Render target clear color. Default is blue. Set to empty std::any to skip clear render target color. */
 	ClearScreenColor,

@@ -93,8 +93,8 @@ public:
 	* Set window mode */
 	virtual void SetMode(SAppMode mode) = 0;
 	/**
-	* Return client render size in pixels */
-	virtual SSize2 GetRenderSize() const noexcept = 0;
+	* Return client viewport client size in pixels */
+	virtual SSize2 GetScreenSize() const noexcept = 0;
 	/**
 	* Return current stats */
 	virtual SRSStats GetStats() const noexcept = 0;
@@ -137,9 +137,6 @@ public:
 	/**
 	* Return render system state */
 	virtual bool CanRender() const noexcept = 0;
-	/**
-	* Request resize */
-	virtual void RequestResize(std::uint32_t width, std::uint32_t height) = 0;
 	/**
 	* Resize render system */
 	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) = 0;

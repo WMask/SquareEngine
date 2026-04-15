@@ -87,6 +87,46 @@ struct SMeshDataDX11 : public SMeshBase
 
 
 /***************************************************************************
+* DirectX 11 render target
+*/
+class SRenderTarget : public SUncopyable
+{
+public:
+	//
+	SRenderTarget() {}
+	//
+	void Init(ID3D11Device* inDevice, DXGI_FORMAT inFormat);
+	//
+	void Create(const SSize2& inSize);
+	//
+	void Shutdown();
+	//
+	ID3D11Texture2D* GetRenderTarget() const noexcept { return renderTarget.Get(); }
+	//
+	ID3D11RenderTargetView* GetRenderTargetView() const noexcept { return renderTargetView.Get(); }
+	//
+	ID3D11ShaderResourceView* GetShaderResourceView() const noexcept { return shaderResourceView.Get(); }
+	//
+	DXGI_FORMAT GetFormat() const noexcept { return format; }
+
+
+protected:
+	//
+	ComPtr<ID3D11ShaderResourceView> shaderResourceView;
+	//
+	ComPtr<ID3D11RenderTargetView> renderTargetView;
+	//
+	ComPtr<ID3D11Texture2D> renderTarget;
+	//
+	ID3D11Device* device{};
+	//
+	DXGI_FORMAT format{};
+	//
+	SSize2 size{};
+};
+
+
+/***************************************************************************
 * DirectX 11 render system interface
 */
 class IRenderSystemDX11 : public IRenderSystemEx

@@ -14,9 +14,11 @@ SAppConfig::SAppConfig()
 	WinWidth = 800;
 	WinHeight = 600;
 	bVSync = true;
-	bAllowFullscreen = false;
-	bHighFrequencyTimer = false;
 	bNoDelay = false;
+	bHighFrequencyTimer = false;
+	bAllowResolutionChange = false;
+	bEnableFXAA = false;
+	bEnableHDR = false;
 }
 
 std::pair<SAppConfig, bool> LoadConfig(const std::filesystem::path& fileName, char delim)
@@ -27,12 +29,14 @@ std::pair<SAppConfig, bool> LoadConfig(const std::filesystem::path& fileName, ch
 	json cfg = json::parse(fullConfigText);
 
 	SAppConfig result{};
-	result.WinWidth				= cfg["Application"]["WinWidth"].get<unsigned int>();
-	result.WinHeight			= cfg["Application"]["WinHeight"].get<unsigned int>();
-	result.bVSync				= cfg["Engine"]["bVSync"].get<bool>();
-	result.bAllowFullscreen		= cfg["Engine"]["bAllowFullscreen"].get<bool>();
-	result.bHighFrequencyTimer	= cfg["Engine"]["bHighFrequencyTimer"].get<bool>();
-	result.bNoDelay				= cfg["Engine"]["bNoDelay"].get<bool>();
+	result.WinWidth				  = cfg["Application"]["WinWidth"].get<unsigned int>();
+	result.WinHeight			  = cfg["Application"]["WinHeight"].get<unsigned int>();
+	result.bVSync				  = cfg["Engine"]["bVSync"].get<bool>();
+	result.bNoDelay				  = cfg["Engine"]["bNoDelay"].get<bool>();
+	result.bHighFrequencyTimer	  = cfg["Engine"]["bHighFrequencyTimer"].get<bool>();
+	result.bAllowResolutionChange = cfg["Engine"]["bAllowResolutionChange"].get<bool>();
+	result.bEnableFXAA			  = cfg["Engine"]["bEnableFXAA"].get<bool>();
+	result.bEnableHDR			  = cfg["Engine"]["bEnableHDR"].get<bool>();
 
 	for (auto action : cfg["Input"])
 	{
@@ -56,10 +60,12 @@ void SaveConfig(const SAppConfig& config, const std::filesystem::path& fileName)
 			{"WinHeight",			config.WinHeight}
 		}},
 		{"Engine", {
-			{"bVSync",				config.bVSync},
-			{"bAllowFullscreen",	config.bAllowFullscreen},
-			{"bHighFrequencyTimer",	config.bHighFrequencyTimer},
-			{"bNoDelay",			config.bNoDelay}
+			{"bVSync",				   config.bVSync},
+			{"bNoDelay",			   config.bNoDelay},
+			{"bHighFrequencyTimer",	   config.bHighFrequencyTimer},
+			{"bAllowResolutionChange", config.bAllowResolutionChange},
+			{"bEnableFXAA",			   config.bEnableFXAA},
+			{"bEnableHDR",			   config.bEnableHDR}
 		}},
 		{"Input", {}}
 	};

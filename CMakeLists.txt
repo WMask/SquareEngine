@@ -260,6 +260,9 @@ add_library(SRenderSystem SHARED
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SShaderManagerWindows.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/Windows/SShaderManagerWindows.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemTypesDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemTypesDX11.cpp
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFXAARenderSystemDX11.h
+    ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFXAARenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.h
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.cpp
     ${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
@@ -425,6 +428,7 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemTypesDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.h
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFXAARenderSystemDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.h
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.h
 	)
@@ -432,8 +436,10 @@ if (WIN32)
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STexturedSpriteRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SColoredSpriteRenderSystemDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemTypesDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/STextRenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SMeshRenderSystemDX11.cpp
+		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SFXAARenderSystemDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SConstantBuffersDX11.cpp
 		${ENGINE_SOURCE_DIR}/RenderSystem/DX11/SRenderSystemDX11.cpp
 	)

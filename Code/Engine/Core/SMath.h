@@ -7,6 +7,14 @@
 #include "Core/CoreModule.h"
 #include "Core/STypes.h"
 
+#if (defined max)
+#undef max
+#endif
+
+#if (defined min)
+#undef min
+#endif
+
 
 /***************************************************************************
 * Vectors
@@ -252,14 +260,25 @@ inline SColor3F operator*(const SColor3F& clr, float s)
 * Rect
 */
 
-inline bool Contains(const SRectF& r, const SPoint2F& p)
+namespace SMath
 {
-	return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
-}
+	inline bool Contains(const SRectF& r, const SPoint2F& p) noexcept
+	{
+		return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+	}
 
-inline bool Contains(const SRect& r, const SPoint2& p)
-{
-	return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+	inline bool Contains(const SRect& r, const SPoint2& p) noexcept
+	{
+		return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
+	}
+
+	inline long ComputeIntersectionArea(
+		long ax1, long ay1, long ax2, long ay2,
+		long bx1, long by1, long bx2, long by2) noexcept
+	{
+		return std::max(0l, std::min(ax2, bx2) - std::max(ax1, bx1)) *
+			std::max(0l, std::min(ay2, by2) - std::max(ay1, by1));
+	}
 }
 
 

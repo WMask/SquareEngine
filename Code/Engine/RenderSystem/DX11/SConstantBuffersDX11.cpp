@@ -231,6 +231,7 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderS
 		SSettingsBuffer settings{};
 		settings.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
 		settings.viewDir = SConvert::ToVector4(camera.GetViewDir());
+		settings.screenSize = SConvert::ToVector2(renderSystem.GetScreenSize());
 		settings.globalTint = inGlobalTint;
 		settings.backLight = inBackLight;
 		settings.pbrGammaCorrection = inPbrGammaCorrection;

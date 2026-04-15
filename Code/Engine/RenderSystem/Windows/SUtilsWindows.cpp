@@ -11,30 +11,71 @@
 #include <wrl.h>
 #include <vector>
 #include <cmath>
+#include <dxgi1_6.h>
 
 #pragma comment(lib, "dxgi.lib")
 
 
-std::vector<ComPtr<IDXGIAdapter>> SEnumerateAdapters()
+bool GetHardwareAdapter(ComPtr<IDXGIFactory2>& factory, ComPtr<IDXGIAdapter1>& outAdapter)
 {
-    std::vector<ComPtr<IDXGIAdapter>> adapters;
-    ComPtr<IDXGIFactory> factory;
+    outAdapter.Reset();
 
-    if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(factory.GetAddressOf()))))
+    ComPtr<IDXGIAdapter1> adapter;
+    ComPtr<IDXGIFactory6> factory6;
+    if (SUCCEEDED(factory.As(&factory6)))
     {
-        return adapters;
+        for (UINT adapterIndex = 0;
+            SUCCEEDED(factory6->EnumAdapterByGpuPreference(
+                adapterIndex, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                IID_PPV_ARGS(adapter.ReleaseAndGetAddressOf())));
+                adapterIndex++)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            if (FAILED(adapter->GetDesc1(&desc)))
+            {
+                return false;
+            }
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                continue;
+            }
+
+            DebugMsgW(L"GetHardwareAdapter(1): Selected Direct3D Adapter: VID:%04X, PID:%04X Name:%ls\n",
+                desc.VendorId, desc.DeviceId, desc.Description);
+            break;
+        }
     }
 
-    IDXGIAdapter* adapter;
-    for (UINT i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; i++)
+    if (!adapter)
     {
-        adapters.push_back(adapter);
+        for (UINT adapterIndex = 0;
+            SUCCEEDED(factory->EnumAdapters1(
+                adapterIndex, adapter.ReleaseAndGetAddressOf()));
+                adapterIndex++)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            if (FAILED(adapter->GetDesc1(&desc)))
+            {
+                return false;
+            }
+
+            if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
+            {
+                continue;
+            }
+
+            DebugMsgW(L"GetHardwareAdapter(2): Selected Direct3D Adapter: VID:%04X, PID:%04X Name:%ls\n",
+                desc.VendorId, desc.DeviceId, desc.Description);
+            break;
+        }
     }
 
-    return adapters;
+    outAdapter.Attach(adapter.Detach());
+    return outAdapter;
 }
 
-bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxRefreshRate, DXGI_MODE_DESC* outMode)
+bool FindDisplayMode(ComPtr<IDXGIFactory2>& factory, std::int32_t width, std::int32_t height, std::int32_t maxRefreshRate, DXGI_MODE_DESC* outMode)
 {
     if (!outMode) return false;
 
@@ -42,35 +83,37 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxR
     outMode->RefreshRate.Denominator = 1;
     outMode->Format = DXGI_FORMAT_UNKNOWN;
 
-    auto adapters = SEnumerateAdapters();
-    for (auto adapter : adapters)
+    ComPtr<IDXGIAdapter1> adapter;
+    if (!GetHardwareAdapter(factory, adapter))
     {
-        ComPtr<IDXGIOutput> output;
-        if (SUCCEEDED(adapter->EnumOutputs(0, output.GetAddressOf())))
+        return false;
+    }
+
+    ComPtr<IDXGIOutput> output;
+    if (SUCCEEDED(adapter->EnumOutputs(0, output.GetAddressOf())))
+    {
+        UINT numModes = 0;
+        std::vector<DXGI_MODE_DESC> displayModes;
+        DXGI_FORMAT format = SConst::DefaultBackBufferFormat;
+
+        output->GetDisplayModeList(format, 0, &numModes, NULL);
+        displayModes.resize(numModes);
+
+        output->GetDisplayModeList(format, 0, &numModes, &displayModes[0]);
+        for (auto& mode : displayModes)
         {
-            UINT numModes = 0;
-            std::vector<DXGI_MODE_DESC> displayModes;
-            DXGI_FORMAT format = SConst::DefaultBackBufferFormat;
-
-            output->GetDisplayModeList(format, 0, &numModes, NULL);
-            displayModes.resize(numModes);
-
-            output->GetDisplayModeList(format, 0, &numModes, &displayModes[0]);
-            for (auto& mode : displayModes)
+            const UINT RefreshRate = mode.RefreshRate.Numerator / mode.RefreshRate.Denominator;
+            if (mode.Width == width &&
+                mode.Height == height &&
+                RefreshRate >= 56 &&
+                RefreshRate <= maxRefreshRate &&
+                mode.Format == SConst::DefaultBackBufferFormat)
             {
-                const UINT RefreshRate = mode.RefreshRate.Numerator / mode.RefreshRate.Denominator;
-                if (mode.Width == width &&
-                    mode.Height == height &&
-                    RefreshRate >= 56 &&
-                    RefreshRate <= maxRefreshRate &&
-                    mode.Format == SConst::DefaultBackBufferFormat)
+                float prevRate = static_cast<float>(outMode->RefreshRate.Numerator) / static_cast<float>(outMode->RefreshRate.Denominator);
+                float curRate = static_cast<float>(mode.RefreshRate.Numerator) / static_cast<float>(mode.RefreshRate.Denominator);
+                if (curRate > prevRate)
                 {
-                    float prevRate = static_cast<float>(outMode->RefreshRate.Numerator) / static_cast<float>(outMode->RefreshRate.Denominator);
-                    float curRate = static_cast<float>(mode.RefreshRate.Numerator) / static_cast<float>(mode.RefreshRate.Denominator);
-                    if (curRate > prevRate)
-                    {
-                        *outMode = mode;
-                    }
+                    *outMode = mode;
                 }
             }
         }
@@ -79,7 +122,7 @@ bool SFindDisplayMode(std::int32_t width, std::int32_t height, std::int32_t maxR
     return (outMode->Format != DXGI_FORMAT_UNKNOWN);
 }
 
-void SMakeWindowAssociation(HWND hWnd)
+void MakeWindowAssociation(HWND hWnd)
 {
     ComPtr<IDXGIFactory> factory;
     if (FAILED(CreateDXGIFactory(IID_PPV_ARGS(&factory))))

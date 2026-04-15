@@ -44,7 +44,7 @@ void SGuiSystem::OnMouseButton(SMouseBtn btn, SKeyState state, std::int32_t x, s
 		auto& registry = world->GetEntities();
 		const SRect rect = SConvert::ToRect(spriteComponent.position, spriteComponent.size);
 		const SPoint2 posOnWidget = SPoint2{ scaledMousePos.x - rect.left, scaledMousePos.y - rect.top };
-		const bool bHovered = Contains(rect, scaledMousePos);
+		const bool bHovered = SMath::Contains(rect, scaledMousePos);
 		if (bHovered)
 		{
 			onMouseEvent.trigger<SMouseButtonEvent>({ entity, posOnWidget, btn, state });
@@ -146,7 +146,7 @@ void SGuiSystem::OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& 
 		auto& registry = world->GetEntities();
 		const SRect rect = SConvert::ToRect(spriteComponent.position, spriteComponent.size);
 		const SPoint2 posOnWidget = SPoint2{ scaledMousePos.x - rect.left, scaledMousePos.y - rect.top };
-		const bool bHovered = Contains(rect, scaledMousePos);
+		const bool bHovered = SMath::Contains(rect, scaledMousePos);
 		if (bHovered)
 		{
 			if (!widgetComponent.bHovered)

@@ -38,9 +38,11 @@ struct SAppConfig
     std::uint32_t WinHeight;
     // [Engine]
     bool bVSync;
-    bool bAllowFullscreen;
-    bool bHighFrequencyTimer;
     bool bNoDelay;
+    bool bHighFrequencyTimer;
+    bool bAllowResolutionChange;
+    bool bEnableFXAA;
+    bool bEnableHDR;
     // [Input]
     std::deque<SActionBinding> Actions;
 };

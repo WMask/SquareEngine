@@ -50,6 +50,10 @@ struct SSettingsBuffer
 	SVector4 viewDir;
 	// for black screen effect
 	SColor4F globalTint = SConst::White4F;
+	//
+	SVector2 screenSize;
+	//
+	SVector2 padding;
 	// for 3d meshes
 	SColor4F backLight = SConst::White4F / 3.0f;
 	// apply correction on final pbr color of 3d meshes

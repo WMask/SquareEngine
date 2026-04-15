@@ -870,10 +870,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 			DebugMsg("DXGI_STATUS_OCCLUDED or DXGI_ERROR_INVALID_CALL\n");
 			if (context.app->IsWindowHasFocus())
 			{
-				auto viewportSize = cachedRenderSystemSize;
-				cachedRenderSystemSize = SConst::ZeroSSize2;
-				Resize(viewportSize.width, viewportSize.height, context);
-				DebugMsg("[%s] SRenderSystemDX11::Render(): Device reset",
+				Resize(cachedRenderSystemSize, context, true);
+				DebugMsg("[%s] SRenderSystemDX11::Render(): Device reset\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str());
 			}
 			return;
@@ -986,14 +984,12 @@ void SRenderSystemDX11::RequestResize(std::uint32_t width, std::uint32_t height)
 	S_CATCH{ S_THROW("SRenderSystemDX11::RequestResize()") }
 }
 
-void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context)
+void SRenderSystemDX11::Resize(const SSize2& newSize, const SAppContext& context, bool bForceResize)
 {
 	S_TRY
 
-	SSize2 newViewportSize{ width, height };
-	bool needResize = (cachedRenderSystemSize != newViewportSize);
-
-	if (swapChain && needResize)
+	const bool bNeedResize = (cachedRenderSystemSize != newSize) || bForceResize;
+	if (swapChain && bNeedResize)
 	{
 		// reset render system
 		deviceContext->OMSetRenderTargets(0, NULL, NULL);
@@ -1007,27 +1003,27 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 
 		// resize swap chain
 		if (FAILED(swapChain->ResizeBuffers(
-			SConst::DefaultBackBufferCount, width, height,
+			SConst::DefaultBackBufferCount, newSize.width, newSize.height,
 			SConst::DefaultBackBufferFormat, swapChainFlags)))
 		{
 			throw std::exception("Cannot resize swap chain");
 		}
 
-		CreateRenderTargetAndDepthStencil(width, height);
+		CreateRenderTargetAndDepthStencil(newSize.width, newSize.height);
 
-		if (bAllowHDR) hdrScene.Create(newViewportSize);
-		else if (bAllowFXAA) sdrScene.Create(newViewportSize);
+		if (bAllowHDR) hdrScene.Create(newSize);
+		else if (bAllowFXAA) sdrScene.Create(newSize);
 
 		SetMode(appMode);
 
 		// update world settings
-		auto newCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
+		auto newCameraPos = SVector3{ 0.5f * newSize.width, 0.5f * newSize.height, 1.0f };
 		auto newCameraTarget = SVector3{ newCameraPos.x, newCameraPos.y, 0.0f };
 		context.world->GetCamera().Set(SCameraSpace::Camera2D, newCameraPos, newCameraTarget);
-		context.world->UpdateWorldScale(newViewportSize);
-		cachedRenderSystemSize = newViewportSize;
+		context.world->UpdateWorldScale(newSize);
+		cachedRenderSystemSize = newSize;
 
-		DebugMsg("SRenderSystemDX11::Resize(): resized to %dx%d\n", newViewportSize.width, newViewportSize.height);
+		DebugMsg("SRenderSystemDX11::Resize(): resized to %dx%d\n", newSize.width, newSize.height);
 	}
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::Resize()") }

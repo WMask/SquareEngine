@@ -139,7 +139,7 @@ public:
 	virtual bool CanRender() const noexcept = 0;
 	/**
 	* Resize render system */
-	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) = 0;
+	virtual void Resize(const SSize2& size, const SAppContext& context, bool bForceResize = false) = 0;
 	/**
 	* Adds draw calls debug info */
 	virtual void AddDrawCalls(std::uint32_t drawCalls) noexcept = 0;

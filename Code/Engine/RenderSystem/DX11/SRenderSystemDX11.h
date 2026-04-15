@@ -129,7 +129,7 @@ public:// IRenderSystemEx interface implementation
 	//
 	virtual bool CanRender() const noexcept override;
 	//
-	virtual void Resize(std::uint32_t width, std::uint32_t height, const SAppContext& context) override;
+	virtual void Resize(const SSize2& size, const SAppContext& context, bool bForceResize = false) override;
 	//
 	virtual void AddDrawCalls(std::uint32_t inDrawCalls) noexcept { drawCalls += inDrawCalls; }
 

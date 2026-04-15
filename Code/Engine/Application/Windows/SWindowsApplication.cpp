@@ -380,7 +380,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (handles->renderEx &&
                     width >= 640 && height >= 480)
                 {
-                    handles->renderEx->Resize(width, height, handles->appContext);
+                    handles->renderEx->Resize(SSize2{ width, height }, handles->appContext);
                 }
             }
             break;

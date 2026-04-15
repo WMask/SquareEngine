@@ -329,6 +329,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
 		app->SetFeature(SAppFeature::NoDelay, false);
 		app->SetFeature(SAppFeature::VSync, true);
+		app->SetFeature(SAppFeature::EnableFXAA, false);
 		app->SetWindowSize(1920, 1080);
 
 		// run app
@@ -341,7 +342,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	}
 	catch (const std::exception& ex)
 	{
-		DebugMsg("\nHelloApplication error: %s\n\n", ex.what());
+		DebugMsg("\nStaticMeshSample error: %s\n\n", ex.what());
 	}
 
 	return 0;

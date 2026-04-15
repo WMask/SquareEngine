@@ -66,7 +66,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	// allow force monitor resolution change
 	const bool bAllowResolutionChange = GetFeatureFlag(features, SAppFeature::AllowResolutionChange);
-	const bool bWantFullscreenButWindowNotMatching = appMode == SAppMode::Fullscreen && !bShouldGoFullscreen;
+	const bool bWantFullscreenButWindowNotMatching = (appMode == SAppMode::Fullscreen) && !bShouldGoFullscreen;
 	if (bWantFullscreenButWindowNotMatching && !bAllowResolutionChange)
 	{
 		throw std::exception("Cannot go to fullscreen mode without SAppFeature::AllowResolutionChange");
@@ -102,8 +102,9 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	}
 
 	swapChainFlags = 0u;
+	const bool bUseTearingFlag = bAllowTearing && !bShouldGoFullscreen && (appMode != SAppMode::Fullscreen);
 	if (bAllowResolutionChange) swapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	if (bAllowTearing && !bShouldGoFullscreen) swapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	if (bUseTearingFlag) swapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 	const UINT deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 	backBufferFormat = bAllowHDR ? SConst::DefaultHDRBackBufferFormat : SConst::DefaultBackBufferFormat;

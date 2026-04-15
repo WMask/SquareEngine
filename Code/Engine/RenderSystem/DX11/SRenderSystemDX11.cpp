@@ -837,6 +837,7 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	}
 
 	// render 2d frame
+	deviceContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
 	constantBuffers.ApplyTransform2D(deviceContext.Get(), world->GetCamera(),
 		cachedWorld2dScale, cachedRenderSystemSize.width, cachedRenderSystemSize.height);
 
@@ -864,18 +865,16 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 		switch (hRenderResult)
 		{
+		case DXGI_STATUS_OCCLUDED:
 		case DXGI_ERROR_INVALID_CALL:
+			DebugMsg("DXGI_STATUS_OCCLUDED or DXGI_ERROR_INVALID_CALL\n");
 			if (context.app->IsWindowHasFocus())
 			{
 				auto viewportSize = cachedRenderSystemSize;
-				cachedRenderSystemSize = SSize2{};
+				cachedRenderSystemSize = SConst::ZeroSSize2;
 				Resize(viewportSize.width, viewportSize.height, context);
 				DebugMsg("[%s] SRenderSystemDX11::Render(): Device reset",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str());
-			}
-			else
-			{
-				DebugMsg("DXGI_ERROR_INVALID_CALL\n");
 			}
 			return;
 		case DXGI_ERROR_DEVICE_REMOVED:
@@ -1015,7 +1014,11 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 		}
 
 		CreateRenderTargetAndDepthStencil(width, height);
+
 		if (bAllowHDR) hdrScene.Create(newViewportSize);
+		else if (bAllowFXAA) sdrScene.Create(newViewportSize);
+
+		SetMode(appMode);
 
 		// update world settings
 		auto newCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };

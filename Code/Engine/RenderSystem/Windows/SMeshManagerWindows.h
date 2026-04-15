@@ -51,7 +51,7 @@ protected:
 	bool LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData);
 	//
 	void CheckLoadFinished(const SMeshData& meshData);
-	// after any meshesCache changes
+	// Update after any meshesCache changes. Used to skip already loaded meshes in LoadFbxStaticMeshes
 	void UpdateCacheIds();
 
 

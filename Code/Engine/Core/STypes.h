@@ -73,7 +73,7 @@ private:
 template <typename T>
 constexpr bool InRange(T value, T minValue, T maxValue)
 {
-	return (value >= minValue && value < maxValue);
+	return (value >= minValue && value <= maxValue);
 }
 
 

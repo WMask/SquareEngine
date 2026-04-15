@@ -44,7 +44,7 @@ void SGuiSystem::OnMouseButton(SMouseBtn btn, SKeyState state, std::int32_t x, s
 		auto& registry = world->GetEntities();
 		const SRect rect = SConvert::ToRect(spriteComponent.position, spriteComponent.size);
 		const SPoint2 posOnWidget = SPoint2{ scaledMousePos.x - rect.left, scaledMousePos.y - rect.top };
-		const bool bHovered = Contains(rect, scaledMousePos);
+		const bool bHovered = SMath::Contains(rect, scaledMousePos);
 		if (bHovered)
 		{
 			onMouseEvent.trigger<SMouseButtonEvent>({ entity, posOnWidget, btn, state });
@@ -146,7 +146,7 @@ void SGuiSystem::OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& 
 		auto& registry = world->GetEntities();
 		const SRect rect = SConvert::ToRect(spriteComponent.position, spriteComponent.size);
 		const SPoint2 posOnWidget = SPoint2{ scaledMousePos.x - rect.left, scaledMousePos.y - rect.top };
-		const bool bHovered = Contains(rect, scaledMousePos);
+		const bool bHovered = SMath::Contains(rect, scaledMousePos);
 		if (bHovered)
 		{
 			if (!widgetComponent.bHovered)
@@ -233,6 +233,25 @@ void SGuiSystem::OnMouseMove(std::int32_t x, std::int32_t y, const SAppContext& 
 					+ (sliderComponent->maxValue - sliderComponent->minValue)
 					* sliderComponent->sliderValue;
 			}
+		}
+	});
+}
+
+void SGuiSystem::OnMouseLeave()
+{
+	if (!world) return;
+
+	auto& registry = world->GetEntities();
+	const auto& buttonsView = registry.view<SWidgetComponent, SDragComponent>();
+	buttonsView.each([this](
+		const entt::entity entity,
+		SWidgetComponent& widgetComponent,
+		SDragComponent& dragComponent)
+	{
+		// draggable button
+		if (dragComponent.bDragging)
+		{
+			dragComponent.bDragging = false;
 		}
 	});
 }
@@ -368,9 +387,6 @@ std::pair<entt::entity, entt::entity> SGuiSystem::MakeSlider(entt::registry& reg
 	const SVector3 buttonPos = SVector3{ area.left + size.width * sliderValue, pos.y, pos.z + 0.05f };
 	SSpriteUV normal, pressed, slider;
 	slider.SetBottomHalfUV();
-	// add small uv offset from 0.5 and 1.0
-	slider.uvs[0].y = slider.uvs[1].y = slider.uvs[0].y + 0.02f;
-	slider.uvs[2].y = slider.uvs[3].y = slider.uvs[2].y - 0.02f;
 	pressed.SetTopHalfUV();
 	normal.SetTopHalfUV();
 	normal.uvs[0].x = normal.uvs[2].x = btnUVWidth;

@@ -120,13 +120,34 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			reflectionValue = context.render->GetCubemapAmount(ECubemapType::Specular);
 
 			// load resources
+			context.text->AddCulture("../../Assets/Loc.json");
 			context.render->LoadCubemap("../../Assets/EnvironmentSpecular.dds", ECubemapType::Specular);
 			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
 			auto checkboxTex = context.render->LoadTexture("../../Assets/Checkbox1.png");
-			auto sliderTex = context.render->LoadTexture("../../Assets/Slider1.png");
 			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex);
-			context.text->AddCulture("../../Assets/Loc.json");
+
+			// preload texture to get size
+			context.render->PreloadTextures({ "../../Assets/Slider1.png" },
+				[context](const std::vector<STexID>& textures)
+			{
+				STexID texId = textures.at(0);
+				auto [texSize, bSizeFound] = context.render->GetTextureSize(texId);
+				if (bSizeFound)
+				{
+					auto& registry = context.world->GetEntities();
+
+					auto [backLight, bg1] = context.gui->MakeSlider(registry, texId, backLightId, backLightValue, 0.0f, 1.0f,
+						SVector3{ 1720.0f, 430.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, SConvert::ToSize2F(texSize)
+					);
+					backLightEntity = backLight;
+
+					auto [reflection, bg2] = context.gui->MakeSlider(registry, texId, reflectionId, reflectionValue, 0.0f, 1.0f,
+						SVector3{ 1720.0f, 530.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, SConvert::ToSize2F(texSize)
+					);
+					reflectionEntity = reflection;
+				}
+			});
 
 			// setup widgets
 			auto& registry = context.world->GetEntities();
@@ -161,14 +182,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			auto backLightTextId = ResourceID<STextID>(SConst::BackLightTextKey);
 			context.gui->MakeText(registry,
 				backLightTextId, backLightTextId, fontId,
-				SVector3{ 1720.0f, 480.0f, 0.0f },
+				SVector3{ 1720.0f, 475.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F, STextAlign::Middle
 			);
 			auto reflectionTextId = ResourceID<STextID>(SConst::ReflectionTextKey);
 			context.gui->MakeText(registry,
 				reflectionTextId, reflectionTextId, fontId,
-				SVector3{ 1720.0f, 580.0f, 0.0f },
+				SVector3{ 1720.0f, 575.0f, 0.0f },
 				SSize2F{ 256.0f, 64.0f },
 				SConst::White4F, STextAlign::Middle
 			);
@@ -181,17 +202,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				pbrMeshButtonId, SVector3{ 1720.0f, 250.0f, 0.0f }, SSize2F{ 256.0f, 64.0f }
 			);
 			context.gui->MakeCheckbox(registry, checkboxTex, normalsCheckboxId, true,
-				SVector3{ 1625.0f, 350.0f, 0.0f }, SSize2F{ 64.0f, 64.0f }
+				SVector3{ 1645.0f, 350.0f, 0.0f }, SSize2F{ 40.0f, 40.0f }
 			);
-			const SSize2F sliderTexSize{ 300.0f, 50.0f };
-			auto [backLight, bg1] = context.gui->MakeSlider(registry, sliderTex, backLightId, backLightValue, 0.0f, 1.0f,
-				SVector3{ 1720.0f, 430.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, sliderTexSize
-			);
-			backLightEntity = backLight;
-			auto [reflection, bg2] = context.gui->MakeSlider(registry, sliderTex, reflectionId, reflectionValue, 0.0f, 1.0f,
-				SVector3{ 1720.0f, 530.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, sliderTexSize
-			);
-			reflectionEntity = reflection;
 
 			// load meshes
 			const std::string_view group("Room1");
@@ -202,9 +214,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
-					transform.pos = SVector3{ 0.0f, 20.0f, 0.0f };
-					transform.scale = transform.scale * 1.2f;
+					transform.position = SVector3{ 0.0f, 20.0f, 0.0f };
 					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
+					transform.scale = transform.scale * 1.2f;
 
 					pbrMeshEntity = registry.create();
 					registry.emplace<SStaticMeshComponent>(pbrMeshEntity, meshInstance.id);
@@ -218,9 +230,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
-					transform.pos = SVector3{ 0.0f, -60.0f, 0.0f };
-					transform.scale = transform.scale * 0.85f;
+					transform.position = SVector3{ 0.0f, -60.0f, 0.0f };
 					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
+					transform.scale = transform.scale * 0.85f;
 
 					normalMeshEntity = registry.create();
 					registry.emplace<SStaticMeshComponent>(normalMeshEntity, meshInstance.id, false);
@@ -317,6 +329,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		app->SetFeature(SAppFeature::HighFrequencyTimer, false);
 		app->SetFeature(SAppFeature::NoDelay, false);
 		app->SetFeature(SAppFeature::VSync, true);
+		app->SetFeature(SAppFeature::EnableFXAA, false);
 		app->SetWindowSize(1920, 1080);
 
 		// run app
@@ -329,7 +342,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	}
 	catch (const std::exception& ex)
 	{
-		DebugMsg("\nHelloApplication error: %s\n\n", ex.what());
+		DebugMsg("\nStaticMeshSample error: %s\n\n", ex.what());
 	}
 
 	return 0;

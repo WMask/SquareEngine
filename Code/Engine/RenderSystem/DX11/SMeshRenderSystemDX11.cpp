@@ -157,7 +157,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 
 		// store instance data
 		DX11MESHINSTANCE instance{};
-		instance.pos = transformComponent.transform.pos;
+		instance.position = transformComponent.transform.position;
 		instance.rotation = transformComponent.transform.rotation;
 		instance.scale = transformComponent.transform.scale;
 		instance.tint = SConvert::ToColor3(meshComponent.tint);

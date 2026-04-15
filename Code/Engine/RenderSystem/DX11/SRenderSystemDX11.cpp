@@ -13,6 +13,8 @@
 #include "DDSTextureLoader.h"
 #include "WICTextureLoader.h"
 
+#include <dxgi1_6.h>
+
 #pragma comment(lib, "d3d11.lib")
 
 
@@ -22,6 +24,7 @@ SRenderSystemDX11::SRenderSystemDX11()
 	, frameAnimSpriteRender(*this)
 	, textRender(*this)
 	, meshRender(*this)
+	, fxaaRender(*this)
 {
 }
 
@@ -36,8 +39,9 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	auto& features = context.app->GetFeatures();
 	world = context.world;
+	appMode = mode;
 
-	HWND hWnd = static_cast<HWND>(windowHandle);
+	hWnd = static_cast<HWND>(windowHandle);
 	HDC hDC = GetDC(hWnd);
 	cachedMaxRefreshRate = GetDeviceCaps(hDC, VREFRESH);
 	int ScreenW = GetDeviceCaps(hDC, HORZRES);
@@ -51,29 +55,89 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	std::uint32_t height = clientRect.bottom - clientRect.top;
 	SSize2 viewportSize{ width, height };
 
+	bAllowFXAA = GetFeatureFlag(features, SAppFeature::EnableFXAA) ? TRUE : FALSE;
 	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
-	const bool bAllowFullscreen = GetFeatureFlag(features, SAppFeature::AllowFullscreen);
+	const bool bShouldGoFullscreen = (ScreenW == width && ScreenH == height);
+	if (bShouldGoFullscreen)
+	{
+		// use fullscreen mode if window size matching
+		appMode = SAppMode::Fullscreen;
+	}
+
+	// allow force monitor resolution change
+	const bool bAllowResolutionChange = GetFeatureFlag(features, SAppFeature::AllowResolutionChange);
+	const bool bWantFullscreenButWindowNotMatching = appMode == SAppMode::Fullscreen && !bShouldGoFullscreen;
+	if (bWantFullscreenButWindowNotMatching && !bAllowResolutionChange)
+	{
+		throw std::exception("Cannot go to fullscreen mode without SAppFeature::AllowResolutionChange");
+	}
+
+	// get hardware adapter
+	if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(dxGIFactory.GetAddressOf()))))
+	{
+		throw std::exception("Cannot create DX factory");
+	}
+
+	ComPtr<IDXGIAdapter1> dxGIAdapter;
+	if (!GetHardwareAdapter(dxGIFactory, dxGIAdapter))
+	{
+		throw std::exception("Cannot get hardware adapter");
+	}
+
+	// check features
+	ComPtr<IDXGIFactory4> factory4;
+	if (SUCCEEDED(dxGIFactory.As(&factory4)))
+	{
+		bFlipPresent = TRUE;
+	}
+
+	ComPtr<IDXGIFactory5> factory5;
+	if (SUCCEEDED(dxGIFactory.As(&factory5)))
+	{
+		const bool bEnableHDR = GetFeatureFlag(features, SAppFeature::EnableHDR);
+		if (bEnableHDR) bAllowHDR = IsDisplayHDR10(dxGIFactory.Get()) ? TRUE : FALSE;
+
+		factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+			&bAllowTearing, sizeof(bAllowTearing));
+	}
+
+	swapChainFlags = 0u;
+	if (bAllowResolutionChange) swapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	if (bAllowTearing && !bShouldGoFullscreen) swapChainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	const UINT deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+	backBufferFormat = bAllowHDR ? SConst::DefaultHDRBackBufferFormat : SConst::DefaultBackBufferFormat;
 
 	// create device
 	D3D_FEATURE_LEVEL createdLevel{};
 	D3D_FEATURE_LEVEL featureLevels[] = {
-		D3D_FEATURE_LEVEL_11_1,
-		D3D_FEATURE_LEVEL_11_0
+		D3D_FEATURE_LEVEL_11_1
 	};
 
 	ComPtr<ID3D11Device> newDevice;
 	ComPtr<ID3D11DeviceContext> newDeviceContext;
-	if (FAILED(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, featureLevels, ARRAYSIZE(featureLevels),
-		D3D11_SDK_VERSION, newDevice.GetAddressOf(), &createdLevel, newDeviceContext.GetAddressOf())))
+	if (FAILED(D3D11CreateDevice(dxGIAdapter.Get(),
+		D3D_DRIVER_TYPE_UNKNOWN, NULL, deviceFlags,
+		featureLevels, ARRAYSIZE(featureLevels),
+		D3D11_SDK_VERSION, newDevice.GetAddressOf(),
+		&createdLevel, newDeviceContext.GetAddressOf())))
 	{
-		throw std::exception("Cannot create device");
+		bAllowHDR = FALSE;
+
+		featureLevels[0] = D3D_FEATURE_LEVEL_11_0;
+		if (FAILED(D3D11CreateDevice(dxGIAdapter.Get(),
+			D3D_DRIVER_TYPE_UNKNOWN, NULL, deviceFlags,
+			featureLevels, ARRAYSIZE(featureLevels),
+			D3D11_SDK_VERSION, newDevice.GetAddressOf(),
+			&createdLevel, newDeviceContext.GetAddressOf())))
+		{
+			throw std::exception("Cannot create device");
+		}
 	}
-	else
-	{
-		DebugMsg("[%s] SRenderSystemDX11::Create(): Created D3D_11.%d device\n",
-			GetTimeStamp(std::chrono::system_clock::now()).c_str(),
-			(createdLevel == D3D_FEATURE_LEVEL_11_1) ? 1 : 0);
-	}
+
+	DebugMsg("[%s] SRenderSystemDX11::Create(): D3D_11.%d device, AllowTearing=%d, AllowHDR=%d, FlipPresent=%d\n",
+		GetTimeStamp(std::chrono::system_clock::now()).c_str(),
+		(createdLevel == D3D_FEATURE_LEVEL_11_1) ? 1 : 0, bAllowTearing, bAllowHDR, bFlipPresent);
 
 	ComPtr<ID3D11Device5> d3dDevice5;
 	if (SUCCEEDED(newDevice.As(&d3dDevice5)))
@@ -95,29 +159,16 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 		deviceContext = newDeviceContext;
 	}
 
-	// get DXGI device
-	ComPtr<IDXGIDevice> dxGIDevice;
-	d3dDevice.As(&dxGIDevice);
-
-	// get DXGI adapter
-	ComPtr<IDXGIAdapter> dxGIAdapter;
-	dxGIDevice->GetAdapter(&dxGIAdapter);
-
-	// get DXGI factory (DXGI 1.4+)
-	ComPtr<IDXGIFactory4> dxGIFactory;
-	dxGIAdapter->GetParent(IID_PPV_ARGS(&dxGIFactory));
-
 	// create swap chain
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
 	swapChainDesc.Width = width;
 	swapChainDesc.Height = height;
-	swapChainDesc.Format = SConst::DefaultBackBufferFormat;
-	swapChainDesc.Stereo = FALSE;
-	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.Format = backBufferFormat;
+	swapChainDesc.BufferCount = SConst::DefaultBackBufferCount;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = 2;
 	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-	swapChainDesc.Flags = bAllowFullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0u;
+	swapChainDesc.Flags = swapChainFlags;
+	swapChainDesc.SampleDesc.Count = 1;
 
 	std::string swapEffectName;
 	D3D11_FEATURE_DATA_D3D11_OPTIONS3 options3{};
@@ -125,20 +176,23 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	if (SUCCEEDED(hFeatureGetResult) && options3.VPAndRTArrayIndexFromAnyShaderFeedingRasterizer)
 	{
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		swapEffectName = "EFFECT_FLIP_DISCARD";
+		swapEffectName = "SWAP_EFFECT_FLIP_DISCARD";
 	}
 	else
 	{
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-		swapEffectName = "EFFECT_FLIP_SEQUENTIAL";
+		swapEffectName = "SWAP_EFFECT_FLIP_SEQUENTIAL";
 	}
+
+	DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapChainFsDesc{};
+	swapChainFsDesc.Windowed = (appMode == SAppMode::Windowed) ? TRUE : FALSE;
 
 	ComPtr<IDXGISwapChain1> newSwapChain;
 	if (FAILED(dxGIFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd,
-		&swapChainDesc, NULL, NULL, newSwapChain.GetAddressOf())))
+		&swapChainDesc, &swapChainFsDesc, NULL, newSwapChain.GetAddressOf())))
 	{
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-		swapEffectName = "EFFECT_DISCARD";
+		swapEffectName = "SWAP_EFFECT_DISCARD";
 
 		if (FAILED(dxGIFactory->CreateSwapChainForHwnd(d3dDevice.Get(), hWnd,
 			&swapChainDesc, NULL, NULL, newSwapChain.GetAddressOf())))
@@ -152,20 +206,33 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	newSwapChain.As(&swapChain);
 
-	CreateRenderTargetViewAndSwapChain(width, height);
+	if (FAILED(dxGIFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER)))
+	{
+		throw std::exception("Cannot make window association");
+	}
+
+	UpdateColorSpace();
+	CreateRenderTargetAndDepthStencil(width, height);
+
+	if (bAllowFXAA)
+	{
+		sdrScene.Init(d3dDevice.Get(), SConst::DefaultSDRRenderTargetFormat);
+		sdrScene.Create(viewportSize);
+	}
+
+	if (bAllowHDR)
+	{
+		hdrScene.Init(d3dDevice.Get(), SConst::DefaultHDRRenderTargetFormat);
+		hdrScene.Create(viewportSize);
+	}
 
 	// set up rasterizer
 	D3D11_RASTERIZER_DESC rasterizerDesc{};
-	rasterizerDesc.AntialiasedLineEnable = true;
 	rasterizerDesc.CullMode = D3D11_CULL_BACK;
-	rasterizerDesc.DepthBias = 0;
-	rasterizerDesc.DepthBiasClamp = 0.0f;
-	rasterizerDesc.DepthClipEnable = true;
 	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	rasterizerDesc.FrontCounterClockwise = true;
-	rasterizerDesc.MultisampleEnable = false;
-	rasterizerDesc.ScissorEnable = false;
-	rasterizerDesc.SlopeScaledDepthBias = 0.0f;
+	rasterizerDesc.AntialiasedLineEnable = TRUE;
+	rasterizerDesc.FrontCounterClockwise = TRUE;
+	rasterizerDesc.DepthClipEnable = TRUE;
 
 	if (FAILED(d3dDevice->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf())))
 	{
@@ -176,8 +243,6 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 
 	// create blend state
 	D3D11_BLEND_DESC blendStateDesc{};
-	blendStateDesc.AlphaToCoverageEnable = FALSE;
-	blendStateDesc.IndependentBlendEnable = FALSE;
 	blendStateDesc.RenderTarget[0].BlendEnable = TRUE;
 	blendStateDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	blendStateDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
@@ -211,13 +276,26 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
-	if (FAILED(d3dDevice->CreateSamplerState(&desc, IBLSampler.GetAddressOf())))
+	if (FAILED(d3dDevice->CreateSamplerState(&desc, cubemapSampler.GetAddressOf())))
 	{
-		throw std::exception("Cannot create IBL sampler");
+		throw std::exception("Cannot create cubemap sampler");
 	}
 
-	static ID3D11SamplerState* samplers[] = { surfaceSampler.Get(), IBLSampler.Get() };
-	deviceContext->PSSetSamplers(0, 2, samplers);
+	desc = CD3D11_SAMPLER_DESC(D3D11_DEFAULT);
+	desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+	if (FAILED(d3dDevice->CreateSamplerState(&desc, pointSampler.GetAddressOf())))
+	{
+		throw std::exception("Cannot create render target sampler");
+	}
+
+	ID3D11SamplerState* samplers[] = {
+		surfaceSampler.Get(), cubemapSampler.Get(), pointSampler.Get()
+	};
+	deviceContext->PSSetSamplers(0, 3, samplers);
 
 	// init managers
 	shaderManager.Init(context.pool);
@@ -237,11 +315,7 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	cachedRenderSystemSize = SSize2{ width, height };
 	cachedWorld2dScale = context.world->GetScale().GetScale();
 
-	const bool bShouldGoFullscreen = (ScreenW == width && ScreenH == height);
-	if (bShouldGoFullscreen || mode == SAppMode::Fullscreen)
-	{
-		SetMode(SAppMode::Fullscreen);
-	}
+	SetMode(appMode);
 
 	bCachedNeedDebugTrace = GetFeatureFlag(features, SAppFeature::RenderSystemDebugTrace);
 	DebugMsg("[%s] SRenderSystemDX11::Create(): Render system created\n",
@@ -250,7 +324,122 @@ void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppCont
 	S_CATCH{ S_THROW("SRenderSystemDX11::Create()") }
 }
 
-void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, std::uint32_t height)
+bool SRenderSystemDX11::IsDisplayHDR10(IDXGIFactory2* factory)
+{
+	RECT windowBounds;
+	if (!GetWindowRect(hWnd, &windowBounds))
+	{
+		return false;
+	}
+
+	const long ax1 = windowBounds.left;
+	const long ay1 = windowBounds.top;
+	const long ax2 = windowBounds.right;
+	const long ay2 = windowBounds.bottom;
+
+	ComPtr<IDXGIOutput> bestOutput;
+	long bestIntersectArea = -1;
+
+	ComPtr<IDXGIAdapter> adapter;
+	for (UINT adapterIndex = 0;
+		SUCCEEDED(factory->EnumAdapters(adapterIndex, adapter.ReleaseAndGetAddressOf()));
+		++adapterIndex)
+	{
+		ComPtr<IDXGIOutput> output;
+		for (UINT outputIndex = 0;
+			SUCCEEDED(adapter->EnumOutputs(outputIndex, output.ReleaseAndGetAddressOf()));
+			++outputIndex)
+		{
+			DXGI_OUTPUT_DESC desc;
+			if (FAILED(output->GetDesc(&desc)))
+			{
+				return false;
+			}
+
+			const auto& rect = desc.DesktopCoordinates;
+			const long intersectArea = SMath::ComputeIntersectionArea(ax1, ay1, ax2, ay2,
+				rect.left, rect.top, rect.right, rect.bottom);
+			if (intersectArea > bestIntersectArea)
+			{
+				bestOutput.Swap(output);
+				bestIntersectArea = intersectArea;
+			}
+		}
+	}
+
+	if (bestOutput)
+	{
+		ComPtr<IDXGIOutput6> output6;
+		if (SUCCEEDED(bestOutput.As(&output6)))
+		{
+			DXGI_OUTPUT_DESC1 desc;
+			if (FAILED(output6->GetDesc1(&desc)))
+			{
+				return false;
+			}
+
+			if (desc.ColorSpace == SConst::DefaultHDRColorSpace)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void SRenderSystemDX11::UpdateColorSpace()
+{
+	if (!dxGIFactory) return;
+
+	S_TRY
+
+	if (!dxGIFactory->IsCurrent())
+	{
+		if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(dxGIFactory.GetAddressOf()))))
+		{
+			throw std::exception("Cannot create DX factory");
+		}
+	}
+
+	colorSpace = SConst::DefaultSDRColorSpace;
+	bool bIsDisplayHDR10 = IsDisplayHDR10(dxGIFactory.Get());
+	if (bIsDisplayHDR10)
+	{
+		switch (backBufferFormat)
+		{
+		case DXGI_FORMAT_R10G10B10A2_UNORM:
+			// The application creates the HDR10 signal
+			colorSpace = SConst::DefaultHDRColorSpace;
+			break;
+		default:
+			break;
+		}
+	}
+
+	ComPtr<IDXGISwapChain3> swapChain3;
+	if (bAllowHDR && swapChain && SUCCEEDED(swapChain.As(&swapChain3)))
+	{
+		UINT colorSpaceSupport = 0;
+		if (SUCCEEDED(swapChain3->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport))
+			&& (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT))
+		{
+			if (FAILED(swapChain3->SetColorSpace1(colorSpace)))
+			{
+				throw std::exception("Cannot set color space");
+			}
+			else
+			{
+				DebugMsg("[%s] SRenderSystemDX11::UpdateColorSpace(): Color space changed to HDR\n",
+					GetTimeStamp(std::chrono::system_clock::now()).c_str());
+			}
+		}
+	}
+
+	S_CATCH{ S_THROW("SRenderSystemDX11::UpdateColorSpace()") }
+}
+
+void SRenderSystemDX11::CreateRenderTargetAndDepthStencil(std::uint32_t width, std::uint32_t height)
 {
 	S_TRY
 
@@ -259,14 +448,13 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 		throw std::exception("Invalid parameters");
 	}
 
-	// create back buffer and render target
-	ComPtr<ID3D11Texture2D> backBuffer;
-	if (FAILED(swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer))))
+	// create render target
+	if (FAILED(swapChain->GetBuffer(0, IID_PPV_ARGS(renderTarget.GetAddressOf()))))
 	{
-		throw std::exception("Cannot get back buffer");
+		throw std::exception("Cannot get render target");
 	}
 
-	if (FAILED(d3dDevice->CreateRenderTargetView(backBuffer.Get(), NULL, renderTargetView.GetAddressOf())))
+	if (FAILED(d3dDevice->CreateRenderTargetView(renderTarget.Get(), NULL, renderTargetView.GetAddressOf())))
 	{
 		throw std::exception("Cannot create render target");
 	}
@@ -322,9 +510,6 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 		throw std::exception("Cannot create depth stencil view");
 	}
 
-	// set render targets
-	deviceContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
-
 	// set the viewport
 	D3D11_VIEWPORT viewPort{};
 	viewPort.Width = width;
@@ -341,6 +526,7 @@ void SRenderSystemDX11::CreateRenderTargetViewAndSwapChain(std::uint32_t width, 
 
 void SRenderSystemDX11::Shutdown()
 {
+	fxaaRender.Shutdown();
 	meshRender.Shutdown();
 	textRender.Shutdown();
 	frameAnimSpriteRender.Shutdown();
@@ -350,17 +536,23 @@ void SRenderSystemDX11::Shutdown()
 	meshManager.Shutdown();
 	textureManager.Shutdown();
 	shaderManager.Shutdown();
+	sdrScene.Shutdown();
+	hdrScene.Shutdown();
+	cubemapMIPLevels.clear();
 	rasterizerState.Reset();
 	surfaceSampler.Reset();
-	IBLSampler.Reset();
+	cubemapSampler.Reset();
+	pointSampler.Reset();
 	blendState.Reset();
-	depthStencilView.Reset();
-	depthStencilState.Reset();
+	renderTarget.Reset();
 	depthStencil.Reset();
 	renderTargetView.Reset();
+	depthStencilView.Reset();
+	depthStencilState.Reset();
 	deviceContext.Reset();
-	d3dDevice.Reset();
 	swapChain.Reset();
+	d3dDevice.Reset();
+	dxGIFactory.Reset();
 }
 
 void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
@@ -422,6 +614,10 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		else if (meshRender.CheckShaderName(shaderData.name))
 		{
 			meshRender.Setup(shader);
+		}
+		else if (fxaaRender.CheckShaderName(shaderData.name))
+		{
+			fxaaRender.Setup(shader);
 		}
 
 		shaders.emplace(shaderData.name, shader);
@@ -540,6 +736,17 @@ const SShaderDataDX11* SRenderSystemDX11::FindShader(const std::string& name) co
 	return (shaderIt == shaders.end()) ? nullptr : &shaderIt->second;
 }
 
+std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
+{
+	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
+	if (texture)
+	{
+		return { texture->view.Get(), texture->texSize };
+	}
+
+	return { nullptr, SConst::ZeroSSize2 };
+}
+
 ID3D11ShaderResourceView* SRenderSystemDX11::FindCubemap(ECubemapType type) const
 {
 	auto cubemap = static_cast<SCubemapDataDX11*>(textureManager.FindCubemap(type));
@@ -551,15 +758,15 @@ ID3D11ShaderResourceView* SRenderSystemDX11::FindCubemap(ECubemapType type) cons
 	return nullptr;
 }
 
-std::pair<ID3D11ShaderResourceView*, SSize2> SRenderSystemDX11::FindTexture(STexID id) const
+std::uint32_t SRenderSystemDX11::GetCubemapMaxMipLevel(ECubemapType type) const noexcept
 {
-	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
-	if (texture)
+	auto it = cubemapMIPLevels.find(type);
+	if (it != cubemapMIPLevels.end())
 	{
-		return { texture->view.Get(), texture->texSize };
+		return it->second;
 	}
 
-	return { nullptr, SConst::ZeroSSize2 };
+	return 1u;
 }
 
 bool SRenderSystemDX11::FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
@@ -597,16 +804,16 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 		throw std::exception("Wrong context");
 	}
 
-	// setup device
 	auto& features = context.app->GetFeatures();
 	auto [clearColor, bHasClearColor] = GetFeatureColor(features, SAppFeature::ClearScreenColor);
-	if (bHasClearColor)
-	{
-		deviceContext->ClearRenderTargetView(renderTargetView.Get(), SConvert::FromSColor3(clearColor));
-	}
 
+	// setup device context
+	auto customRenderTarget = renderTargetView.Get();
+	if (bAllowFXAA) customRenderTarget = sdrScene.GetRenderTargetView();
+
+	deviceContext->OMSetRenderTargets(1, &customRenderTarget, depthStencilView.Get());
+	deviceContext->ClearRenderTargetView(customRenderTarget, bHasClearColor ? SConvert::FromSColor3(clearColor) : SConst::White4F);
 	deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-	deviceContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), depthStencilView.Get());
 	drawCalls = 0;
 
 	// render 3d frame
@@ -622,22 +829,74 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 
 	meshRender.Render(context.deltaSeconds);
 
+	if (bAllowFXAA)
+	{
+		// render 3d scene to back buffer
+		deviceContext->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+		fxaaRender.Render(sdrScene.GetShaderResourceView(), cachedRenderSystemSize);
+	}
+
 	// render 2d frame
 	constantBuffers.ApplyTransform2D(deviceContext.Get(), world->GetCamera(),
 		cachedWorld2dScale, cachedRenderSystemSize.width, cachedRenderSystemSize.height);
 
 	coloredSpriteRender.Render(context.deltaSeconds, context.gameTime);
-	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	frameAnimSpriteRender.Render(context.deltaSeconds, context.gameTime);
+	texturedSpriteRender.Render(context.deltaSeconds, context.gameTime);
 	textRender.Render(context.deltaSeconds, context.gameTime);
 
-	const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
-	HRESULT hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);
+	// present on screen
+	HRESULT hRenderResult = S_FALSE;
+	if (bAllowTearing && (appMode == SAppMode::Windowed))
+	{
+		hRenderResult = swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+	}
+	else
+	{
+		const bool bVSync = GetFeatureFlag(features, SAppFeature::VSync);
+		hRenderResult = swapChain->Present(bVSync ? 1 : 0, 0);
+	}
+
 	if (FAILED(hRenderResult))
 	{
-		DebugMsg("[%s] SRenderSystemDX11::Render(): render failed result: %d\n\n", static_cast<std::int32_t>(hRenderResult));
+		DebugMsg("[%s] SRenderSystemDX11::Render(): render failed result: ",
+			GetTimeStamp(std::chrono::system_clock::now()).c_str());
+
+		switch (hRenderResult)
+		{
+		case DXGI_ERROR_INVALID_CALL:
+			if (context.app->IsWindowHasFocus())
+			{
+				auto viewportSize = cachedRenderSystemSize;
+				cachedRenderSystemSize = SSize2{};
+				Resize(viewportSize.width, viewportSize.height, context);
+				DebugMsg("[%s] SRenderSystemDX11::Render(): Device reset",
+					GetTimeStamp(std::chrono::system_clock::now()).c_str());
+			}
+			else
+			{
+				DebugMsg("DXGI_ERROR_INVALID_CALL\n");
+			}
+			return;
+		case DXGI_ERROR_DEVICE_REMOVED:
+			DebugMsg("DXGI_ERROR_DEVICE_REMOVED\n");
+			break;
+		case DXGI_ERROR_DEVICE_RESET:
+			DebugMsg("DXGI_ERROR_DEVICE_RESET\n");
+			break;
+		default:
+			DebugMsg("0x%08x\n", static_cast<std::int32_t>(hRenderResult));
+			break;
+		}
 
 		throw std::exception("Render failed");
+	}
+	else
+	{
+		if (bAllowHDR && (!dxGIFactory || !dxGIFactory->IsCurrent()))
+		{
+			UpdateColorSpace();
+		}
 	}
 
 	if (bCachedNeedDebugTrace)
@@ -716,11 +975,13 @@ void SRenderSystemDX11::RequestResize(std::uint32_t width, std::uint32_t height)
 	S_TRY
 
 	DXGI_MODE_DESC displayModeDesc{};
-	if (!SFindDisplayMode(width, height, cachedMaxRefreshRate, &displayModeDesc))
+	if (!FindDisplayMode(dxGIFactory, width, height, cachedMaxRefreshRate, &displayModeDesc))
 	{
 		throw std::exception("Cannot find display mode");
 	}
 
+	displayModeDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+	displayModeDesc.Format = backBufferFormat;
 	swapChain->ResizeTarget(&displayModeDesc);
 
 	S_CATCH{ S_THROW("SRenderSystemDX11::RequestResize()") }
@@ -737,20 +998,24 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 	{
 		// reset render system
 		deviceContext->OMSetRenderTargets(0, NULL, NULL);
-		depthStencilView.Reset();
-		depthStencil.Reset();
+		if (bAllowHDR) hdrScene.Shutdown();
+		else if (bAllowFXAA) sdrScene.Shutdown();
 		renderTargetView.Reset();
+		depthStencilView.Reset();
+		renderTarget.Reset();
+		depthStencil.Reset();
+		deviceContext->Flush();
 
 		// resize swap chain
-		auto& features = context.app->GetFeatures();
-		const bool bAllowFullscreen = GetFeatureFlag(features, SAppFeature::AllowFullscreen);
-		const UINT flags = bAllowFullscreen ? DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH : 0u;
-		if (FAILED(swapChain->ResizeBuffers(2, width, height, SConst::DefaultBackBufferFormat, flags)))
+		if (FAILED(swapChain->ResizeBuffers(
+			SConst::DefaultBackBufferCount, width, height,
+			SConst::DefaultBackBufferFormat, swapChainFlags)))
 		{
 			throw std::exception("Cannot resize swap chain");
 		}
 
-		CreateRenderTargetViewAndSwapChain(width, height);
+		CreateRenderTargetAndDepthStencil(width, height);
+		if (bAllowHDR) hdrScene.Create(newViewportSize);
 
 		// update world settings
 		auto newCameraPos = SVector3{ width / 2.0f, height / 2.0f, 1.0f };
@@ -768,6 +1033,7 @@ void SRenderSystemDX11::Resize(std::uint32_t width, std::uint32_t height, const 
 void SRenderSystemDX11::SetMode(SAppMode mode)
 {
 	if (swapChain) swapChain->SetFullscreenState((mode == SAppMode::Fullscreen), nullptr);
+	appMode = mode;
 }
 
 std::shared_ptr<STextureBase> SRenderSystemDX11::CreateTexture(const STextureData& textureData)
@@ -819,6 +1085,27 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapDat
 		outCubemap->texture.GetAddressOf(), outCubemap->view.GetAddressOf())))
 	{
 		return nullptr;
+	}
+
+	if (outCubemap->view)
+	{
+		D3D11_SHADER_RESOURCE_VIEW_DESC desc{};
+		outCubemap->view->GetDesc(&desc);
+		const std::uint32_t mipLevels = static_cast<std::uint32_t>(desc.TextureCube.MipLevels);
+
+		bool bNeedUpdateConstants = false;
+		auto it = cubemapMIPLevels.find(cubemapData.type);
+		if (it == cubemapMIPLevels.end() || it->second != mipLevels)
+		{
+			bNeedUpdateConstants = true;
+		}
+
+		cubemapMIPLevels.insert_or_assign(cubemapData.type, mipLevels);
+
+		if (bNeedUpdateConstants)
+		{
+			constantBuffers.UpdateCubemapSettings(*this);
+		}
 	}
 
 	return outCubemap;
@@ -888,14 +1175,7 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 			outMesh->materials.emplace_back(baseTexId, normTexId, rmaTexId, emiTexId,
 				material.firstIndex, material.numVertices, material.numIndices);
 
-			static auto onLoaded = [](std::vector<std::filesystem::path>& textures)
-			{
-				for (auto& texture : textures)
-				{
-					DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): material texture loaded '%s'\n",
-						GetTimeStamp(std::chrono::system_clock::now()).c_str(), texture.string().c_str());
-				}
-			};
+			static auto onLoaded = [](std::vector<STexID>&) {};
 			textureManager.PreloadTextures(paths, onLoaded);
 		}
 	}

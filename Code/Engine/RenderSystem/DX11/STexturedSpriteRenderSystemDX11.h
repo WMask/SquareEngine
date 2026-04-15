@@ -15,7 +15,7 @@ using Microsoft::WRL::ComPtr;
 
 struct DX11TEXTUREDSPRITEINSTANCE
 {
-	SVector3 pos;
+	SVector3 position;
 	float    rotation;
 	SVector2 scale;
 	SColor4F colors[4];

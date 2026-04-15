@@ -231,6 +231,7 @@ void SConstantBuffersDX11::UpdateSettingsBuffer(const IRenderSystemDX11& renderS
 		SSettingsBuffer settings{};
 		settings.cameraPos = SConvert::ToVector4(camera.GetPosition(SCameraSpace::Camera3D));
 		settings.viewDir = SConvert::ToVector4(camera.GetViewDir());
+		settings.screenSize = SConvert::ToVector2(renderSystem.GetScreenSize());
 		settings.globalTint = inGlobalTint;
 		settings.backLight = inBackLight;
 		settings.pbrGammaCorrection = inPbrGammaCorrection;
@@ -267,6 +268,7 @@ void SConstantBuffersDX11::UpdateCubemapSettings(const IRenderSystemDX11& render
 		cubemaps.bHasSpecularCubemap = renderSystem.FindCubemap(ECubemapType::Specular) ? TRUE : FALSE;
 		cubemaps.diffuseAmount = renderSystem.GetCubemapAmount(ECubemapType::Diffuse);
 		cubemaps.specularAmount = renderSystem.GetCubemapAmount(ECubemapType::Specular);
+		cubemaps.maxCubemapMipLevels = renderSystem.GetCubemapMaxMipLevel(ECubemapType::Specular);
 
 		deviceContext->UpdateSubresource(cubemapsBuffer.Get(), 0, NULL, &cubemaps, 0, 0);
 	}

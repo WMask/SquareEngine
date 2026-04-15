@@ -17,6 +17,8 @@ cbuffer VSPSSettingsBuffer : register(b1)
 	float4 vCameraPos;
 	float4 vViewDir;
 	float4 vGlobalTint;
+	float2 vScreenSize;
+	float2 padding;
 	float4 vBackLight;
 	float4 vPbrGammaCorrection;
 };
@@ -35,12 +37,13 @@ cbuffer PSCubemapsBuffer : register(b3)
 	uint  bHasSpecularCubemap; // specular reflection (irradiance)
 	float diffuseAmount;
 	float specularAmount;
+	uint  maxCubemapMipLevels;
 };
 
 cbuffer PSLightsBuffer : register(b4)
 {
-	float4 vLightVec[MaxLights];   // xyz - direction for directional, position for point
-	float4 vLightColor[MaxLights]; // rgb - color, a - distance if point light type
+	float4 vLightVec[kMaxLights];   // xyz - direction for directional, position for point
+	float4 vLightColor[kMaxLights]; // rgb - color, a - distance if point light type
 	uint numLights;
 };
 
@@ -82,7 +85,7 @@ VSOutputNmTx VShader(VSInputNmTxInst input)
 
 	float3 vScaledPos3 = (input.vPosition.xyz * input.iScale);
 	float3 vRotatedPos3 = QuaternionRotate(input.iRotation, vScaledPos3);
-	float4 vWorldPos4 = float4(vScaledPos3 + input.iPosition, 1.0);
+	float4 vWorldPos4 = float4(vRotatedPos3 + input.iPosition, 1.0);
 
 	float4x4 mWVP = mul(mWorld, mul(mView, mProj));
 
@@ -169,7 +172,7 @@ float4 PShader(PSInputNmTx input) : SV_Target0
 		NdotL2 = max(dot(N, -L), 0.0);
 	}
 
-	float3 vFinalColor = vAlbedo.rgb * vRadiance * NdotL;
+	float3 vFinalColor = vAlbedo.rgb * vRadiance * ao * NdotL;
 
 	if (bHasRMATexture)
 	{
@@ -197,24 +200,25 @@ float4 PShader(PSInputNmTx input) : SV_Target0
 		float3 kD = (float3(1.0, 1.0, 1.0) - kS) * (1.0 - metallic);
 		float3 vDiffuse = kD * vAlbedo.rgb / PI;
 
-		// Environment cubemap reflection
+		// Environment cubemap specular reflection
 		float3 vDir = reflect(-V, N);
-		float3 vEnvColor = SpecularTexture.Sample(CubemapSampler, vDir).rgb;
+		float mip = roughness * maxCubemapMipLevels;
+		float3 vEnvColor = SpecularTexture.SampleLevel(CubemapSampler, vDir, mip).rgb;
 		float3 vFresnelAmount = lerp(float3(1.0, 1.0, 1.0), NdotL, 0.5); // Reduce env amount on dark side
 		float3 vEnvAmount = FresnelSchlick(max(dot(N, V), 0.0), F0) * vFresnelAmount;
-		float3 vIndirectSpecular = vEnvColor * vEnvAmount * metallic * specularAmount * 2.5;
+		float3 vIndirectSpecular = vEnvColor * vEnvAmount * specularAmount * kIndirectSpecularScale;
+		vIndirectSpecular *= metallic; // No specular reflection on non-metals
 
 		// Apply directional light
-		vFinalColor = (vDiffuse + vSpecular) * vRadiance * NdotL + vIndirectSpecular;
-		vFinalColor = vFinalColor * vPbrGammaCorrection.rgb * 3.5;
+		vFinalColor = (vDiffuse + vSpecular) * vRadiance * ao * NdotL + vIndirectSpecular;
+
+		// Gamma correction
+		vFinalColor = vFinalColor * vPbrGammaCorrection.rgb * kGammaCorrectionScale;
 	}
 
-	// Apply back light
+	// Add back light
 	float3 vBackColor = vAlbedo.rgb * vBackLight * NdotL2 * (1.0 - metallic);
 	vFinalColor += vBackColor;
-
-	// Apply Ambient Occlusion
-	vFinalColor *= ao;
 
 	// Add emissive
 	if (bHasEmissiveTexture)

@@ -62,13 +62,13 @@ protected:
 
 protected:
 	//
-	using TPathList = std::vector<std::filesystem::path>;
+	using TTexIDList = std::vector<STexID>;
 	//
-	using TPreLoadDelegatesCache = std::list<std::pair<TPathList, OnTexturesLoadedDelegate>>;
+	using TPreLoadDelegatesCache = std::list<std::pair<TTexIDList, OnTexturesLoadedDelegate>>;
 	//
-	using TTexturesCache = std::unordered_map<ECubemapType, std::shared_ptr<STextureBase>>;
+	using TCubemapsCache = std::unordered_map<ECubemapType, std::shared_ptr<STextureBase>>;
 	//
-	using TCubemapsCache = std::unordered_map<STexID, std::shared_ptr<STextureBase>>;
+	using TTexturesCache = std::unordered_map<STexID, std::shared_ptr<STextureBase>>;
 	//
 	using TTextureQueue = std::queue<STextureData>;
 	//
@@ -76,9 +76,9 @@ protected:
 	//
 	TPreLoadDelegatesCache preloadDelegatesCache;
 	//
-	TTexturesCache cubemapsCache;
+	TTexturesCache texturesCache;
 	//
-	TCubemapsCache texturesCache;
+	TCubemapsCache cubemapsCache;
 	//
 	TTextureQueue loadedTextures;
 	//

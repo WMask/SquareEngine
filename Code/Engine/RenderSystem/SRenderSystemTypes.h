@@ -22,7 +22,7 @@ namespace SConst
 }
 
 /** Textures delegate */
-using OnTexturesLoadedDelegate = std::function<void(std::vector<std::filesystem::path>&)>;
+using OnTexturesLoadedDelegate = std::function<void(std::vector<STexID>&)>;
 /** Mesh instances delegate */
 using OnMeshInstancesLoadedDelegate = std::function<void(std::filesystem::path, const std::vector<SMeshInstance>&)>;
 /** Meshes delegate */
@@ -50,6 +50,10 @@ struct SSettingsBuffer
 	SVector4 viewDir;
 	// for black screen effect
 	SColor4F globalTint = SConst::White4F;
+	//
+	SVector2 screenSize;
+	//
+	SVector2 padding;
 	// for 3d meshes
 	SColor4F backLight = SConst::White4F / 3.0f;
 	// apply correction on final pbr color of 3d meshes
@@ -71,6 +75,8 @@ struct SCubemapsBuffer
 	float diffuseAmount = 1.0f;
 	//
 	float specularAmount = 1.0f;
+	//
+	std::uint32_t maxCubemapMipLevels = 1u;
 };
 
 /** Lights settings */

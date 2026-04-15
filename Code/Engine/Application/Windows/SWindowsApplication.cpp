@@ -27,6 +27,7 @@ struct SWin32Handles
 {
     SAppContext& appContext;
     IRenderSystemEx* renderEx;
+    BOOL bTrackingMouse;
 };
 
 
@@ -43,7 +44,9 @@ SWindowsApplication::SWindowsApplication()
     features[SAppFeature::VSync] = true;
     features[SAppFeature::NoDelay] = false;
     features[SAppFeature::HighFrequencyTimer] = false;
-    features[SAppFeature::AllowFullscreen] = false;
+    features[SAppFeature::AllowResolutionChange] = false;
+    features[SAppFeature::EnableFXAA] = false;
+    features[SAppFeature::EnableHDR] = false;
     features[SAppFeature::ClearScreenColor] = SColor3(50, 50, 70);
     features[SAppFeature::ThreadPoolTasksPerThread] = static_cast<std::int32_t>(SConst::DefaultTasksPerThread);
     features[SAppFeature::ThreadPoolThreadsCount] = static_cast<std::int32_t>(SConst::DefaultThreadsInPool);
@@ -164,6 +167,7 @@ void SWindowsApplication::Run()
 
     ShowWindow(hWnd, SW_SHOW);
     UpdateWindow(hWnd);
+    bHasFocus = true;
 
     // create game systems
     world = CreateWorld(context);
@@ -188,7 +192,7 @@ void SWindowsApplication::Run()
 
     // set WndProc handles
     SWin32Handles handles{
-        context, renderSystem.get()
+        context, renderSystem.get(), FALSE
     };
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&handles));
 
@@ -223,13 +227,13 @@ void SWindowsApplication::Run()
     }
 
     MSG msg;
-	while (!quit)
+	while (!bQuit)
 	{
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT)
             {
-                quit = TRUE;
+                bQuit = TRUE;
                 break;
             }
 
@@ -330,7 +334,8 @@ std::any SWindowsApplication::GetFeature(SAppFeature feature) const noexcept
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     SWin32Handles* handles = reinterpret_cast<SWin32Handles*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
-    IGuiSystem* guiSystem = static_cast<IGuiSystem*>(handles ? handles->appContext.gui : nullptr);
+    SWindowsApplication* app = static_cast<SWindowsApplication*>(handles ? handles->appContext.app : nullptr);
+    IGuiSystem* guiSystem = handles ? handles->appContext.gui : nullptr;
     IInputSystem* inputSystem = handles ? handles->appContext.input : nullptr;
     IInputDevice* activeKeyboard = nullptr;
     IInputDevice* activeMouse = nullptr;
@@ -379,6 +384,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
             }
             break;
+        case WM_SETFOCUS:
+            if (app) app->SetFocusState(true);
+            break;
+        case WM_KILLFOCUS:
+            if (app) app->SetFocusState(false);
+            break;
         case WM_KEYDOWN:
             if (activeKeyboard) activeKeyboard->SetState(static_cast<std::int32_t>(wParam), true);
             if (guiSystem) guiSystem->OnKeys(static_cast<std::int32_t>(wParam), SKeyState::Down, handles->appContext);
@@ -389,6 +400,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case WM_MOUSEMOVE:
             if (guiSystem) guiSystem->OnMouseMove(x, y, handles->appContext);
+            if (handles && !handles->bTrackingMouse)
+            {
+                TRACKMOUSEEVENT tme;
+                tme.cbSize = sizeof(TRACKMOUSEEVENT);
+                tme.dwFlags = TME_LEAVE;
+                tme.hwndTrack = hWnd;
+                if (TrackMouseEvent(&tme))
+                {
+                    handles->bTrackingMouse = TRUE;
+                }
+            }
+            break;
+        case WM_MOUSELEAVE:
+            if (guiSystem) guiSystem->OnMouseLeave();
+            if (handles) handles->bTrackingMouse = FALSE;
             break;
         case WM_LBUTTONDOWN:
             if (guiSystem) guiSystem->OnMouseButton(SMouseBtn::Left, SKeyState::Down, x, y, handles->appContext);

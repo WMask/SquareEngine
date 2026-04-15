@@ -58,7 +58,7 @@ S_CORE_API void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t
 /**
 * Read fbx file */
 S_CORE_API void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
-	std::forward_list<SMeshID>& meshesCacheIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
+	std::forward_list<SMeshID>& cachedMeshesIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
 
 
 /**

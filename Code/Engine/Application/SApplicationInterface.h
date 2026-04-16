@@ -13,7 +13,8 @@
 #include <functional>
 
 #if defined(_MSC_VER)
-# pragma warning(disable : 4251)
+# define WIN32_LEAN_AND_MEAN
+# include <windows.h>
 #endif
 
 
@@ -35,15 +36,17 @@ public:
 	/**
 	* Virtual destructor */
 	virtual ~IApplication() {}
+#ifdef WIN32
 	/**
 	* Set app parameters */
-	virtual void Init(void* handle, const std::string& cmds, int cmdsCount) noexcept = 0;
+	virtual void Init(HINSTANCE inHInstance, const std::string& cmds, int cmdsCount) noexcept = 0;
 	/**
 	* Set app parameters */
-	virtual void Init(void* handle, const std::string& cmds) noexcept = 0;
+	virtual void Init(HINSTANCE inHInstance, const std::string& cmds) noexcept = 0;
 	/**
 	* Set app parameters */
-	virtual void Init(void* handle) noexcept = 0;
+	virtual void Init(HINSTANCE inHInstance) noexcept = 0;
+#endif
 	/**
 	* Set init handler */
 	virtual void SetInitHandler(SInitHandler handler) noexcept = 0;

@@ -96,21 +96,21 @@ SWindowsApplication::~SWindowsApplication()
     }
 }
 
-void SWindowsApplication::Init(void* handle, const std::string& inCmds, std::int32_t inCmdsCount) noexcept
+void SWindowsApplication::Init(HINSTANCE inHInstance, const std::string& inCmds, std::int32_t inCmdsCount) noexcept
 {
-	hInstance = static_cast<HINSTANCE>(handle);
+	hInstance = inHInstance;
     cmds = inCmds;
     cmdsCount = inCmdsCount;
 }
 
-void SWindowsApplication::Init(void* handle, const std::string& inCmds) noexcept
+void SWindowsApplication::Init(HINSTANCE inHInstance, const std::string& inCmds) noexcept
 {
-    Init(handle, inCmds, 1);
+    Init(inHInstance, inCmds, 1);
 }
 
-void SWindowsApplication::Init(void* handle) noexcept
+void SWindowsApplication::Init(HINSTANCE inHInstance) noexcept
 {
-    Init(handle, "", 1);
+    Init(inHInstance, "", 1);
 }
 
 void SWindowsApplication::Run()

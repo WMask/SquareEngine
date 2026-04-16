@@ -115,7 +115,7 @@ public:// IRenderSystem interface implementation
 
 public:// IRenderSystemEx interface implementation
 	//
-	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) override;
+	virtual void Create(HWND inHWnd, SAppMode mode, const SAppContext& context) override;
 	//
 	virtual void Shutdown() override;
 	//

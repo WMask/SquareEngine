@@ -33,15 +33,14 @@ SRenderSystemDX11::~SRenderSystemDX11()
 	Shutdown();
 }
 
-void SRenderSystemDX11::Create(void* windowHandle, SAppMode mode, const SAppContext& context)
+void SRenderSystemDX11::Create(HWND inHWnd, SAppMode mode, const SAppContext& context)
 {
 	S_TRY
 
 	auto& features = context.app->GetFeatures();
 	world = context.world;
 	appMode = mode;
-
-	hWnd = static_cast<HWND>(windowHandle);
+	hWnd = inHWnd;
 	HDC hDC = GetDC(hWnd);
 	cachedMaxRefreshRate = GetDeviceCaps(hDC, VREFRESH);
 	int ScreenW = GetDeviceCaps(hDC, HORZRES);

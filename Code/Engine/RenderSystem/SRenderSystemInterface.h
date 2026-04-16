@@ -14,6 +14,11 @@
 #include <string>
 #include <map>
 
+#ifdef WIN32
+# define WIN32_LEAN_AND_MEAN
+# include <windows.h>
+#endif
+
 
 /***************************************************************************
 * Render system interface
@@ -113,12 +118,14 @@ using TRenderSystemPtr = std::unique_ptr<IRenderSystem>;
 class IRenderSystemEx : public IRenderSystem
 {
 public:
+#ifdef WIN32
+	/**
+	* Create render system */
+	virtual void Create(HWND inHWnd, SAppMode mode, const SAppContext& context) = 0;
+#endif
 	/**
 	* Load shaders */
 	virtual void LoadShaders(const std::filesystem::path& folderPath) = 0;
-	/**
-	* Create render system */
-	virtual void Create(void* windowHandle, SAppMode mode, const SAppContext& context) = 0;
 	/**
 	* Shutdown render system */
 	virtual void Shutdown() = 0;

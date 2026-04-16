@@ -4,10 +4,6 @@
 
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <chrono>
-
 #include "Application/SApplicationInterface.h"
 #include "Application/SLocalizationInterface.h"
 #include "Application/SInputInterface.h"
@@ -15,6 +11,8 @@
 #include "World/SWorldInterface.h"
 #include "World/SGuiInterface.h"
 #include "Core/SCoreModule.h"
+
+#include <chrono>
 
 #pragma warning(disable : 4275)
 
@@ -42,11 +40,11 @@ public: // IApplication interface implementation
 	//
 	virtual ~SWindowsApplication() override;
 	//
-	virtual void Init(void* handle, const std::string& cmds, std::int32_t cmdsCount) noexcept override;
+	virtual void Init(HINSTANCE inHInstance, const std::string& cmds, std::int32_t cmdsCount) noexcept override;
 	//
-	virtual void Init(void* handle, const std::string& cmds) noexcept override;
+	virtual void Init(HINSTANCE inHInstance, const std::string& cmds) noexcept override;
 	//
-	virtual void Init(void* handle) noexcept override;
+	virtual void Init(HINSTANCE inHInstance) noexcept override;
 	//
 	virtual void SetInitHandler(IApplication::SInitHandler handler) noexcept override { initHandler = handler; }
 	//

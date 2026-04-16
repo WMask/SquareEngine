@@ -15,7 +15,6 @@ struct SWVPBuffer
 	SMatrix4 mWorld;
 	SMatrix4 mView;
 	SMatrix4 mProj;
-	DirectX::XMVECTOR mWorldInverse[3];
 };
 
 SConstantBuffersDX11::~SConstantBuffersDX11()
@@ -34,6 +33,7 @@ void SConstantBuffersDX11::Shutdown()
 	cubemapsBuffer.Reset();
 	lightsBuffer.Reset();
 	materialBuffer.Reset();
+	transformBuffer.Reset();
 }
 
 void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3dDeviceContext,
@@ -99,6 +99,13 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 		throw std::exception("Cannot create constant buffer");
 	}
 
+	cbDesc.ByteWidth = Align16<SMatrix4>();
+	subResData.pSysMem = &SConst::IdentitySMatrix4;
+	if (FAILED(d3dDevice->CreateBuffer(&cbDesc, &subResData, transformBuffer.GetAddressOf())))
+	{
+		throw std::exception("Cannot create constant buffer");
+	}
+
 	// set buffers
 	d3dDeviceContext->VSSetConstantBuffers(0, 1, wvpMatrixBuffer.GetAddressOf());
 	d3dDeviceContext->VSSetConstantBuffers(1, 1, settingsBuffer.GetAddressOf());
@@ -107,6 +114,7 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	d3dDeviceContext->PSSetConstantBuffers(2, 1, materialBuffer.GetAddressOf());
 	d3dDeviceContext->PSSetConstantBuffers(3, 1, cubemapsBuffer.GetAddressOf());
 	d3dDeviceContext->PSSetConstantBuffers(4, 1, lightsBuffer.GetAddressOf());
+	d3dDeviceContext->VSSetConstantBuffers(5, 1, transformBuffer.GetAddressOf());
 
 	// create vertex buffer
 	DX11SPRITEVERTEX data[] = {
@@ -187,10 +195,10 @@ void SConstantBuffersDX11::Init(ID3D11Device* d3dDevice, ID3D11DeviceContext* d3
 	S_CATCH{ S_THROW("SConstantBuffersDX11::Init()") }
 }
 
-void SConstantBuffersDX11::ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContext,
+void SConstantBuffersDX11::ApplyTransform2D(ID3D11DeviceContext* deviceContext,
 	const SCamera& camera, SVector2 worldScale, std::uint32_t width, std::uint32_t height)
 {
-	if (d3dDeviceContext)
+	if (deviceContext)
 	{
 		SMatrix4 mWorld = SMath::ScaleMatrix2(worldScale);
 		SMatrix4 mProj = SMath::OrthoMatrix(SSize2{ width, height }, 1.0f, 0.0f);
@@ -198,15 +206,19 @@ void SConstantBuffersDX11::ApplyTransform2D(ID3D11DeviceContext* d3dDeviceContex
 		SMatrix4 mView = SMath::LookAtMatrix(
 			camera.GetPosition(SCameraSpace::Camera2D),
 			camera.GetTarget(SCameraSpace::Camera2D));
-		SWVPBuffer wvpData{ SMath::TransposeM4(mWorld), SMath::TransposeM4(mView), SMath::TransposeM4(mProj) * mInvertY };
-		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
+		SWVPBuffer wvpData {
+			SMath::TransposeM4(mWorld),
+			SMath::TransposeM4(mView),
+			SMath::TransposeM4(mProj) * mInvertY
+		};
+		deviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
 	}
 }
 
-void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContext, const SCamera& camera,
+void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* deviceContext, const SCamera& camera,
 	std::uint32_t width, std::uint32_t height, float gameTime)
 {
-	if (d3dDeviceContext)
+	if (deviceContext)
 	{
 		SMatrix4 mWorld = SMath::RotationMatrixY(cosf(gameTime) * 0.0f);
 		const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
@@ -214,11 +226,7 @@ void SConstantBuffersDX11::ApplyTransform3D(ID3D11DeviceContext* d3dDeviceContex
 		SMatrix4 mView = SMath::LookAtMatrix(
 			camera.GetPosition(SCameraSpace::Camera3D), camera.GetTarget(SCameraSpace::Camera3D));
 		SWVPBuffer wvpData{ SMath::TransposeM4(mWorld), SMath::TransposeM4(mView), SMath::TransposeM4(mProj) };
-		const DirectX::XMMATRIX worldInverse = SConvert::ToXMatrix(SMath::InverseM4(mWorld));
-		wvpData.mWorldInverse[0] = worldInverse.r[0];
-		wvpData.mWorldInverse[1] = worldInverse.r[1];
-		wvpData.mWorldInverse[2] = worldInverse.r[2];
-		d3dDeviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
+		deviceContext->UpdateSubresource(wvpMatrixBuffer.Get(), 0, NULL, &wvpData, 0, 0);
 	}
 }
 
@@ -271,5 +279,15 @@ void SConstantBuffersDX11::UpdateCubemapSettings(const IRenderSystemDX11& render
 		cubemaps.maxCubemapMipLevels = renderSystem.GetCubemapMaxMipLevel(ECubemapType::Specular);
 
 		deviceContext->UpdateSubresource(cubemapsBuffer.Get(), 0, NULL, &cubemaps, 0, 0);
+	}
+}
+
+void SConstantBuffersDX11::UpdateTransform(const IRenderSystemDX11& renderSystem, const STransform& transform)
+{
+	auto deviceContext = renderSystem.GetDeviceContext();
+	if (deviceContext && cubemapsBuffer)
+	{
+		const SMatrix4 mTrans = SMath::TransposeM4(SMath::TransformMatrix(transform));
+		deviceContext->UpdateSubresource(transformBuffer.Get(), 0, NULL, &mTrans, 0, 0);
 	}
 }

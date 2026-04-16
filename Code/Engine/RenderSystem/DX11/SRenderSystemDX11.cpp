@@ -24,6 +24,7 @@ SRenderSystemDX11::SRenderSystemDX11()
 	, frameAnimSpriteRender(*this)
 	, textRender(*this)
 	, meshRender(*this)
+	, skMeshRender(*this)
 	, fxaaRender(*this)
 {
 }
@@ -527,8 +528,9 @@ void SRenderSystemDX11::CreateRenderTargetAndDepthStencil(std::uint32_t width, s
 void SRenderSystemDX11::Shutdown()
 {
 	fxaaRender.Shutdown();
-	meshRender.Shutdown();
 	textRender.Shutdown();
+	meshRender.Shutdown();
+	skMeshRender.Shutdown();
 	frameAnimSpriteRender.Shutdown();
 	texturedSpriteRender.Shutdown();
 	coloredSpriteRender.Shutdown();
@@ -614,6 +616,10 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 		else if (meshRender.CheckShaderName(shaderData.name))
 		{
 			meshRender.Setup(shader);
+		}
+		else if (skMeshRender.CheckShaderName(shaderData.name))
+		{
+			skMeshRender.Setup(shader);
 		}
 		else if (fxaaRender.CheckShaderName(shaderData.name))
 		{
@@ -708,6 +714,11 @@ void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& pat
 void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
 {
 	meshManager.PreloadStaticMeshes(path, delegate);
+}
+
+void SRenderSystemDX11::LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate)
+{
+	meshManager.LoadSkeletalMesh(path, delegate);
 }
 
 std::pair<std::vector<SMeshMaterial>, bool> SRenderSystemDX11::FindMeshMaterials(entt::entity entity) const
@@ -828,6 +839,7 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	if (diffuseMap) deviceContext->PSSetShaderResources(5, 1, diffuseMap->view.GetAddressOf());
 
 	meshRender.Render(context.deltaSeconds);
+	skMeshRender.Render(context.deltaSeconds);
 
 	if (bAllowFXAA)
 	{
@@ -1110,16 +1122,25 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapDat
 	return outCubemap;
 }
 
-std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
+std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateAnyMesh(const SMesh& data, const SSkeletalMesh& skData)
 {
 	auto outMesh = std::make_shared<SMeshDataDX11>();
 
+	bool bIsSkeletal = !skData.vertices.empty();
+	auto& meshName = bIsSkeletal ? skData.name : data.name;
+	auto& indices16 = bIsSkeletal ? skData.indices16 : data.indices16;
+	auto& indices32 = bIsSkeletal ? skData.indices32 : data.indices32;
+	auto& materials = bIsSkeletal ? skData.materials : data.materials;
+	auto vertexDataSize = bIsSkeletal
+		? (sizeof(SBlendVertex) * skData.vertices.size())
+		: (sizeof(SVertex) * data.vertices.size());
+
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferDesc.ByteWidth = sizeof(SVertex) * meshData.vertices.size();
+	bufferDesc.ByteWidth = vertexDataSize;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	D3D11_SUBRESOURCE_DATA bufferData{};
-	bufferData.pSysMem = meshData.vertices.data();
+	bufferData.pSysMem = bIsSkeletal ? skData.vertices.data() : data.vertices.data();
 
 	// create vertex buffer
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, outMesh->vb.GetAddressOf())))
@@ -1131,19 +1152,18 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 
 	// create index buffer
 	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	if (meshData.indices16.empty())
+	if (indices16.empty())
 	{
-		bufferDesc.ByteWidth = sizeof(std::uint32_t) * meshData.indices32.size();
-		bufferData.pSysMem = meshData.indices32.data();
+		bufferDesc.ByteWidth = sizeof(std::uint32_t) * indices32.size();
+		bufferData.pSysMem = indices32.data();
 		outMesh->ibFormat = DXGI_FORMAT_R32_UINT;
 	}
 	else
 	{
-		bufferDesc.ByteWidth = sizeof(std::uint16_t) * meshData.indices16.size();
-		bufferData.pSysMem = meshData.indices16.data();
+		bufferDesc.ByteWidth = sizeof(std::uint16_t) * indices16.size();
+		bufferData.pSysMem = indices16.data();
 		outMesh->ibFormat = DXGI_FORMAT_R16_UINT;
 	}
-
 
 	if (FAILED(d3dDevice->CreateBuffer(&bufferDesc, &bufferData, outMesh->ib.GetAddressOf())))
 	{
@@ -1153,7 +1173,7 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 	}
 
 	// load textures
-	for (auto& material : meshData.materials)
+	for (auto& material : materials)
 	{
 		STexID baseTexId = ResourceID<STexID>(material.baseTexture.string());
 		STexID normTexId = ResourceID<STexID>(material.normTexture.string());
@@ -1180,14 +1200,19 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& meshData)
 	}
 
 	DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): mesh '%s' created and added to cache\n",
-		GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.name.c_str());
+		GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshName.c_str());
 
 	return outMesh;
 }
 
-std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateSkeletalMesh(const SMesh& data)
+std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& data)
 {
-	return nullptr;
+	return CreateAnyMesh(data, {});
+}
+
+std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateSkeletalMesh(const SSkeletalMesh& data)
+{
+	return CreateAnyMesh({}, data);
 }
 
 #endif // WIN32

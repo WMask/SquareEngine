@@ -484,15 +484,15 @@ namespace SMath
 		return SConvert::ToMatrix4(matrix);
 	}
 
-	inline SMatrix4 TransformMatrix(const SVector3& pos, const SVector2& scale, float rotZ = 0.0f, bool flipY = true)
+	inline SMatrix4 TransformMatrix(const STransform& tr)
 	{
 		auto matrix = DirectX::XMMatrixTransformation(
 			SConst::ZeroXVec4, SConst::ZeroXVec4,
-			DirectX::XMVectorSet(scale.x, flipY ? -scale.y : scale.y, 0.0f, 1.0f),
+			DirectX::XMVectorSet(tr.scale.x, tr.scale.y, tr.scale.z, 1.0f),
 			SConst::ZeroXVec4,
-			DirectX::XMQuaternionRotationAxis(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f), rotZ),
-			DirectX::XMVectorSet(pos.x, pos.y, pos.z, 1.0f));
-		return SConvert::ToMatrix4(DirectX::XMMatrixTranspose(matrix));
+			DirectX::XMVectorSet(tr.rotation.x, tr.rotation.y, tr.rotation.z, tr.rotation.w),
+			DirectX::XMVectorSet(tr.position.x, tr.position.y, tr.position.z, 1.0f));
+		return SConvert::ToMatrix4(matrix);
 	}
 }
 

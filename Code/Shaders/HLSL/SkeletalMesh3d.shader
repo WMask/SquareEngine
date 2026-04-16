@@ -1,4 +1,4 @@
-// StaticMesh3d.shader
+// SkeletalMesh3d.shader
 // Based on DirectXTK shaders
 // http://go.microsoft.com/fwlink/?LinkId=248929
 
@@ -46,6 +46,11 @@ cbuffer PSLightsBuffer : register(b4)
 	uint numLights;
 };
 
+cbuffer VSTransformBuffer : register(b5)
+{
+	float4x4 mTransform;
+};
+
 struct VSOutputNmTx
 {
     float3 vPositionWS : POSITION;
@@ -65,28 +70,23 @@ struct PSInputNmTx
     float2 vTexCoord   : TEXCOORD;
 };
 
-struct VSInputNmTxInst
+struct VSInputNmTxWeight
 {
     float4 vPosition : SV_Position;
     float3 vNormal   : NORMAL;
     float3 vTangent  : TANGENT;
     float2 vTexCoord : TEXCOORD;
-	float3 iPosition : INSTANCEPOS;
-	float4 iRotation : INSTANCEROT;
-	float3 iScale    : INSTANCESCALE;
-	float3 iTint     : INSTANCECOLOR;
+    uint4  Indices   : BLENDINDICES;
+    float4 Weights   : BLENDWEIGHT;
 };
 
 
-VSOutputNmTx VShader(VSInputNmTxInst input)
+VSOutputNmTx VShader(VSInputNmTxWeight input)
 {
     VSOutputNmTx output;
 
-	float3 vScaledPos3 = (input.vPosition.xyz * input.iScale);
-	float3 vRotatedPos3 = QuaternionRotate(input.iRotation, vScaledPos3);
-	float4 vWorldPos4 = float4(vRotatedPos3 + input.iPosition, 1.0);
-
-	float4x4 mWVP = mul(mWorld, mul(mView, mProj));
+	float4 vWorldPos4 = float4(input.vPosition.xyz, 1.0);
+	float4x4 mWVP = mul(mul(mWorld, mTransform), mul(mView, mProj));
 
     output.vPositionPS = mul(vWorldPos4, mWVP);
     output.vTexCoord   = input.vTexCoord;

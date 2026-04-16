@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <ranges>
 #include <limits>
 #include <png.h>
 #include <ufbx.h>
@@ -403,12 +404,10 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			const bool bUseIndices16bit = (numIndices < SConst::Max16bitIndex);
 			if (bUseIndices16bit)
 			{
-				mesh.indices16.resize(indices.size());
-				std::transform(indices.begin(), indices.end(), mesh.indices16.begin(),
-					[](std::uint32_t index)->std::uint16_t
-				{
+				auto view16 = indices | std::views::transform([](auto index) {
 					return static_cast<std::uint16_t>(index);
 				});
+				mesh.indices16.assign(view16.begin(), view16.end());
 			}
 			else
 			{
@@ -420,12 +419,149 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices));
 
 			indexOffset += numIndices;
+			break;
 		}
 
 		outMeshes.push_back(mesh);
 	}
 
 	ufbx_free_scene(scene);
+
+	S_CATCH{ S_THROW_EX("LoadFbxStaticMeshes('", filePath.string().c_str(), "')"); }
+}
+
+bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& outMesh)
+{
+	S_TRY
+
+	static std::string staticMeshMsg;
+	ufbx_error error{};
+	ufbx_scene* scene = ufbx_load_file(filePath.string().c_str(), nullptr, &error);
+	if (!scene)
+	{
+		throw std::exception(error.description.data ? error.description.data : "Cannot read fbx file");
+	}
+
+	std::vector<SMeshID> instAdded;
+	ClearMesh(outMesh);
+
+	for (auto i = 0; i < scene->nodes.count; i++)
+	{
+		ufbx_node* node = scene->nodes.data[i];
+		if (node->is_root || !node->mesh) continue;
+
+		outMesh.name = node->mesh->name.data;
+		outMesh.id = ResourceID<SMeshID>(outMesh.name);
+
+		// add new skeletal mesh
+		std::uint32_t indexOffset = 0;
+		for (const ufbx_mesh_part& part : node->mesh->material_parts)
+		{
+			std::vector<SVertex> vertices;
+			std::vector<std::uint32_t> triIndices;
+
+			const size_t numTriangles = part.num_triangles;
+			vertices.resize(numTriangles * 3);
+			size_t numVertices = 0;
+
+			const size_t numTriIndices = node->mesh->max_face_triangles * 3;
+			triIndices.resize(numTriIndices);
+
+			// collect vertices
+			for (size_t faceId = 0; faceId < part.num_faces; faceId++)
+			{
+				ufbx_face face = node->mesh->faces.data[part.face_indices.data[faceId]];
+				uint32_t numTris = ufbx_triangulate_face(triIndices.data(), numTriIndices, node->mesh, face);
+
+				for (size_t i = 0; i < numTris * 3; i++)
+				{
+					uint32_t index = triIndices[i];
+					SVertex* v = &vertices[numVertices++];
+					v->pos = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
+					v->norm = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
+					if (node->mesh->vertex_tangent.exists)
+					{
+						v->tangent = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_tangent, index));
+					}
+					v->uv = SConvert::ToVector2(ufbx_get_vertex_vec2(&node->mesh->vertex_uv, index));
+					v->uv.y = 1.0f - v->uv.y;
+				}
+			}
+
+			triIndices.clear();
+			if (numVertices != (numTriangles * 3))
+			{
+				staticMeshMsg = "Wrong mesh structure: ";
+				staticMeshMsg += node->mesh->name.data;
+				throw std::exception(staticMeshMsg.c_str());
+			}
+
+			// generate indices
+			std::vector<std::uint32_t> indices;
+			ufbx_vertex_stream streams[1] = {
+				{ vertices.data(), numVertices, sizeof(SVertex)},
+			};
+			const size_t numIndices = numTriangles * 3;
+			indices.resize(numIndices);
+
+			numVertices = ufbx_generate_indices(streams, 1, indices.data(), numIndices, NULL, NULL);
+
+			// add new material part to the mesh
+			const ufbx_material* material = node->mesh->materials[part.index];
+			std::string baseTexture, normTexture, rmaTexture, emiTexture;
+			if (material->textures.count > 0)
+			{
+				baseTexture = material->pbr.base_color.texture ? material->pbr.base_color.texture->filename.data : "";
+				normTexture = material->pbr.normal_map.texture ? material->pbr.normal_map.texture->filename.data : "";
+				if (material->pbr.base_color.texture)
+				{
+					baseTexture = material->pbr.base_color.texture->filename.data;
+					std::replace(baseTexture.begin(), baseTexture.end(), '\\', '/');
+				}
+				if (material->pbr.normal_map.texture)
+				{
+					normTexture = material->pbr.normal_map.texture->filename.data;
+					std::replace(normTexture.begin(), normTexture.end(), '\\', '/');
+				}
+				if (material->pbr.roughness.texture)
+				{
+					rmaTexture = material->pbr.roughness.texture->filename.data;
+					std::replace(rmaTexture.begin(), rmaTexture.end(), '\\', '/');
+				}
+				if (material->pbr.emission_color.texture)
+				{
+					emiTexture = material->pbr.emission_color.texture->filename.data;
+					std::replace(emiTexture.begin(), emiTexture.end(), '\\', '/');
+				}
+			}
+
+			const bool bUseIndices16bit = (numIndices < SConst::Max16bitIndex);
+			if (bUseIndices16bit)
+			{
+				auto view16 = indices | std::views::transform([](auto index) {
+					return static_cast<std::uint16_t>(index);
+				});
+				outMesh.indices16.assign(view16.begin(), view16.end());
+			}
+			else
+			{
+				outMesh.indices32 = std::move(indices);
+			}
+
+			outMesh.vertices.insert(outMesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
+			outMesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str(),
+				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices));
+
+			indexOffset += numIndices;
+			break;
+		}
+
+		return !outMesh.vertices.empty();
+	}
+
+	ufbx_free_scene(scene);
+
+	return false;
 
 	S_CATCH{ S_THROW_EX("LoadFbxStaticMeshes('", filePath.string().c_str(), "')"); }
 }

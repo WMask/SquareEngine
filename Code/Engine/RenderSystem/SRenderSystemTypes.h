@@ -24,9 +24,11 @@ namespace SConst
 /** Textures delegate */
 using OnTexturesLoadedDelegate = std::function<void(std::vector<STexID>&)>;
 /** Mesh instances delegate */
-using OnMeshInstancesLoadedDelegate = std::function<void(std::filesystem::path, const std::vector<SMeshInstance>&)>;
+using OnMeshInstancesLoadedDelegate = std::function<void(SMeshID, const std::vector<SMeshInstance>&)>;
 /** Meshes delegate */
-using OnMeshesLoadedDelegate = std::function<void(std::filesystem::path)>;
+using OnMeshesLoadedDelegate = std::function<void(SMeshID)>;
+/** Skeletal mesh delegate */
+using OnSkeletalMeshLoadedDelegate = std::function<void(SMeshID)>;
 
 /** Render system stats */
 struct SRSStats
@@ -171,12 +173,20 @@ struct SMeshBase
 
 struct SMeshData
 {
-	// generated from fbx path
+	// generated from file path
 	SMeshID id{};
 	//
 	std::vector<SMesh> meshes;
 	//
 	std::vector<SMeshInstance> instances;
+};
+
+struct SSkeletalMeshData
+{
+	// generated from file path
+	SMeshID id{};
+	//
+	SSkeletalMesh mesh;
 };
 
 /** Mesh lifetime policy */
@@ -186,5 +196,5 @@ public:
 	//
 	virtual std::shared_ptr<SMeshBase> CreateMesh(const SMesh& data) = 0;
 	//
-	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SMesh& data) = 0;
+	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SSkeletalMesh& data) = 0;
 };

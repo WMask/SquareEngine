@@ -83,6 +83,9 @@ public:
 	* Load meshes with material textures and call delegate */
 	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) = 0;
 	/**
+	* Load skeletal mesh and call delegate */
+	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) = 0;
+	/**
 	* Get mesh materials */
 	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const = 0;
 	/**

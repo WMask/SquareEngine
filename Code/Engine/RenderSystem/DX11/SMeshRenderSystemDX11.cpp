@@ -134,7 +134,10 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 			cachedMeshId = meshComponent.id;
 		}
 
-		if (meshComponent.bVisible) cachedMaterialFlags = meshComponent.flags;
+		if (meshComponent.bVisible)
+			cachedMaterialFlags = meshComponent.flags;
+		else
+			return;
 
 		if (cachedMeshId != meshComponent.id)
 		{
@@ -152,8 +155,6 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 			}
 			cachedMeshId = meshComponent.id;
 		}
-
-		if (!meshComponent.bVisible) return;
 
 		// store instance data
 		DX11MESHINSTANCE instance{};
@@ -207,7 +208,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 		// setup context
 		ID3D11Buffer* buffers[2] = { cachedVB, instanceBuffer.Get() };
 		static UINT strides[2] = { sizeof(SVertex), sizeof(DX11MESHINSTANCE) };
-		static UINT offsets[2] = { 0, 0 };
+		static UINT offsets[2] = { 0u, 0u };
 		deviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
 		deviceContext->IASetIndexBuffer(cachedIB, cachedFormat, 0);
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

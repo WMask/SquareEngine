@@ -10,6 +10,7 @@
 #include "Core/SUtils.h"
 
 #include <vector>
+#include <ranges>
 #include <cmath>
 #include <DDSTextureLoader.h>
 
@@ -18,10 +19,7 @@
 
 namespace SConst
 {
-    static const std::uint32_t MaxCubemaps = 8u;
-    static const std::uint32_t MaxTextures = 64u;
     static const std::uint32_t MaxTexturesPerFrame = 8u;
-    static const std::uint32_t MaxPendingWait = 64u;
 }
 
 
@@ -166,12 +164,10 @@ STexID STextureManagerWindows::LoadTexture(const std::filesystem::path& path)
 void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
 {
     // transform paths to ids
-    TTexIDList ids(paths.size());
-    auto texIds = std::transform(paths.begin(), paths.end(), ids.begin(),
-        [](const std::filesystem::path& path)->STexID
-    {
+    auto viewIds = paths | std::views::transform([](const auto& path) {
         return ResourceID<STexID>(path.string());
     });
+    TTexIDList ids(viewIds.begin(), viewIds.end());
 
     // cache delegate and ids
     preloadDelegatesCache.emplace_back(ids, delegate);

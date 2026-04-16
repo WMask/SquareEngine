@@ -1,5 +1,5 @@
 /***************************************************************************
-* StaticMeshSample.cpp
+* SkeletalMeshSample.cpp
 */
 
 #include <windows.h>
@@ -206,42 +206,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			);
 
 			// load meshes
-			const std::string_view group("Room1");
-			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
-				[&](SMeshID, const std::vector<SMeshInstance>& instances)
+			context.render->LoadSkeletalMesh("../../Assets/Villager.fbx", [&](SMeshID id)
 			{
-				if (!instances.empty())
-				{
-					auto& meshInstance = instances[0];
-					auto transform = meshInstance.transform;
-					transform.position = SVector3{ 0.0f, 20.0f, 0.0f };
-					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
-					transform.scale = transform.scale * 1.2f;
+				STransform transform;
+				transform.position = SVector3{ 0.0f, -80.0f, 0.0f };
+				transform.rotation = SConvert::ToQuat(-90.0f, 0.0f, 0.0f);
+				transform.scale = SConst::OneSVector3 * 1.2f;
 
-					pbrMeshEntity = registry.create();
-					registry.emplace<SStaticMeshComponent>(pbrMeshEntity, meshInstance.id);
-					registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
-				}
-			});
-			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
-				[&](SMeshID, const std::vector<SMeshInstance>& instances)
-			{
-				if (!instances.empty())
-				{
-					auto& meshInstance = instances[0];
-					auto transform = meshInstance.transform;
-					transform.position = SVector3{ 0.0f, -60.0f, 0.0f };
-					transform.rotation = SConvert::ToQuat(0.0f, 0.0f, 0.0f);
-					transform.scale = transform.scale * 0.85f;
-
-					normalMeshEntity = registry.create();
-					registry.emplace<SStaticMeshComponent>(normalMeshEntity, meshInstance.id, false);
-					registry.emplace<STransform3DComponent>(normalMeshEntity, transform);
-				}
+				pbrMeshEntity = registry.create();
+				registry.emplace<SSkeletalMeshComponent>(pbrMeshEntity, id);
+				registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
 			});
 
 			// add light
-			SVector3 lightDir = SMath::Normalize(SVector3{ -0.8f, -0.8f, -0.8f });
+			SVector3 lightDir = SMath::Normalize(SVector3{ 0.8f, 0.8f, -0.8f });
 			context.world->AddDirectionalLight("DirectionalLight", lightDir, SConst::White3);
 		};
 

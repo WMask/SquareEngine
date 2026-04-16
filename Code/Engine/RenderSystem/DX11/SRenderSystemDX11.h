@@ -11,6 +11,7 @@
 #include "RenderSystem/DX11/SFrameAnimSpriteRenderSystemDX11.h"
 #include "RenderSystem/DX11/STextRenderSystemDX11.h"
 #include "RenderSystem/DX11/SMeshRenderSystemDX11.h"
+#include "RenderSystem/DX11/SSkeletalMeshRenderSystemDX11.h"
 #include "RenderSystem/DX11/SFXAARenderSystemDX11.h"
 #include "RenderSystem/Windows/SMeshManagerWindows.h"
 #include "RenderSystem/Windows/STextureManagerWindows.h"
@@ -96,6 +97,8 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) override;
 	//
+	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) override;
+	//
 	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const override;
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
@@ -145,22 +148,24 @@ protected:// IMeshLifetime interface implementation
 	//
 	virtual std::shared_ptr<SMeshBase> CreateMesh(const SMesh& data) override;
 	//
-	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SMesh& data) override;
+	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SSkeletalMesh& data) override;
 
 
 protected:
 	//
-	bool IsDisplayHDR10(IDXGIFactory2* factory);
-	//
-	void UpdateColorSpace();
+	std::shared_ptr<SMeshBase> CreateAnyMesh(const SMesh& data, const SSkeletalMesh& skData);
 	//
 	void CreateRenderTargetAndDepthStencil(std::uint32_t width, std::uint32_t height);
+	//
+	bool IsDisplayHDR10(IDXGIFactory2* factory);
 	//
 	void OnWorldScaleChanged(SVector2 worldScale);
 	//
 	void OnCameraViewChanged(const SCamera& camera);
 	//
 	void OnLightsChanged(const IWorld& world);
+	//
+	void UpdateColorSpace();
 
 
 protected:
@@ -207,6 +212,8 @@ protected:
 	STextRenderSystemDX11 textRender;
 	//
 	SMeshRenderSystemDX11 meshRender;
+	//
+	SSkeletalMeshRenderSystemDX11 skMeshRender;
 	//
 	SFXAARenderSystemDX11 fxaaRender;
 	//

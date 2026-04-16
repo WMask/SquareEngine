@@ -14,6 +14,11 @@
 #include <vector>
 
 
+namespace SConst
+{
+	static const std::uint32_t MaxWeightsPerVertex = 4u;
+}
+
 /** Render system type */
 enum class SRSType
 {
@@ -93,6 +98,14 @@ struct SVertex
 	SVector2 uv;
 };
 
+/** Skeletal mesh vertex */
+struct SBlendVertex : public SVertex
+{
+	std::uint32_t indices[SConst::MaxWeightsPerVertex];
+	//
+	float weights[SConst::MaxWeightsPerVertex];
+};
+
 /** Mesh material */
 struct SMaterial
 {
@@ -131,7 +144,9 @@ struct SMeshMaterial
 
 /** Id in mesh manager */
 using SMeshID = std::uint32_t;
-using TMeshIdGenerator = std::function<SMeshID(const std::string&)>;
+
+/** Id in mesh manager */
+using SAnimID = std::uint32_t;
 
 /** Static mesh */
 struct SMesh
@@ -144,6 +159,23 @@ struct SMesh
 	std::vector<SMaterial> materials;
 	//
 	std::vector<SVertex> vertices;
+	//
+	std::vector<std::uint16_t> indices16;
+	//
+	std::vector<std::uint32_t> indices32;
+};
+
+/** Skeletal mesh */
+struct SSkeletalMesh
+{
+	// generated from mesh name
+	SMeshID id{};
+	//
+	std::string name;
+	//
+	std::vector<SMaterial> materials;
+	//
+	std::vector<SBlendVertex> vertices;
 	//
 	std::vector<std::uint16_t> indices16;
 	//

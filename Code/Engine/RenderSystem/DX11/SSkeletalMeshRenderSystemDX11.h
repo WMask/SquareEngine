@@ -1,5 +1,5 @@
 /***************************************************************************
-* SMeshRenderSystemDX11.h
+* SSkeletalMeshRenderSystemDX11.h
 */
 
 #pragma once
@@ -9,15 +9,15 @@
 
 
 /***************************************************************************
-* Static mesh render system
+* Skeletal mesh render system
 */
-class SMeshRenderSystemDX11 : public SUncopyable
+class SSkeletalMeshRenderSystemDX11 : public SUncopyable
 {
 public:
 	//
-	SMeshRenderSystemDX11(class IRenderSystemDX11& renderSystem);
+	SSkeletalMeshRenderSystemDX11(class IRenderSystemDX11& renderSystem);
 	//
-	~SMeshRenderSystemDX11();
+	~SSkeletalMeshRenderSystemDX11();
 	//
 	void Shutdown();
 	//
@@ -30,27 +30,25 @@ public:
 
 protected:
 	//
-	void RenderBatch(const struct SShaderDataDX11* shader);
+	void RenderSkeletalMesh(const struct SShaderDataDX11* shader,
+		const struct SSkeletalMeshComponent& meshComponent,
+		const STransform& transformComponent);
 
 
 protected:
 	//
 	IRenderSystemDX11& renderSystemDX11;
 	//
-	ComPtr<ID3D11Buffer> instanceBuffer;
-	//
 	std::string shaderName;
 
 
 protected:
 	//
-	std::vector<DX11MESHINSTANCE> batchData;
-	//
 	std::vector<SMeshMaterial> cachedMaterials;
 	//
 	SMaterialFlagsBuffer cachedMaterialFlags;
 	//
-	DXGI_FORMAT cachedFormat;
+	DXGI_FORMAT cachedIbFormat;
 	//
 	ID3D11Buffer* cachedVB;
 	//
@@ -58,10 +56,6 @@ protected:
 	//
 	SMeshID cachedMeshId;
 	//
-	std::uint32_t cachedNumIndices;
-	//
-	std::uint32_t numMeshInstances;
-	//
-	std::uint32_t batchesRendered;
+	std::uint32_t meshesRendered;
 
 };

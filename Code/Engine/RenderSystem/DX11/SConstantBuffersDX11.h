@@ -40,6 +40,8 @@ public:
 	//
 	void UpdateCubemapSettings(const IRenderSystemDX11& renderSystem);
 	//
+	void UpdateTransform(const IRenderSystemDX11& renderSystem, const STransform& transform);
+	//
 	void Shutdown();
 
 
@@ -71,5 +73,7 @@ protected:
 	ComPtr<ID3D11Buffer> lightsBuffer;
 	//
 	ComPtr<ID3D11Buffer> materialBuffer;
+	//
+	ComPtr<ID3D11Buffer> transformBuffer;
 
 };

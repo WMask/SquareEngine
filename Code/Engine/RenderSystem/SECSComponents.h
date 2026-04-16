@@ -318,6 +318,20 @@ struct SStaticMeshComponent
 };
 
 
+/** Skeletal mesh component */
+struct SSkeletalMeshComponent
+{
+	// id in mesh manager
+	SMeshID id;
+	//
+	bool bVisible = true;
+	//
+	SColor3 tint = SConst::White3;
+	// set to 0 to disable texture
+	SMaterialFlagsBuffer flags{ 1u, 1u, 1u, 1u };
+};
+
+
 /** Transform 3D component */
 struct STransform3DComponent
 {

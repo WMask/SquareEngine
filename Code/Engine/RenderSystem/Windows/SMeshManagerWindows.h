@@ -36,6 +36,8 @@ public:
 	//
 	void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate);
 	//
+	void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate);
+	//
 	SMeshBase* FindMesh(SMeshID id) const;
 	//
 	bool RemoveMesh(SMeshID id);
@@ -50,32 +52,36 @@ protected:
 	//
 	bool LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData);
 	//
-	void CheckLoadFinished(const SMeshData& meshData);
-	// Update after any meshesCache changes. Used to skip already loaded meshes in LoadFbxStaticMeshes
-	void UpdateCacheIds();
+	bool LoadSkeletalMeshData(const std::filesystem::path& path, SSkeletalMeshData& meshData);
+	//
+	void CheckLoadFinished(const SMeshData& meshData, const SSkeletalMeshData& skMeshData);
 
 
 protected:
 	//
-	using TInstancesDelegatesCache = std::list<std::pair<std::filesystem::path, OnMeshInstancesLoadedDelegate>>;
+	using TSkeletalMeshDelegatesCache = std::list<std::pair<SMeshID, OnSkeletalMeshLoadedDelegate>>;
 	//
-	using TPreloadDelegatesCache = std::list<std::pair<std::filesystem::path, OnMeshesLoadedDelegate>>;
+	using TInstancesDelegatesCache = std::list<std::pair<SMeshID, OnMeshInstancesLoadedDelegate>>;
+	//
+	using TPreloadDelegatesCache = std::list<std::pair<SMeshID, OnMeshesLoadedDelegate>>;
 	//
 	using TMeshesCache = std::unordered_map<SMeshID, std::shared_ptr<SMeshBase>>;
 	//
-	using TMeshesCacheIds = std::forward_list<SMeshID>;
+	using TSkeletalMeshQueue = std::queue<SSkeletalMeshData>;
 	//
 	using TMeshQueue = std::queue<SMeshData>;
+	//
+	TSkeletalMeshDelegatesCache skeletalDelegatesCache;
 	//
 	TInstancesDelegatesCache instancesDelegatesCache;
 	//
 	TPreloadDelegatesCache preloadDelegatesCache;
 	//
-	TMeshesCacheIds meshesCacheIds;
-	//
 	TMeshesCache meshesCache;
 	//
 	TMeshQueue loadedMeshes;
+	//
+	TSkeletalMeshQueue loadedSkeletalMeshes;
 	//
 	IMeshLifetime* meshLifetime;
 	//

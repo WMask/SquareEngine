@@ -53,12 +53,29 @@ S_CORE_API void WriteTextFile(const std::filesystem::path& filePath, const std::
 * BPP - bytes per pixel (always 4)
 * RowBytes - bytes per row
 */
-S_CORE_API void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth, std::uint32_t* outHeight,
+S_CORE_API void ReadPngFile(const std::filesystem::path& filePath,
+	std::uint32_t* outWidth, std::uint32_t* outHeight,
 	std::uint32_t* outBPP, std::uint32_t* outRowBytes, void* outData = nullptr);
 /**
 * Read fbx file */
-S_CORE_API void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
-	std::forward_list<SMeshID>& cachedMeshesIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
+S_CORE_API void LoadFbxStaticMeshes(const std::filesystem::path& filePath,
+	SGroupID groupId, std::forward_list<SMeshID>& cachedMeshesIds,
+	std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
+/**
+* Read fbx file */
+S_CORE_API bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& outMesh);
+/**
+* Clear mesh */
+template<typename T>
+void ClearMesh(T& mesh)
+{
+	mesh.id = 0u;
+	mesh.name.clear();
+	mesh.materials.clear();
+	mesh.indices16.clear();
+	mesh.indices32.clear();
+	mesh.vertices.clear();
+}
 
 
 /**

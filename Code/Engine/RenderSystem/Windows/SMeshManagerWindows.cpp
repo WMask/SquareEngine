@@ -18,8 +18,7 @@
 
 namespace SConst
 {
-    static const std::uint32_t MaxMeshes = 64u;
-    static const std::uint32_t MaxMeshesPerFrame = 8u;
+    static const std::uint32_t MaxMeshesPerFrame = 4u;
 }
 
 SMeshManagerWindows::~SMeshManagerWindows()
@@ -45,8 +44,9 @@ void SMeshManagerWindows::Shutdown()
     {
         TLockGuard guard(sync);
         TMeshQueue meshes;
+        TSkeletalMeshQueue skeletalMeshes;
         loadedMeshes.swap(meshes);
-        meshesCacheIds.clear();
+        loadedSkeletalMeshes.swap(skeletalMeshes);
     }
 }
 
@@ -66,7 +66,6 @@ bool SMeshManagerWindows::RemoveMesh(SMeshID id)
     if (meshesCache.contains(id))
     {
         meshesCache.erase(id);
-        UpdateCacheIds();
         return true;
     }
 
@@ -84,13 +83,21 @@ void SMeshManagerWindows::Update()
         bool bBreak = false;
 
         SMeshData meshData;
+        SSkeletalMeshData skMeshData;
         {
+            // read in game thread space
             TLockGuard guard(sync);
+
             if (!loadedMeshes.empty())
             {
-                // read in game thread space
                 meshData = loadedMeshes.front();
                 loadedMeshes.pop();
+            }
+
+            if (!loadedSkeletalMeshes.empty())
+            {
+                skMeshData = loadedSkeletalMeshes.front();
+                loadedSkeletalMeshes.pop();
             }
         }
 
@@ -106,17 +113,27 @@ void SMeshManagerWindows::Update()
 
                 meshesCache.emplace(data.id, mesh);
             }
+        }
+        else if (!skMeshData.mesh.vertices.empty())
+        {
+            auto mesh = meshLifetime->CreateSkeletalMesh(skMeshData.mesh);
+            if (!mesh)
+            {
+                throw std::exception("Cannot create skeletal mesh");
+            }
 
-            UpdateCacheIds();
+            meshesCache.emplace(skMeshData.mesh.id, mesh);
         }
         else
         {
             bBreak = true;
         }
 
-        if (!preloadDelegatesCache.empty() || !instancesDelegatesCache.empty())
+        if (!preloadDelegatesCache.empty() ||
+            !instancesDelegatesCache.empty() ||
+            !skeletalDelegatesCache.empty())
         {
-            CheckLoadFinished(meshData);
+            CheckLoadFinished(meshData, skMeshData);
         }
 
         if (bBreak) break;
@@ -125,16 +142,18 @@ void SMeshManagerWindows::Update()
     S_CATCH{ S_THROW("SMeshManagerWindows::Update()"); }
 }
 
-void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
+void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& path,
+    SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
-    instancesDelegatesCache.emplace_back(path, delegate);
+    SMeshID meshId = ResourceID<SMeshID>(path.string());
+    instancesDelegatesCache.emplace_back(meshId, delegate);
 
-    auto LoadInstancesTask = [this, path, groupId]()
+    auto LoadInstancesTask = [this, path, meshId, groupId]()
     {
         SMeshData meshesData{};
         if (LoadMeshData(path, groupId, meshesData))
         {
-            meshesData.id = ResourceID<SMeshID>(path.string());
+            meshesData.id = meshId;
 
             // write in thread pool space
             TLockGuard guard(sync);
@@ -151,16 +170,18 @@ void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& p
     threadPool->AddTask(LoadInstancesTask, "Load mesh instances");
 }
 
-void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
+void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path,
+    OnMeshesLoadedDelegate delegate)
 {
-    preloadDelegatesCache.emplace_back(path, delegate);
+    SMeshID meshId = ResourceID<SMeshID>(path.string());
+    preloadDelegatesCache.emplace_back(meshId, delegate);
 
-    auto PreloadMeshesTask = [this, path]()
+    auto PreloadMeshesTask = [this, path, meshId]()
     {
         SMeshData meshesData{};
         if (LoadMeshData(path, 0u, meshesData))
         {
-            meshesData.id = ResourceID<SMeshID>(path.string());
+            meshesData.id = meshId;
 
             // write in thread pool space
             TLockGuard guard(sync);
@@ -177,18 +198,42 @@ void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path,
     threadPool->AddTask(PreloadMeshesTask, "Preload meshes");
 }
 
+void SMeshManagerWindows::LoadSkeletalMesh(const std::filesystem::path& path,
+    OnSkeletalMeshLoadedDelegate delegate)
+{
+    SMeshID meshId = ResourceID<SMeshID>(path.string());
+    skeletalDelegatesCache.emplace_back(meshId, delegate);
+
+    auto LoadSkeletalMeshTask = [this, path, meshId]()
+    {
+        SSkeletalMeshData meshData{};
+        if (LoadSkeletalMeshData(path, meshData))
+        {
+            meshData.id = meshId;
+
+            // write in thread pool space
+            TLockGuard guard(sync);
+            loadedSkeletalMeshes.push(meshData);
+        }
+        else
+        {
+            DebugMsg("[%s] SMeshManagerWindows::LoadSkeletalMesh(): cannot load '%s'\n",
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
+        }
+    };
+
+    // send task to thread pool
+    threadPool->AddTask(LoadSkeletalMeshTask, "Load skeletal mesh");
+}
+
 bool SMeshManagerWindows::LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData)
 {
     try
     {
-        // read in thread pool space
-        TMeshesCacheIds cachedIdsCopy;
-        {
-            TLockGuard guard(sync);
-            cachedIdsCopy = meshesCacheIds;
-        }
+        auto keysView = meshesCache | std::views::keys;
+        std::forward_list<SMeshID> ids(keysView.begin(), keysView.end());
 
-        LoadFbxStaticMeshes(path, groupId, cachedIdsCopy, meshesData.meshes, meshesData.instances);
+        LoadFbxStaticMeshes(path, groupId, ids, meshesData.meshes, meshesData.instances);
     }
     catch (const std::exception& ex)
     {
@@ -200,68 +245,110 @@ bool SMeshManagerWindows::LoadMeshData(const std::filesystem::path& path, SGroup
     return true;
 }
 
-void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData)
+bool SMeshManagerWindows::LoadSkeletalMeshData(const std::filesystem::path& path, SSkeletalMeshData& meshData)
 {
-    std::forward_list<TInstancesDelegatesCache::const_iterator> eraseList1;
-    std::forward_list<TPreloadDelegatesCache::const_iterator> eraseList2;
-
-    for (auto it = instancesDelegatesCache.begin(); it != instancesDelegatesCache.end(); ++it)
+    try
     {
-        auto path = it->first.string();
-        auto id = ResourceID<SMeshID>(path);
+        LoadFbxSkeletalMesh(path, meshData.mesh);
+    }
+    catch (const std::exception& ex)
+    {
+        DebugMsg("[%s] SMeshManagerWindows::LoadSkeletalMeshData(): %s\n",
+            GetTimeStamp(std::chrono::system_clock::now()).c_str(), ex.what());
+        return false;
+    }
 
-        if (id == meshData.id)
+    return true;
+}
+
+void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSkeletalMeshData& skMeshData)
+{
+    // static meshes
+    if (!meshData.meshes.empty() || !meshData.instances.empty())
+    {
+        std::forward_list<TInstancesDelegatesCache::const_iterator> eraseList1;
+        std::forward_list<TPreloadDelegatesCache::const_iterator> eraseList2;
+
+        for (auto it = instancesDelegatesCache.begin(); it != instancesDelegatesCache.end(); ++it)
         {
-            eraseList1.push_front(it);
-
-            if (it->second)
+            if (it->first == meshData.id)
             {
-                // call delegate
-                it->second(it->first, meshData.instances);
-            }
+                eraseList1.push_front(it);
 
-            if (!meshData.meshes.empty())
-            {
-                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
-            }
+                if (it->second)
+                {
+                    // call delegate
+                    it->second(it->first, meshData.instances);
+                }
 
-            if (!meshData.instances.empty())
-            {
-                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): instances from '%s' loaded\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
+                if (!meshData.meshes.empty())
+                {
+                    DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): static meshes from %u created and added to cache\n",
+                        GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.id);
+                }
+
+                if (!meshData.instances.empty())
+                {
+                    DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): mesh instances from %u loaded\n",
+                        GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.id);
+                }
             }
+        }
+
+        for (auto it = preloadDelegatesCache.begin(); it != preloadDelegatesCache.end(); ++it)
+        {
+            if (it->first == meshData.id)
+            {
+                eraseList2.push_front(it);
+
+                if (it->second)
+                {
+                    // call delegate
+                    it->second(it->first);
+                }
+
+                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): static meshes from %u created and added to cache\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.id);
+            }
+        }
+
+        for (auto eraseIt : eraseList1)
+        {
+            instancesDelegatesCache.erase(eraseIt);
+        }
+
+        for (auto eraseIt : eraseList2)
+        {
+            preloadDelegatesCache.erase(eraseIt);
         }
     }
 
-    for (auto it = preloadDelegatesCache.begin(); it != preloadDelegatesCache.end(); ++it)
+    // skeletal meshes
+    if (!skMeshData.mesh.vertices.empty())
     {
-        auto path = it->first.string();
-        auto id = ResourceID<SMeshID>(path);
+        std::forward_list<TSkeletalMeshDelegatesCache::const_iterator> eraseList;
 
-        if (id == meshData.id)
+        for (auto it = skeletalDelegatesCache.begin(); it != skeletalDelegatesCache.end(); ++it)
         {
-            eraseList2.push_front(it);
-
-            if (it->second)
+            if (it->first == skMeshData.id)
             {
-                // call delegate
-                it->second(it->first);
+                eraseList.push_front(it);
+
+                if (it->second)
+                {
+                    // call delegate
+                    it->second(skMeshData.mesh.id);
+                }
+
+                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): skeletal mesh '%s', id=%u created and added to cache\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), skMeshData.mesh.name.c_str(), skMeshData.mesh.id);
             }
-
-            DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): meshes from '%s' created and added to cache\n",
-                GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.c_str());
         }
-    }
 
-    for (auto eraseIt : eraseList1)
-    {
-        instancesDelegatesCache.erase(eraseIt);
-    }
-
-    for (auto eraseIt : eraseList2)
-    {
-        preloadDelegatesCache.erase(eraseIt);
+        for (auto eraseIt : eraseList)
+        {
+            skeletalDelegatesCache.erase(eraseIt);
+        }
     }
 }
 
@@ -299,19 +386,7 @@ void SMeshManagerWindows::ClearCache(IWorld* world)
         meshesCache.clear();
     }
 
-    UpdateCacheIds();
-
     S_CATCH{ S_THROW("SMeshManagerWindows::ClearCache()") }
-}
-
-void SMeshManagerWindows::UpdateCacheIds()
-{
-    auto keysView = meshesCache | std::views::keys;
-    auto updatedIds = std::forward_list<SMeshID>(keysView.begin(), keysView.end());
-
-    // write in game thread space
-    TLockGuard guard(sync);
-    meshesCacheIds = updatedIds;
 }
 
 #endif // WIN32

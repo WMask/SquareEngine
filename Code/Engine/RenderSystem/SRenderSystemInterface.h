@@ -81,10 +81,13 @@ public:
 	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) = 0;
 	/**
 	* Load meshes with material textures and call delegate */
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) = 0;
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate) = 0;
 	/**
 	* Load skeletal mesh and call delegate */
 	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) = 0;
+	/**
+	* Load animations and call delegate */
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) = 0;
 	/**
 	* Get mesh materials */
 	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const = 0;

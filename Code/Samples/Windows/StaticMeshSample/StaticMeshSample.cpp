@@ -208,7 +208,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// load meshes
 			const std::string_view group("Room1");
 			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
-				[&](SMeshID, const std::vector<SMeshInstance>& instances)
+				[&](const std::vector<SMeshInstance>& instances)
 			{
 				if (!instances.empty())
 				{
@@ -224,7 +224,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 			});
 			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
-				[&](SMeshID, const std::vector<SMeshInstance>& instances)
+				[&](const std::vector<SMeshInstance>& instances)
 			{
 				if (!instances.empty())
 				{

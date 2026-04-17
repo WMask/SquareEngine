@@ -104,7 +104,7 @@ void SSkeletalMeshRenderSystemDX11::Render(float deltaSeconds)
 		if (!meshComponent.bVisible) return;
 		if (!cachedVB || !cachedIB)
 		{
-			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedIbFormat, &cachedMaterials, &cachedVB, &cachedIB))
+			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedMaterials, &cachedVB, &cachedIB, &cachedIbFormat))
 			{
 				DebugMsg("[%s] SSkeletalMeshRenderSystemDX11::Render(): cannot find mesh id=%d\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshComponent.id);
@@ -120,7 +120,7 @@ void SSkeletalMeshRenderSystemDX11::Render(float deltaSeconds)
 
 		if (cachedMeshId != meshComponent.id)
 		{
-			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedIbFormat, &cachedMaterials, &cachedVB, &cachedIB))
+			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedMaterials, &cachedVB, &cachedIB, &cachedIbFormat))
 			{
 				DebugMsg("[%s] SSkeletalMeshRenderSystemDX11::Render(): cannot find mesh id=%d\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshComponent.id);

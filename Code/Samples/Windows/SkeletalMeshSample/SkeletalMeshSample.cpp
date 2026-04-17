@@ -51,8 +51,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		const STextID fpsFmtId = ResourceID<STextID>(SConst::FpsFmtKey);
 		const STextID polyTextId = ResourceID<STextID>(SConst::PolyTextKey);
 		const STextID polyFmtId = ResourceID<STextID>(SConst::PolyFmtKey);
-		static float rotation = 2.1f;
-		static float elevation = 150.0f;
+		static float rotation = -2.7f;
+		static float elevation = 100.0f;
 		static float backLightValue = 0.3f;
 		static float reflectionValue = 1.0f;
 
@@ -205,21 +205,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				SVector3{ 1645.0f, 350.0f, 0.0f }, SSize2F{ 40.0f, 40.0f }
 			);
 
-			// load meshes
-			context.render->LoadSkeletalMesh("../../Assets/Villager.fbx", [&](SMeshID id)
+			// load skeletal mesh
+			context.render->LoadSkeletalMesh("../../Assets/Villager.fbx",
+				[context](SMeshID id, const STransform& meshTransform)
 			{
-				STransform transform;
+				auto& registry = context.world->GetEntities();
+				STransform transform = meshTransform;
 				transform.position = SVector3{ 0.0f, -80.0f, 0.0f };
-				transform.rotation = SConvert::ToQuat(-90.0f, 0.0f, 0.0f);
-				transform.scale = SConst::OneSVector3 * 1.2f;
 
 				pbrMeshEntity = registry.create();
 				registry.emplace<SSkeletalMeshComponent>(pbrMeshEntity, id);
 				registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
+
+				context.render->PreloadAnimations({ "../../Assets/Villager_Idle.fbx" }, id,
+					[context](const std::vector<SAnimID>& anims)
+					{
+						if (!anims.empty())
+						{
+						}
+					}
+				);
 			});
 
 			// add light
-			SVector3 lightDir = SMath::Normalize(SVector3{ 0.8f, 0.8f, -0.8f });
+			SVector3 lightDir = SMath::Normalize(SVector3{ 0.8f, -0.8f, -0.2f });
 			context.world->AddDirectionalLight("DirectionalLight", lightDir, SConst::White3);
 		};
 
@@ -296,7 +305,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 				// set camera
 				context.world->GetCamera().Set(
-					SVector3{ 250.0f * cos(rotation), elevation, 250.0f * sin(rotation) },
+					SVector3{ 200.0f * cos(rotation), elevation, 200.0f * sin(rotation) },
 					SVector3{ 0.0f, 0.0f, 0.0f }, 60.0f
 				);
 			}
@@ -313,8 +322,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 		// run app
 		app->SetInitHandler(onInitHandler);
 		app->SetUpdateHandler(onUpdateHandler);
-		app->SetFeature(SAppFeature::ThreadPoolDebugTrace, true);
-		app->SetFeature(SAppFeature::RenderSystemDebugTrace, true);
+		app->SetFeature(SAppFeature::ThreadPoolDebugTrace, false);
+		app->SetFeature(SAppFeature::RenderSystemDebugTrace, false);
 		app->Init(hInstance);
 		app->Run();
 	}

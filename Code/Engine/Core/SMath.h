@@ -391,6 +391,11 @@ namespace SMath
 		return SConvert::ToVector4(DirectX::XMVector3Normalize(SConvert::ToXVector4(v)));
 	}
 
+	inline SQuat NormalizeQuat(const SQuat& q)
+	{
+		return SConvert::ToVector4(DirectX::XMQuaternionNormalize(SConvert::ToXVector4(q)));
+	}
+
 	inline SMatrix3 InverseM3(const SMatrix3& m)
 	{
 		DirectX::XMVECTOR determinant;
@@ -457,6 +462,18 @@ namespace SMath
 	inline SMatrix4 TranslationMatrix(const SVector3& pos)
 	{
 		auto matrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		return SConvert::ToMatrix4(matrix);
+	}
+
+	inline SMatrix4 RotationMatrix(float pitchDegrees, float yawDegrees, float rollDegrees)
+	{
+		auto matrix = DirectX::XMMatrixRotationRollPitchYaw(pitchDegrees, yawDegrees, rollDegrees);
+		return SConvert::ToMatrix4(matrix);
+	}
+
+	inline SMatrix4 RotationMatrix(const SQuat& quat)
+	{
+		auto matrix = DirectX::XMMatrixRotationQuaternion(SConvert::ToXVector4(quat));
 		return SConvert::ToMatrix4(matrix);
 	}
 

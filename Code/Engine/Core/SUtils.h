@@ -57,13 +57,17 @@ S_CORE_API void ReadPngFile(const std::filesystem::path& filePath,
 	std::uint32_t* outWidth, std::uint32_t* outHeight,
 	std::uint32_t* outBPP, std::uint32_t* outRowBytes, void* outData = nullptr);
 /**
-* Read fbx file */
-S_CORE_API void LoadFbxStaticMeshes(const std::filesystem::path& filePath,
+* Load static meshes from fbx file */
+S_CORE_API bool LoadFbxStaticMeshes(const std::filesystem::path& filePath,
 	SGroupID groupId, std::forward_list<SMeshID>& cachedMeshesIds,
 	std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
 /**
-* Read fbx file */
+* Load skeletal meshes from fbx file */
 S_CORE_API bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& outMesh);
+/**
+* Load skeletal animation from fbx file */
+S_CORE_API bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMap& bones,
+	SBakedSkeletalAnimation& outAnim, std::uint32_t framesPerSecond = SConst::AnimationFramesPerSecond);
 /**
 * Clear mesh */
 template<typename T>

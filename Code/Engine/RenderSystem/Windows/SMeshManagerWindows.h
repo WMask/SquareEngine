@@ -32,13 +32,20 @@ public:
 	//
 	void Update();
 	//
-	void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate);
+	void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId,
+		OnMeshInstancesLoadedDelegate delegate);
 	//
-	void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate);
+	void PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate);
 	//
 	void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate);
 	//
+	void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate);
+	//
+	const SBakedSkeletalAnimation* FindAnimation(SAnimID id) const;
+	//
 	SMeshBase* FindMesh(SMeshID id) const;
+	//
+	bool RemoveAnimation(SAnimID id);
 	//
 	bool RemoveMesh(SMeshID id);
 	/**
@@ -54,32 +61,49 @@ protected:
 	//
 	bool LoadSkeletalMeshData(const std::filesystem::path& path, SSkeletalMeshData& meshData);
 	//
-	void CheckLoadFinished(const SMeshData& meshData, const SSkeletalMeshData& skMeshData);
+	bool LoadAnimationData(const std::filesystem::path& path, SMeshID id, SSkeletalAnimData& animData);
+	//
+	void CheckLoadFinished(const SMeshData& meshData, const SSkeletalMeshData& skMeshData,
+		const SSkeletalAnimData& animData);
 
 
 protected:
+	//
+	using TAnimIDList = std::vector<SAnimID>;
 	//
 	using TSkeletalMeshDelegatesCache = std::list<std::pair<SMeshID, OnSkeletalMeshLoadedDelegate>>;
 	//
 	using TInstancesDelegatesCache = std::list<std::pair<SMeshID, OnMeshInstancesLoadedDelegate>>;
 	//
-	using TPreloadDelegatesCache = std::list<std::pair<SMeshID, OnMeshesLoadedDelegate>>;
+	using TPreloadAnimsDelegatesCache = std::list<std::pair<TAnimIDList, OnAnimationsLoadedDelegate>>;
+	//
+	using TPreloadMeshesDelegatesCache = std::list<std::pair<SMeshID, OnFinishedDelegate>>;
+	//
+	using TAnimsCache = std::unordered_map<SAnimID, SBakedSkeletalAnimation>;
 	//
 	using TMeshesCache = std::unordered_map<SMeshID, std::shared_ptr<SMeshBase>>;
 	//
 	using TSkeletalMeshQueue = std::queue<SSkeletalMeshData>;
 	//
+	using TAnimationQueue = std::queue<SSkeletalAnimData>;
+	//
 	using TMeshQueue = std::queue<SMeshData>;
 	//
 	TSkeletalMeshDelegatesCache skeletalDelegatesCache;
 	//
+	TPreloadAnimsDelegatesCache animationDelegatesCache;
+	//
 	TInstancesDelegatesCache instancesDelegatesCache;
 	//
-	TPreloadDelegatesCache preloadDelegatesCache;
+	TPreloadMeshesDelegatesCache preloadDelegatesCache;
 	//
 	TMeshesCache meshesCache;
 	//
+	TAnimsCache animsCache;
+	//
 	TMeshQueue loadedMeshes;
+	//
+	TAnimationQueue loadedAnimations;
 	//
 	TSkeletalMeshQueue loadedSkeletalMeshes;
 	//

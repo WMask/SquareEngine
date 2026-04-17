@@ -17,6 +17,8 @@
 namespace SConst
 {
 	static const std::uint32_t MaxWeightsPerVertex = 4u;
+	static const std::uint32_t AnimationFramesPerSecond = 30u;
+	static const float AnimationFrameDelta = 1.0f / AnimationFramesPerSecond;
 }
 
 /** Render system type */
@@ -106,17 +108,9 @@ struct SBlendVertex : public SVertex
 	float weights[SConst::MaxWeightsPerVertex];
 };
 
-/** Mesh material */
-struct SMaterial
+/** Mesh material base */
+struct SMaterialBase
 {
-	std::filesystem::path baseTexture;
-	// tangent space
-	std::filesystem::path normTexture;
-	// r - roughness, g - metallic, b - AO
-	std::filesystem::path rmaTexture;
-	// rgb - emissive
-	std::filesystem::path emiTexture;
-	// 
 	std::uint32_t firstIndex;
 	//
 	std::uint32_t numVertices;
@@ -125,7 +119,20 @@ struct SMaterial
 };
 
 /** Mesh material */
-struct SMeshMaterial
+struct SMaterial : public SMaterialBase
+{
+	// rgba
+	std::filesystem::path baseTexture;
+	// tangent space
+	std::filesystem::path normTexture;
+	// r - roughness, g - metallic, b - AO
+	std::filesystem::path rmaTexture;
+	// rgb - emissive
+	std::filesystem::path emiTexture;
+};
+
+/** Mesh material */
+struct SMeshMaterial : public SMaterialBase
 {
 	STexID baseTexId;
 	//
@@ -134,12 +141,6 @@ struct SMeshMaterial
 	STexID rmaTexId;
 	//
 	STexID emiTexId;
-	// 
-	std::uint32_t firstIndex;
-	//
-	std::uint32_t numVertices;
-	//
-	std::uint32_t numIndices;
 };
 
 /** Id in mesh manager */
@@ -165,6 +166,39 @@ struct SMesh
 	std::vector<std::uint32_t> indices32;
 };
 
+/** Baked skeletal animation frame */
+struct SBakedAnimationFrame
+{
+	std::vector<SMatrix4> mTrans;
+	//
+	std::vector<SVector3> trans;
+	//
+	std::vector<SQuat> rotation;
+	//
+	std::vector<SVector3> scale;
+	// in seconds
+	float time;
+};
+
+/** Baked skeletal animation */
+struct SBakedSkeletalAnimation
+{
+	// generated from FBX file name
+	SAnimID id{};
+	// generated from mesh name
+	SMeshID meshId{};
+	//
+	std::string name;
+	//
+	std::uint32_t framesPerSecond;
+	// in seconds
+	float duration;
+	//
+	std::vector<SBakedAnimationFrame> frames;
+};
+
+using TBonesMap = std::unordered_map<std::string, std::uint32_t>;
+
 /** Skeletal mesh */
 struct SSkeletalMesh
 {
@@ -172,6 +206,10 @@ struct SSkeletalMesh
 	SMeshID id{};
 	//
 	std::string name;
+	//
+	STransform transform;
+	//
+	TBonesMap bones;
 	//
 	std::vector<SMaterial> materials;
 	//

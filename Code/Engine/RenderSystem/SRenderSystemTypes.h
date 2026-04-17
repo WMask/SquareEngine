@@ -21,14 +21,16 @@ namespace SConst
 	static const std::uint32_t MaxLightsCount = 64u;
 }
 
+/** Basic delegate */
+using OnFinishedDelegate = std::function<void()>;
 /** Textures delegate */
 using OnTexturesLoadedDelegate = std::function<void(std::vector<STexID>&)>;
+/** Textures delegate */
+using OnAnimationsLoadedDelegate = std::function<void(std::vector<SAnimID>&)>;
 /** Mesh instances delegate */
-using OnMeshInstancesLoadedDelegate = std::function<void(SMeshID, const std::vector<SMeshInstance>&)>;
-/** Meshes delegate */
-using OnMeshesLoadedDelegate = std::function<void(SMeshID)>;
+using OnMeshInstancesLoadedDelegate = std::function<void(const std::vector<SMeshInstance>&)>;
 /** Skeletal mesh delegate */
-using OnSkeletalMeshLoadedDelegate = std::function<void(SMeshID)>;
+using OnSkeletalMeshLoadedDelegate = std::function<void(SMeshID, const STransform&)>;
 
 /** Render system stats */
 struct SRSStats
@@ -166,9 +168,17 @@ public:
 	virtual std::shared_ptr<STextureBase> CreateCubemap(const SCubemapData& data) = 0;
 };
 
+enum class EMeshType
+{
+	Static,
+	Skeletal
+};
+
 struct SMeshBase
 {
 	virtual ~SMeshBase() {}
+	//
+	EMeshType type;
 };
 
 struct SMeshData
@@ -189,6 +199,14 @@ struct SSkeletalMeshData
 	SSkeletalMesh mesh;
 };
 
+struct SSkeletalAnimData
+{
+	// generated from file path
+	SAnimID id{};
+	//
+	SBakedSkeletalAnimation anim;
+};
+
 /** Mesh lifetime policy */
 class IMeshLifetime
 {
@@ -197,4 +215,6 @@ public:
 	virtual std::shared_ptr<SMeshBase> CreateMesh(const SMesh& data) = 0;
 	//
 	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SSkeletalMesh& data) = 0;
+	//
+	virtual bool GetBones(SMeshID id, TBonesMap& bones) const = 0;
 };

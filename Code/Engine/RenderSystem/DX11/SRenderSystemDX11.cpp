@@ -711,7 +711,7 @@ void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& pat
 	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
 }
 
-void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate)
+void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate)
 {
 	meshManager.PreloadStaticMeshes(path, delegate);
 }
@@ -719,6 +719,11 @@ void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, O
 void SRenderSystemDX11::LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate)
 {
 	meshManager.LoadSkeletalMesh(path, delegate);
+}
+
+void SRenderSystemDX11::PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate)
+{
+	meshManager.PreloadAnimations(paths, id, delegate);
 }
 
 std::pair<std::vector<SMeshMaterial>, bool> SRenderSystemDX11::FindMeshMaterials(entt::entity entity) const
@@ -731,7 +736,7 @@ std::pair<std::vector<SMeshMaterial>, bool> SRenderSystemDX11::FindMeshMaterials
 		auto mesh = registry.try_get<SStaticMeshComponent>(entity);
 		if (mesh)
 		{
-			if (FindMesh(mesh->id, nullptr, &materials, nullptr, nullptr))
+			if (FindMesh(mesh->id, &materials, nullptr, nullptr, nullptr))
 			{
 				return { materials, true };
 			}
@@ -780,19 +785,25 @@ std::uint32_t SRenderSystemDX11::GetCubemapMaxMipLevel(ECubemapType type) const 
 	return 1u;
 }
 
-bool SRenderSystemDX11::FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials, ID3D11Buffer** outVB, ID3D11Buffer** outIB) const
+bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials,
+	ID3D11Buffer** outVB, ID3D11Buffer** outIB, DXGI_FORMAT* outIbFormat) const
 {
 	auto mesh = static_cast<SMeshDataDX11*>(meshManager.FindMesh(id));
 	if (mesh)
 	{
 		if (outMaterials) *outMaterials = mesh->materials;
-		if (outFormat) *outFormat = mesh->ibFormat;
+		if (outIbFormat) *outIbFormat = mesh->ibFormat;
 		if (outVB) *outVB = mesh->vb.Get();
 		if (outIB) *outIB = mesh->ib.Get();
 		return true;
 	}
 
 	return false;
+}
+
+const SBakedSkeletalAnimation* SRenderSystemDX11::FindAnimation(SAnimID id) const
+{
+	return meshManager.FindAnimation(id);
 }
 
 void SRenderSystemDX11::Update(float deltaSeconds, const SAppContext& context)
@@ -1124,9 +1135,10 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapDat
 
 std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateAnyMesh(const SMesh& data, const SSkeletalMesh& skData)
 {
-	auto outMesh = std::make_shared<SMeshDataDX11>();
-
 	bool bIsSkeletal = !skData.vertices.empty();
+	auto outMesh = std::make_shared<SMeshDataDX11>(bIsSkeletal ? EMeshType::Skeletal : EMeshType::Static);
+	outMesh->bones = skData.bones;
+
 	auto& meshName = bIsSkeletal ? skData.name : data.name;
 	auto& indices16 = bIsSkeletal ? skData.indices16 : data.indices16;
 	auto& indices32 = bIsSkeletal ? skData.indices32 : data.indices32;
@@ -1191,8 +1203,11 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateAnyMesh(const SMesh& data, c
 
 		if (!paths.empty())
 		{
-			outMesh->materials.emplace_back(baseTexId, normTexId, rmaTexId, emiTexId,
-				material.firstIndex, material.numVertices, material.numIndices);
+			const SMeshMaterial meshMaterial {
+				material.firstIndex, material.numVertices, material.numIndices,
+				baseTexId, normTexId, rmaTexId, emiTexId
+			};
+			outMesh->materials.push_back(meshMaterial);
 
 			static auto onLoaded = [](std::vector<STexID>&) {};
 			textureManager.PreloadTextures(paths, onLoaded);
@@ -1213,6 +1228,18 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateMesh(const SMesh& data)
 std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateSkeletalMesh(const SSkeletalMesh& data)
 {
 	return CreateAnyMesh({}, data);
+}
+
+bool SRenderSystemDX11::GetBones(SMeshID id, TBonesMap& bones) const
+{
+	auto mesh = static_cast<SMeshDataDX11*>(meshManager.FindMesh(id));
+	if (mesh)
+	{
+		bones = mesh->bones;
+		return true;
+	}
+
+	return false;
 }
 
 #endif // WIN32

@@ -174,6 +174,9 @@ void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesL
 
     auto PreloadTexturesTask = [this, paths, ids]()
     {
+        std::vector<STextureData> textures;
+        textures.reserve(paths.size());
+
         for (auto i = 0; i < paths.size(); i++)
         {
             auto& path = paths[i];
@@ -186,16 +189,20 @@ void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesL
             if (LoadTextureData(path, &texture.data, &texture.texSize))
             {
                 texture.id = id;
-
-                // write in thread pool space
-                TLockGuard guard(sync);
-                loadedTextures.push(texture);
+                textures.push_back(texture);
             }
             else
             {
                 DebugMsg("[%s] STextureManagerWindows::PreloadTextures(): cannot load '%s'\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
             }
+        }
+
+        // write in thread pool space
+        TLockGuard guard(sync);
+        for (auto& texture : textures)
+        {
+            loadedTextures.push(texture);
         }
     };
 

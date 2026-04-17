@@ -47,8 +47,10 @@ public:// IRenderSystemDX11 interface implementation
 	//
 	virtual std::uint32_t GetCubemapMaxMipLevel(ECubemapType type) const noexcept override;
 	//
-	virtual bool FindMesh(SMeshID id, DXGI_FORMAT* outFormat, std::vector<SMeshMaterial>* outMaterials,
-		ID3D11Buffer** outVB, ID3D11Buffer** outIB) const override;
+	virtual bool FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials,
+		ID3D11Buffer** outVB, ID3D11Buffer** outIB, DXGI_FORMAT* outIbFormat) const override;
+	//
+	virtual const SBakedSkeletalAnimation* FindAnimation(SAnimID id) const override;
 	//
 	virtual SConstantBuffersDX11& GetConstantBuffers() noexcept override { return constantBuffers; }
 	//
@@ -95,9 +97,11 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshesLoadedDelegate delegate) override;
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate) override;
 	//
 	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) override;
+	//
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) override;
 	//
 	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const override;
 	//
@@ -149,6 +153,8 @@ protected:// IMeshLifetime interface implementation
 	virtual std::shared_ptr<SMeshBase> CreateMesh(const SMesh& data) override;
 	//
 	virtual std::shared_ptr<SMeshBase> CreateSkeletalMesh(const SSkeletalMesh& data) override;
+	//
+	virtual bool GetBones(SMeshID id, TBonesMap& bones) const override;
 
 
 protected:

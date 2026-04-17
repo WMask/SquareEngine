@@ -4,6 +4,7 @@
 
 #include "Core/SUtils.h"
 #include "Core/SException.h"
+#include "Core/SMath.h"
 #include "SConfig.h"
 
 #include <fstream>
@@ -17,9 +18,11 @@
 namespace SConst
 {
 	static const std::uint32_t MaxPngSize = 4096u;
+	static const std::uint32_t MaxFbxWeights = 16u;
 	static const std::uint32_t Max16bitIndex = std::numeric_limits<std::uint16_t>::max();
 }
 
+static_assert(SConst::MaxWeightsPerVertex <= SConst::MaxFbxWeights, "SUtils.cpp: Wrong weights per vertex");
 
 std::string_view GetEngineVersion()
 {
@@ -223,7 +226,7 @@ void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth,
 
 namespace SConvert
 {
-	inline SVector4 ToVector4(const ufbx_quat& v)
+	inline SVector4 ToQuat(const ufbx_quat& v)
 	{
 		return SVector4{
 			static_cast<float>(v.x),
@@ -251,12 +254,12 @@ namespace SConvert
 	}
 }
 
-void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
+bool LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
 	std::forward_list<SMeshID>& cachedMeshesIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances)
 {
 	S_TRY
 
-	static std::string staticMeshMsg;
+	static std::string meshMsg;
 	ufbx_error error{};
 	ufbx_scene* scene = ufbx_load_file(filePath.string().c_str(), nullptr, &error);
 	if (!scene)
@@ -306,10 +309,9 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 		for (auto instance : node->mesh->instances)
 		{
-			ufbx_vec3 rotation = ufbx_find_vec3(&node->props, "Lcl Rotation", ufbx_zero_vec3);
 			STransform transform {
 				SConvert::ToVector3(instance->local_transform.translation),
-				SConvert::ToQuat(rotation.x, rotation.y, rotation.z),
+				SConvert::ToQuat(instance->local_transform.rotation),
 				SConvert::ToVector3(instance->local_transform.scale)
 			};
 			outInstances.emplace_back(mesh.id, groupId, transform);
@@ -357,9 +359,9 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			triIndices.clear();
 			if (numVertices != (numTriangles * 3))
 			{
-				staticMeshMsg = "Wrong mesh structure: ";
-				staticMeshMsg += node->mesh->name.data;
-				throw std::exception(staticMeshMsg.c_str());
+				meshMsg = "Wrong mesh structure: ";
+				meshMsg += node->mesh->name.data;
+				throw std::exception(meshMsg.c_str());
 			}
 
 			// generate indices
@@ -414,11 +416,16 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 				mesh.indices32 = std::move(indices);
 			}
 
+			const SMaterial meshMaterial {
+				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices),
+				baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str()
+			};
+			mesh.materials.push_back(meshMaterial);
 			mesh.vertices.insert(mesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			mesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str(),
-				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices));
 
 			indexOffset += numIndices;
+
+			// load only one skeletal mesh part
 			break;
 		}
 
@@ -427,6 +434,8 @@ void LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 
 	ufbx_free_scene(scene);
 
+	return !outMeshes.empty() || !outInstances.empty();
+
 	S_CATCH{ S_THROW_EX("LoadFbxStaticMeshes('", filePath.string().c_str(), "')"); }
 }
 
@@ -434,7 +443,7 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 {
 	S_TRY
 
-	static std::string staticMeshMsg;
+	static std::string meshMsg;
 	ufbx_error error{};
 	ufbx_scene* scene = ufbx_load_file(filePath.string().c_str(), nullptr, &error);
 	if (!scene)
@@ -442,7 +451,6 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 		throw std::exception(error.description.data ? error.description.data : "Cannot read fbx file");
 	}
 
-	std::vector<SMeshID> instAdded;
 	ClearMesh(outMesh);
 
 	for (auto i = 0; i < scene->nodes.count; i++)
@@ -453,11 +461,23 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 		outMesh.name = node->mesh->name.data;
 		outMesh.id = ResourceID<SMeshID>(outMesh.name);
 
+		// save transform
+		for (auto instance : node->mesh->instances)
+		{
+			STransform transform {
+				SConvert::ToVector3(instance->local_transform.translation),
+				SConvert::ToQuat(instance->local_transform.rotation),
+				SConvert::ToVector3(instance->local_transform.scale)
+			};
+			outMesh.transform = transform;
+			break;
+		}
+
 		// add new skeletal mesh
 		std::uint32_t indexOffset = 0;
 		for (const ufbx_mesh_part& part : node->mesh->material_parts)
 		{
-			std::vector<SVertex> vertices;
+			std::vector<SBlendVertex> vertices;
 			std::vector<std::uint32_t> triIndices;
 
 			const size_t numTriangles = part.num_triangles;
@@ -476,7 +496,7 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 				for (size_t i = 0; i < numTris * 3; i++)
 				{
 					uint32_t index = triIndices[i];
-					SVertex* v = &vertices[numVertices++];
+					SBlendVertex* v = &vertices[numVertices++];
 					v->pos = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_position, index));
 					v->norm = SConvert::ToVector3(ufbx_get_vertex_vec3(&node->mesh->vertex_normal, index));
 					if (node->mesh->vertex_tangent.exists)
@@ -491,20 +511,93 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 			triIndices.clear();
 			if (numVertices != (numTriangles * 3))
 			{
-				staticMeshMsg = "Wrong mesh structure: ";
-				staticMeshMsg += node->mesh->name.data;
-				throw std::exception(staticMeshMsg.c_str());
+				meshMsg = "Wrong mesh structure: ";
+				meshMsg += node->mesh->name.data;
+				throw std::exception(meshMsg.c_str());
 			}
 
 			// generate indices
 			std::vector<std::uint32_t> indices;
 			ufbx_vertex_stream streams[1] = {
-				{ vertices.data(), numVertices, sizeof(SVertex)},
+				{ vertices.data(), numVertices, sizeof(SBlendVertex)},
 			};
 			const size_t numIndices = numTriangles * 3;
 			indices.resize(numIndices);
 
 			numVertices = ufbx_generate_indices(streams, 1, indices.data(), numIndices, NULL, NULL);
+
+			// add skinning data
+			if (node->mesh->skin_deformers.count != 1 ||
+				numVertices != node->mesh->skin_deformers[0]->vertices.count)
+			{
+				meshMsg = "Wrong skinning data: ";
+				meshMsg += node->mesh->name.data;
+				throw std::exception(meshMsg.c_str());
+			}
+
+			const auto skinData = node->mesh->skin_deformers[0];
+
+			for (std::uint32_t v = 0; v < numVertices; v++)
+			{
+				const auto& vertexInfo = skinData->vertices[v];
+				if (vertexInfo.num_weights > SConst::MaxFbxWeights)
+				{
+					meshMsg = "Too many weights per vertex: ";
+					meshMsg += node->mesh->name.data;
+					throw std::exception(meshMsg.c_str());
+				}
+
+				float overflow = 0.0f;
+				for (std::uint32_t w = 0; w < vertexInfo.num_weights; w++)
+				{
+					if ((vertexInfo.weight_begin + w) >= skinData->weights.count)
+					{
+						meshMsg = "Wrong weights list size: ";
+						meshMsg += node->mesh->name.data;
+						throw std::exception(meshMsg.c_str());
+					}
+
+					const float weight = skinData->weights[vertexInfo.weight_begin + w].weight;
+					if (w >= SConst::MaxWeightsPerVertex) overflow += weight;
+				}
+
+				auto& vertex = vertices[v];
+				auto numWeights = std::min(vertexInfo.num_weights, SConst::MaxWeightsPerVertex);
+				if (vertexInfo.num_weights > SConst::MaxWeightsPerVertex)
+				{
+					for (std::uint32_t w = 0; w < numWeights; w++)
+					{
+						const std::uint32_t boneId = skinData->weights[vertexInfo.weight_begin + w].cluster_index;
+						if (boneId >= skinData->clusters.count)
+						{
+							meshMsg = "Wrong bone id: ";
+							meshMsg += node->mesh->name.data;
+							throw std::exception(meshMsg.c_str());
+						}
+
+						// add distributed overflow to previous weights
+						const float weight = skinData->weights[vertexInfo.weight_begin + w].weight;
+						const float overflowDistribution = overflow * weight;
+						vertex.weights[w] = weight + overflowDistribution;
+						vertex.indices[w] = boneId;
+					}
+				}
+				else
+				{
+					for (std::uint32_t w = 0; w < numWeights; w++)
+					{
+						vertex.weights[w] = skinData->weights[vertexInfo.weight_begin + w].weight;
+						vertex.indices[w] = skinData->weights[vertexInfo.weight_begin + w].cluster_index;
+					}
+				}
+			}
+
+			// add bones
+			outMesh.bones.reserve(skinData->clusters.count);
+			for (std::uint32_t b = 0; b < skinData->clusters.count; b++)
+			{
+				outMesh.bones.emplace(skinData->clusters[b]->name.data, b);
+			}
 
 			// add new material part to the mesh
 			const ufbx_material* material = node->mesh->materials[part.index];
@@ -548,22 +641,140 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 				outMesh.indices32 = std::move(indices);
 			}
 
+			const SMaterial meshMaterial {
+				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices),
+				baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str()
+			};
+			outMesh.materials.push_back(meshMaterial);
 			outMesh.vertices.insert(outMesh.vertices.end(), vertices.begin(), vertices.begin() + numVertices);
-			outMesh.materials.emplace_back(baseTexture.c_str(), normTexture.c_str(), rmaTexture.c_str(), emiTexture.c_str(),
-				indexOffset, static_cast<std::uint32_t>(numVertices), static_cast<std::uint32_t>(numIndices));
 
 			indexOffset += numIndices;
+
+			// load only one skeletal mesh part
 			break;
 		}
 
-		return !outMesh.vertices.empty();
+		// load only one skeletal mesh
+		break;
 	}
 
 	ufbx_free_scene(scene);
 
-	return false;
+	return !outMesh.vertices.empty();
 
-	S_CATCH{ S_THROW_EX("LoadFbxStaticMeshes('", filePath.string().c_str(), "')"); }
+	S_CATCH{ S_THROW_EX("LoadFbxSkeletalMesh('", filePath.string().c_str(), "')"); }
+}
+
+std::uint32_t GetNumFrames(ufbx_baked_node& bakedBone, float duration)
+{
+	std::uint32_t frames = 0u;
+	for (size_t i = 0; i < bakedBone.translation_keys.count; i++)
+	{
+		const ufbx_baked_vec3& trans = bakedBone.translation_keys[i];
+		const float keyTime = static_cast<float>(trans.time);
+		if (keyTime <= duration) frames++;
+	}
+
+	return frames;
+}
+
+bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMap& bones,
+	SBakedSkeletalAnimation& outAnim, std::uint32_t framesPerSecond)
+{
+	S_TRY
+
+	static std::string animMsg;
+	ufbx_error error{};
+	ufbx_scene* scene = ufbx_load_file(filePath.string().c_str(), nullptr, &error);
+	if (!scene)
+	{
+		throw std::exception(error.description.data ? error.description.data : "Cannot read fbx file");
+	}
+
+	for (size_t i = 0; i < scene->anim_stacks.count; i++)
+	{
+		ufbx_anim_stack* stack = scene->anim_stacks.data[i];
+		ufbx_baked_anim* bakedAnim = ufbx_bake_anim(scene, stack->anim, NULL, NULL);
+		if (!bakedAnim)
+		{
+			throw std::exception("Cannot bake animation");
+		}
+
+		if (bakedAnim->nodes.count < bones.size())
+		{
+			throw std::exception("Not enough bones in animation");
+		}
+
+		const std::uint32_t numBones = bones.size();
+		const std::uint32_t numFrames = GetNumFrames(bakedAnim->nodes[0], bakedAnim->playback_duration);
+		const std::uint32_t fps = numFrames / bakedAnim->playback_duration;
+		if (fps != framesPerSecond)
+		{
+			throw std::exception("Wrong frames per second in animation");
+		}
+
+		outAnim.duration = bakedAnim->playback_duration;
+		outAnim.frames.resize(numFrames);
+
+		for (size_t b = 0; b < bakedAnim->nodes.count; b++)
+		{
+			ufbx_baked_node* bakedBone = &bakedAnim->nodes.data[b];
+			if (bakedBone->translation_keys.count != bakedBone->rotation_keys.count ||
+				bakedBone->translation_keys.count != bakedBone->scale_keys.count ||
+				bakedBone->translation_keys.count < numFrames)
+			{
+				throw std::exception("Wrong animation keys data");
+			}
+
+			ufbx_node* sceneBone = scene->nodes.data[bakedBone->typed_id];
+			auto boneIt = bones.find(sceneBone->name.data);
+			if (boneIt == bones.end())
+			{
+				// skip not skinned bones
+				continue;
+			}
+
+			const std::uint32_t boneId = boneIt->second;
+			if (boneId >= numBones)
+			{
+				throw std::exception("Unexpected bone id");
+			}
+
+			for (size_t f = 0; f < numFrames; f++)
+			{
+				auto& frame = outAnim.frames[f];
+				if (frame.trans.size() < numBones) frame.trans.resize(numBones);
+				if (frame.rotation.size() < numBones) frame.rotation.resize(numBones);
+				if (frame.scale.size() < numBones) frame.scale.resize(numBones);
+
+				const ufbx_baked_vec3& trans = bakedBone->translation_keys[f];
+				const ufbx_baked_quat& rotation = bakedBone->rotation_keys[f];
+				const ufbx_baked_vec3& scale = bakedBone->scale_keys[f];
+				const float keyTime = static_cast<float>(trans.time);
+				if (keyTime <= bakedAnim->playback_duration)
+				{
+					frame.trans[boneId] = SConvert::ToVector3(trans.value);
+					frame.rotation[boneId] = SConvert::ToQuat(rotation.value);
+					frame.scale[boneId] = SConvert::ToVector3(scale.value);
+					frame.time = keyTime;
+				}
+			}
+		}
+
+		ufbx_free_baked_anim(bakedAnim);
+		break;
+	}
+
+	ufbx_free_scene(scene);
+
+	std::string animName(filePath.filename().replace_extension().string());
+	outAnim.id = ResourceID<SAnimID>(animName);
+	outAnim.name = animName;
+	outAnim.framesPerSecond = SConst::AnimationFramesPerSecond;
+
+	return !outAnim.frames.empty();
+
+	S_CATCH{ S_THROW_EX("LoadFbxBakedAnimation('", filePath.string().c_str(), "')"); }
 }
 
 SFileRAII::SFileRAII(const std::filesystem::path& filePath, const char* mode) : file(nullptr)

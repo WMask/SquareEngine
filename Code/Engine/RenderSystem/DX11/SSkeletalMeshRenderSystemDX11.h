@@ -31,8 +31,7 @@ public:
 protected:
 	//
 	void RenderSkeletalMesh(const struct SShaderDataDX11* shader,
-		const struct SSkeletalMeshComponent& meshComponent,
-		const STransform& transformComponent);
+		const struct SSkeletalMeshComponent& meshComponent, const STransform& transform);
 
 
 protected:
@@ -40,6 +39,8 @@ protected:
 	IRenderSystemDX11& renderSystemDX11;
 	//
 	std::string shaderName;
+	//
+	SBakedSkeletalAnimation anim;
 
 
 protected:

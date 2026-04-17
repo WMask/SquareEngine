@@ -125,7 +125,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 		if (!meshComponent.bVisible) return;
 		if (!cachedVB || !cachedIB)
 		{
-			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedFormat, &cachedMaterials, &cachedVB, &cachedIB))
+			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedMaterials, &cachedVB, &cachedIB, &cachedIbFormat))
 			{
 				DebugMsg("[%s] SMeshRenderSystemDX11::Render(): cannot find mesh id=%d\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshComponent.id);
@@ -147,7 +147,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 				RenderBatch(shader);
 			}
 
-			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedFormat, &cachedMaterials, &cachedVB, &cachedIB))
+			if (!renderSystemDX11.FindMesh(meshComponent.id, &cachedMaterials, &cachedVB, &cachedIB, &cachedIbFormat))
 			{
 				DebugMsg("[%s] SMeshRenderSystemDX11::Render(): cannot find mesh id=%d\n",
 					GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshComponent.id);
@@ -191,6 +191,7 @@ void SMeshRenderSystemDX11::Render(float deltaSeconds)
 
 void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 {
+	auto& constantBuffers = renderSystemDX11.GetConstantBuffers();
 	auto deviceContext = renderSystemDX11.GetDeviceContext();
 	if (deviceContext && shader && cachedVB && cachedIB)
 	{
@@ -210,13 +211,13 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 		static UINT strides[2] = { sizeof(SVertex), sizeof(DX11MESHINSTANCE) };
 		static UINT offsets[2] = { 0u, 0u };
 		deviceContext->IASetVertexBuffers(0, 2, buffers, strides, offsets);
-		deviceContext->IASetIndexBuffer(cachedIB, cachedFormat, 0);
+		deviceContext->IASetIndexBuffer(cachedIB, cachedIbFormat, 0);
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		deviceContext->IASetInputLayout(shader->layout.Get());
 		deviceContext->VSSetShader(shader->vs.Get(), NULL, 0);
 		deviceContext->PSSetShader(shader->ps.Get(), NULL, 0);
 
-		auto defaultTexture = renderSystemDX11.GetConstantBuffers().GetDefaultTexture();
+		auto defaultTexture = constantBuffers.GetDefaultTexture();
 		std::uint32_t indexOffset = 0;
 		std::uint32_t vertexOffset = 0;
 		for (auto& material : cachedMaterials)
@@ -241,7 +242,7 @@ void SMeshRenderSystemDX11::RenderBatch(const SShaderDataDX11* shader)
 				(cachedMaterialFlags.bHasRMATexture && rmaView) ? 1u : 0u,
 				(cachedMaterialFlags.bHasEmiTexture && emiView) ? 1u : 0u
 			};
-			renderSystemDX11.GetConstantBuffers().UpdateMaterialFlags(renderSystemDX11, matFlags);
+			constantBuffers.UpdateMaterialFlags(renderSystemDX11, matFlags);
 
 			// render meshes
 			deviceContext->DrawIndexedInstanced(material.numIndices, numInstances, indexOffset, vertexOffset, 0);

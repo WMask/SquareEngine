@@ -92,7 +92,7 @@ VSOutputNmTx VShader(VSInputNmTxInst input)
     output.vTexCoord   = input.vTexCoord;
 
 	// Build TBN in world space
-	float3x3 mWorld3x3 = (float3x3)mWorld;
+	float3x3 mWorld3x3 = transpose(QuaternionToRotationMatrix(input.iRotation));
 	float3 N = normalize(mul(input.vNormal, mWorld3x3));
 	float3 T = normalize(mul(input.vTangent, mWorld3x3));
 

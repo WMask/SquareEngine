@@ -6,6 +6,7 @@
 #define SHADER_UTILS_HLSLI
 
 static const uint  kMaxLights = 64;
+static const uint  kMaxMeshBones = 96;
 static const float kGammaCorrectionScale = 3.5;
 static const float kIndirectSpecularScale = 2.5;
 static const float PI = 3.14159265;
@@ -78,6 +79,36 @@ float3 QuaternionRotate(Quaternion q, float3 vPos)
     Quaternion temp = QuaternionMultiply(q, pos);
     Quaternion result = QuaternionMultiply(temp, qConj);
     return result.xyz;
+}
+
+// Make rotation matrix from quaternion
+float3x3 QuaternionToRotationMatrix(Quaternion q)
+{
+    float xx = q.x * q.x;
+    float yy = q.y * q.y;
+    float zz = q.z * q.z;
+    float xy = q.x * q.y;
+    float xz = q.x * q.z;
+    float yz = q.y * q.z;
+    float wx = q.w * q.x;
+    float wy = q.w * q.y;
+    float wz = q.w * q.z;
+
+    // Construct rotation matrix (row-major)
+    float3x3 mRotation;
+    mRotation[0][0] = 1.0f - 2.0f * (yy + zz);
+    mRotation[0][1] = 2.0f * (xy - wz);
+    mRotation[0][2] = 2.0f * (xz + wy);
+
+    mRotation[1][0] = 2.0f * (xy + wz);
+    mRotation[1][1] = 1.0f - 2.0f * (xx + zz);
+    mRotation[1][2] = 2.0f * (yz - wx);
+
+    mRotation[2][0] = 2.0f * (xz - wy);
+    mRotation[2][1] = 2.0f * (yz + wx);
+    mRotation[2][2] = 1.0f - 2.0f * (xx + yy);
+
+    return mRotation;
 }
 /*
 // calculate attenuation based on distance

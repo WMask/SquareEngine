@@ -85,14 +85,15 @@ VSOutputNmTx VShader(VSInputNmTxWeight input)
 {
     VSOutputNmTx output;
 
+	float4x4 mLocalTransform = mul(mWorld, mTransform);
 	float4 vWorldPos4 = float4(input.vPosition.xyz, 1.0);
-	float4x4 mWVP = mul(mul(mWorld, mTransform), mul(mView, mProj));
+	float4x4 mWVP = mul(mLocalTransform, mul(mView, mProj));
 
     output.vPositionPS = mul(vWorldPos4, mWVP);
     output.vTexCoord   = input.vTexCoord;
 
 	// Build TBN in world space
-	float3x3 mWorld3x3 = (float3x3)mWorld;
+	float3x3 mWorld3x3 = (float3x3)mLocalTransform;
 	float3 N = normalize(mul(input.vNormal, mWorld3x3));
 	float3 T = normalize(mul(input.vTangent, mWorld3x3));
 
@@ -173,6 +174,7 @@ float4 PShader(PSInputNmTx input) : SV_Target0
 
 	float3 vFinalColor = vAlbedo.rgb * vRadiance * ao * NdotL;
 
+	// Physical based part
 	if (bHasRMATexture)
 	{
 		const float3 vRMA = RMATexture.Sample(SurfaceSampler, input.vTexCoord);

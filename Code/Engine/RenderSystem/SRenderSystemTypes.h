@@ -5,7 +5,6 @@
 #pragma once
 
 #include "Core/SMath.h"
-#include "Core/SUtils.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -15,11 +14,11 @@
 namespace SConst
 {
 	/** Max sprites count in one batch */
-	static const std::uint32_t MaxInstancedSpritesCount = 512u;
+	constexpr std::uint32_t MaxInstancedSpritesCount = 512u;
 	/** Max meshes count in one batch */
-	static const std::uint32_t MaxInstancedMeshesCount = 512u;
+	constexpr std::uint32_t MaxInstancedMeshesCount = 512u;
 	/** Max lights count */
-	static const std::uint32_t MaxLightsCount = 64u;
+	constexpr std::uint32_t MaxLightsCount = 64u;
 }
 
 class IMeshManager;
@@ -155,7 +154,7 @@ struct STextureData
 	SBytes data;
 	SSize2 texSize;
 	STexID id;
-	std::filesystem::path path;
+	SPath path;
 	bool bLoadFailed;
 };
 
@@ -163,7 +162,7 @@ struct SCubemapData
 {
 	SBytes data;
 	ECubemapType type;
-	std::filesystem::path path;
+	SPath path;
 	bool bLoadFailed;
 };
 
@@ -175,6 +174,8 @@ public:
 	virtual std::shared_ptr<STextureBase> CreateTexture(const STextureData& data) = 0;
 	//
 	virtual std::shared_ptr<STextureBase> CreateCubemap(const SCubemapData& data) = 0;
+	//
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const = 0;
 };
 
 enum class EMeshType
@@ -195,7 +196,7 @@ struct SMeshData
 	// generated from file path
 	SMeshID id{};
 	//
-	std::filesystem::path path;
+	SPath path;
 	//
 	std::vector<SMesh> meshes;
 	//
@@ -226,20 +227,65 @@ struct SSkeletalAnimData
 
 
 /***************************************************************************
-* Mesh manager interface
+* Texture manager interface
 */
-class IMeshManager
+class ITextureManager : public SUncopyable
 {
 public:
+	/**
+	* Request async texture loading and return id.
+	* Loading may take some time, after that texture will be available at this id.
+	* Render system skip rendering if texture not loaded yet.
+	*/
+	virtual STexID LoadTexture(const SPath& path) = 0;
+	/**
+	* Load textures and call delegate */
+	virtual void PreloadTextures(const SPathList& paths) = 0;
 	//
-	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId,
+	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
+	//
+	virtual bool RemoveTexture(STexID id) = 0;
+	/**
+	* Get texture size in pixels */
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const = 0;
+	/**
+	* Load cubemap from dds file */
+	virtual void LoadCubemap(const SPath& path, ECubemapType type) = 0;
+	//
+	virtual bool RemoveCubemap(ECubemapType type) = 0;
+};
+
+
+/***************************************************************************
+* Mesh manager interface
+*/
+class IMeshManager : public SUncopyable
+{
+public:
+	/**
+	* Load mesh scene instances and call delegate.
+	* Loads meshes with material textures if instance's mesh not loaded yet.
+	*/
+	virtual void LoadStaticMeshInstances(const SPath& path, SGroupID groupId) = 0;
+	//
+	virtual void LoadStaticMeshInstances(const SPath& path, SGroupID groupId,
 		OnMeshInstancesLoadedDelegate delegate) = 0;
+	/**
+	* Load meshes with material textures and call delegate */
+	virtual void PreloadStaticMeshes(const SPath& path) = 0;
 	//
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) = 0;
+	virtual void PreloadStaticMeshes(const SPath& path, OnMeshFinishedDelegate delegate) = 0;
+	/**
+	* Load skeletal mesh and call delegate */
+	virtual void LoadSkeletalMesh(const SPath& path) = 0;
 	//
-	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) = 0;
+	virtual void LoadSkeletalMesh(const SPath& path, OnSkeletalMeshLoadedDelegate delegate) = 0;
+	/**
+	* Load animations and call delegate */
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id) = 0;
 	//
-	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) = 0;
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id,
+		OnAnimationsLoadedDelegate delegate) = 0;
 };
 
 /** Mesh lifetime policy */

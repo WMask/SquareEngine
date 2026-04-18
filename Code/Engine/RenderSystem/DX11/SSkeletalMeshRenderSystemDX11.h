@@ -31,7 +31,8 @@ public:
 protected:
 	//
 	void RenderSkeletalMesh(const struct SShaderDataDX11* shader,
-		const struct SSkeletalMeshComponent& meshComponent, const STransform& transform);
+		const struct SSkeletalMeshComponent& meshComponent,
+		const STransform& transform);
 
 
 protected:

@@ -15,7 +15,7 @@
 using json = nlohmann::json;
 
 
-void SFont::Load(const std::filesystem::path& jsonPath, STexID textureId)
+void SFont::Load(const SPath& jsonPath, STexID textureId)
 {
 	S_TRY
 
@@ -74,7 +74,7 @@ std::pair<SGlyph, bool> SFont::FindGlyph(wchar_t glyphCode) const
 	return { SGlyph{}, false };
 }
 
-SFontID SFontSystem::AddFont(const std::filesystem::path& jsonPath, STexID textureId)
+SFontID SFontSystem::AddFont(const SPath& jsonPath, STexID textureId)
 {
 	SFontID id = 0u;
 
@@ -178,4 +178,9 @@ bool SFontSystem::FindGlyphs(SFontID fontId, const std::wstring& text, std::vect
 	S_CATCH{ S_THROW("SFontSystem::FindGlyphs()") }
 
 	return true;
+}
+
+ILocalization* SFontSystem::GetLocale() const
+{
+	return context ? context->text : nullptr;
 }

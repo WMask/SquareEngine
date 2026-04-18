@@ -47,14 +47,12 @@ public:// IRenderSystemDX11 interface implementation
 	//
 	virtual std::uint32_t GetCubemapMaxMipLevel(ECubemapType type) const noexcept override;
 	//
-	virtual bool FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials,
+	virtual bool FindMesh(SMeshID id, SMaterialsList* outMaterials,
 		ID3D11Buffer** outVB, ID3D11Buffer** outIB, DXGI_FORMAT* outIbFormat) const override;
 	//
 	virtual const SBakedSkeletalAnimation* FindAnimation(SAnimID id) const override;
 	//
 	virtual SConstantBuffersDX11& GetConstantBuffers() noexcept override { return constantBuffers; }
-	//
-	virtual STextureManagerWindows& GetTextureManager() noexcept override { return textureManager; }
 	//
 	virtual ID3D11DeviceContext* GetDeviceContext() const noexcept override { return deviceContext.Get(); }
 	//
@@ -68,16 +66,6 @@ public:// IRenderSystemDX11 interface implementation
 public:// IRenderSystem interface implementation
 	//
 	virtual ~SRenderSystemDX11() override;
-	//
-	virtual STexID LoadTexture(const std::filesystem::path& texturePath) override;
-	//
-	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
-	//
-	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const override;
-	//
-	virtual void LoadCubemap(const std::filesystem::path& path, ECubemapType type) override;
-	//
-	virtual void RemoveCubemap(ECubemapType type) override;
 	//
 	virtual void SetCubemapAmount(float amount, ECubemapType type) override;
 	//
@@ -95,15 +83,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual SColor3F GetGammaCorrection() const noexcept { return pbrGammaCorrection; }
 	//
-	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
-	//
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) override;
-	//
-	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) override;
-	//
-	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) override;
-	//
-	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const override;
+	virtual std::pair<SMaterialsList, bool> FindMeshMaterials(entt::entity entity) const override;
 	//
 	virtual void Clear(IWorld* world, bool removeRooted = false) override;
 	//
@@ -112,6 +92,10 @@ public:// IRenderSystem interface implementation
 	virtual void SetMode(SAppMode mode) override;
 	//
 	virtual void UpdateCamera(const SCamera& camera) override;
+	//
+	virtual ITextureManager* GetTextureManager() noexcept override { return &textureManager; }
+	//
+	virtual IMeshManager* GetMeshManager() noexcept override { return &meshManager; }
 	//
 	virtual SSize2 GetScreenSize() const noexcept override { return cachedRenderSystemSize; }
 	//
@@ -128,7 +112,7 @@ public:// IRenderSystemEx interface implementation
 	//
 	virtual void Subscribe(const SAppContext& context) override;
 	//
-	virtual void LoadShaders(const std::filesystem::path& folderPath) override;
+	virtual void LoadShaders(const SPath& folderPath) override;
 	//
 	virtual void Update(float deltaSeconds, const SAppContext& context) override;
 	//
@@ -146,6 +130,8 @@ protected:// ITextureLifetime interface implementation
 	virtual std::shared_ptr<STextureBase> CreateTexture(const STextureData& data) override;
 	//
 	virtual std::shared_ptr<STextureBase> CreateCubemap(const SCubemapData& data) override;
+	//
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const override;
 
 
 protected:// IMeshLifetime interface implementation

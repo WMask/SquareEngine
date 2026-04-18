@@ -35,8 +35,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			context.input->SetKeysHandler(onKeys);
 
 			auto& registry = context.world->GetEntities();
-			auto treeTex = context.render->LoadTexture("../../Assets/Tree1.png");
-			auto boomTex = context.render->LoadTexture("../../Assets/Boom1.png");
+			auto treeTex = context.textures->LoadTexture("../../Assets/Tree1.png");
+			auto boomTex = context.textures->LoadTexture("../../Assets/Boom1.png");
 
 			movingEntity = context.gui->MakeColoredSprite(registry,
 				SVector3{ 300.0f, 300.0f, 0.0f }, SSize2F{ 256.0f, 256.0f },

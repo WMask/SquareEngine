@@ -145,14 +145,12 @@ public:
 	//
 	virtual std::pair<ID3D11ShaderResourceView*, SSize2> FindTexture(STexID id) const = 0;
 	//
-	virtual bool FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials,
+	virtual bool FindMesh(SMeshID id, SMaterialsList* outMaterials,
 		ID3D11Buffer** outVB, ID3D11Buffer** outIB, DXGI_FORMAT* outIbFormat) const = 0;
 	//
 	virtual const SBakedSkeletalAnimation* FindAnimation(SAnimID id) const = 0;
 	//
 	virtual class SConstantBuffersDX11& GetConstantBuffers() noexcept = 0;
-	//
-	virtual class STextureManagerWindows& GetTextureManager() noexcept = 0;
 	//
 	virtual ID3D11DeviceContext* GetDeviceContext() const noexcept = 0;
 	//

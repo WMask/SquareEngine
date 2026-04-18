@@ -10,7 +10,8 @@
 
 static const char* SkeletalMesh3dShaderName = "SkeletalMesh3d.shader";
 
-SSkeletalMeshRenderSystemDX11::SSkeletalMeshRenderSystemDX11(IRenderSystemDX11& renderSystem) : renderSystemDX11(renderSystem)
+SSkeletalMeshRenderSystemDX11::SSkeletalMeshRenderSystemDX11(IRenderSystemDX11& renderSystem)
+	: renderSystemDX11(renderSystem)
 {
 }
 

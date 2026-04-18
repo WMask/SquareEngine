@@ -182,7 +182,13 @@ void SMeshManagerWindows::Update()
     S_CATCH{ S_THROW("SMeshManagerWindows::Update()"); }
 }
 
-void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& path,
+void SMeshManagerWindows::LoadStaticMeshInstances(const SPath& path, SGroupID groupId)
+{
+    static OnMeshInstancesLoadedDelegate delegate;
+    LoadStaticMeshInstances(path, groupId, delegate);
+}
+
+void SMeshManagerWindows::LoadStaticMeshInstances(const SPath& path,
     SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
     DebugMsg("[%s] SMeshManagerWindows::LoadStaticMeshInstances(): begin loading instances from '%s'\n",
@@ -214,7 +220,13 @@ void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& p
     threadPool->AddTask(LoadInstancesTask, "Load mesh instances");
 }
 
-void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate)
+void SMeshManagerWindows::PreloadStaticMeshes(const SPath& path)
+{
+    static OnMeshFinishedDelegate delegate;
+    PreloadStaticMeshes(path, delegate);
+}
+
+void SMeshManagerWindows::PreloadStaticMeshes(const SPath& path, OnMeshFinishedDelegate delegate)
 {
     DebugMsg("[%s] SMeshManagerWindows::PreloadStaticMeshes(): begin loading meshes from '%s'\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
@@ -246,8 +258,13 @@ void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path,
     threadPool->AddTask(PreloadMeshesTask, "Preload meshes");
 }
 
-void SMeshManagerWindows::LoadSkeletalMesh(const std::filesystem::path& path,
-    OnSkeletalMeshLoadedDelegate delegate)
+void SMeshManagerWindows::LoadSkeletalMesh(const SPath& path)
+{
+    static OnSkeletalMeshLoadedDelegate delegate;
+    LoadSkeletalMesh(path, delegate);
+}
+
+void SMeshManagerWindows::LoadSkeletalMesh(const SPath& path, OnSkeletalMeshLoadedDelegate delegate)
 {
     DebugMsg("[%s] SMeshManagerWindows::LoadSkeletalMesh(): begin loading mesh from '%s'\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
@@ -275,6 +292,12 @@ void SMeshManagerWindows::LoadSkeletalMesh(const std::filesystem::path& path,
 
     // send task to thread pool
     threadPool->AddTask(LoadSkeletalMeshTask, "Load skeletal mesh");
+}
+
+void SMeshManagerWindows::PreloadAnimations(const SPathList& paths, SMeshID meshId)
+{
+    static OnAnimationsLoadedDelegate delegate;
+    PreloadAnimations(paths, meshId, delegate);
 }
 
 void SMeshManagerWindows::PreloadAnimations(const SPathList& paths, SMeshID meshId,
@@ -333,7 +356,7 @@ void SMeshManagerWindows::PreloadAnimations(const SPathList& paths, SMeshID mesh
 
 }
 
-bool SMeshManagerWindows::LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData)
+bool SMeshManagerWindows::LoadMeshData(const SPath& path, SGroupID groupId, SMeshData& meshesData)
 {
     try
     {
@@ -351,7 +374,7 @@ bool SMeshManagerWindows::LoadMeshData(const std::filesystem::path& path, SGroup
     return false;
 }
 
-bool SMeshManagerWindows::LoadSkeletalMeshData(const std::filesystem::path& path, SSkeletalMeshData& meshData)
+bool SMeshManagerWindows::LoadSkeletalMeshData(const SPath& path, SSkeletalMeshData& meshData)
 {
     try
     {
@@ -366,7 +389,7 @@ bool SMeshManagerWindows::LoadSkeletalMeshData(const std::filesystem::path& path
     return false;
 }
 
-bool SMeshManagerWindows::LoadAnimationData(const std::filesystem::path& path, SMeshID id, SSkeletalAnimData& animData)
+bool SMeshManagerWindows::LoadAnimationData(const SPath& path, SMeshID id, SSkeletalAnimData& animData)
 {
     try
     {

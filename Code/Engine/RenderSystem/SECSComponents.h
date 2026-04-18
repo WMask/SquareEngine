@@ -178,7 +178,8 @@ public:
 	inline void GenerateFrameUV(float gameTime, SSize2 texSize, SSpriteUV& outUV) const
 	{
 		const float frameTime = (1.0f / framesPerSecond);
-		std::uint32_t frameId = frameOffset + (static_cast<std::uint32_t>((gameTime - startTime) / frameTime) % framesCount);
+		std::uint32_t frameId = frameOffset +
+			(static_cast<std::uint32_t>((gameTime - startTime) / frameTime) % framesCount);
 		if (frameId >= (frameOffset + framesCount)) frameId = frameOffset;
 
 		const std::uint32_t columns = texSize.width / frameSize.width;
@@ -265,6 +266,7 @@ struct SButtonComponent
 	SSpriteUV pressedUV;
 };
 
+
 /** Checkbox component */
 struct SCheckboxComponent
 {
@@ -278,6 +280,7 @@ struct SCheckboxComponent
 	//
 	bool bChecked;
 };
+
 
 /** Slider component */
 struct SSliderComponent

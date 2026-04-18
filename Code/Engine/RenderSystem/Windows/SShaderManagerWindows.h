@@ -48,9 +48,9 @@ public:
 	//
 	void Shutdown();
 	//
-	void LoadShader(const std::filesystem::path& path, TOnLoadedDelegate delegate);
+	void LoadShader(const SPath& path, TOnLoadedDelegate delegate);
 	//
-	void LoadShaders(const std::vector<std::filesystem::path>& paths, TOnLoadedDelegate delegate);
+	void LoadShaders(const SPathList& paths, TOnLoadedDelegate delegate);
 
 
 protected:

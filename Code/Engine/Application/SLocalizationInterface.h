@@ -11,6 +11,25 @@
 #include <string>
 
 
+namespace SConst
+{
+	constexpr std::string_view DemoTextKey = "demo_text";
+	constexpr std::string_view ApplyTextKey = "apply_text";
+	constexpr std::string_view ControlsTextKey = "controls_text";
+	constexpr std::string_view DefaultTextKey = "default_text";
+	constexpr std::string_view PBRTextKey = "pbr_text";
+	constexpr std::string_view ToggleTextKey = "toggle_text";
+	constexpr std::string_view FpsTextKey = "fps_text";
+	constexpr std::string_view FpsFmtKey = "fps_fmt";
+	constexpr std::string_view PolyTextKey = "poly_text";
+	constexpr std::string_view PolyFmtKey = "poly_fmt";
+	constexpr std::string_view BackLightTextKey = "back_light_text";
+	constexpr std::string_view BackLightFmtKey = "back_light_fmt";
+	constexpr std::string_view ReflectionTextKey = "reflection_text";
+	constexpr std::string_view ReflectionFmtKey = "reflection_fmt";
+}
+
+
 /** localized text key */
 using STextID = std::uint32_t;
 
@@ -29,7 +48,7 @@ public:
 	//
 	virtual void Init(const SAppContext* context) = 0;
 	// add new culture
-	virtual void AddCulture(const std::filesystem::path& filePath) = 0;
+	virtual void AddCulture(const SPath& filePath) = 0;
 	// culture like "en", "es", "fr"
 	virtual bool SetCulture(const std::string& culture) = 0;
 	// set value

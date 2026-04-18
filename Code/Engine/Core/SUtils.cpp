@@ -17,9 +17,9 @@
 
 namespace SConst
 {
-	static const std::uint32_t MaxPngSize = 4096u;
-	static const std::uint32_t MaxFbxWeights = 16u;
-	static const std::uint32_t Max16bitIndex = std::numeric_limits<std::uint16_t>::max();
+	constexpr std::uint32_t MaxPngSize = 4096u;
+	constexpr std::uint32_t MaxFbxWeights = 16u;
+	constexpr std::uint32_t Max16bitIndex = std::numeric_limits<std::uint16_t>::max();
 }
 
 static_assert(SConst::MaxWeightsPerVertex <= SConst::MaxFbxWeights, "SUtils.cpp: Wrong weights per vertex");
@@ -46,7 +46,7 @@ std::string GetTimeStamp(const std::chrono::system_clock::time_point& currentTim
 	return oss.str().c_str();
 }
 
-std::string ReadTextFile(const std::filesystem::path& filePath)
+std::string ReadTextFile(const SPath& filePath)
 {
 	std::string utfPath = ToUtf8(filePath.c_str());
 	std::string result;
@@ -64,7 +64,7 @@ std::string ReadTextFile(const std::filesystem::path& filePath)
 	return result;
 }
 
-SBytes ReadBinaryFile(const std::filesystem::path& filePath)
+SBytes ReadBinaryFile(const SPath& filePath)
 {
 	std::string utfPath = ToUtf8(filePath.c_str());
 	SBytes result;
@@ -82,7 +82,7 @@ SBytes ReadBinaryFile(const std::filesystem::path& filePath)
 	return result;
 }
 
-void WriteTextFile(const std::filesystem::path& filePath, const std::string& text)
+void WriteTextFile(const SPath& filePath, const std::string& text)
 {
 	std::string utfPath = ToUtf8(filePath.c_str());
 
@@ -95,7 +95,7 @@ void WriteTextFile(const std::filesystem::path& filePath, const std::string& tex
 	S_CATCH{ S_THROW_EX("WriteTextFile('", utfPath.c_str(), "')");}
 }
 
-void ReadPngFile(const std::filesystem::path& filePath, std::uint32_t* outWidth, std::uint32_t* outHeight,
+void ReadPngFile(const SPath& filePath, std::uint32_t* outWidth, std::uint32_t* outHeight,
 	std::uint32_t* outBPP, std::uint32_t* outRowBytes, void* outData)
 {
 	struct PngRAII
@@ -254,8 +254,9 @@ namespace SConvert
 	}
 }
 
-bool LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId,
-	std::forward_list<SMeshID>& cachedMeshesIds, std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances)
+bool LoadFbxStaticMeshes(const SPath& filePath, SGroupID groupId,
+	std::forward_list<SMeshID>& cachedMeshesIds, std::vector<SMesh>& outMeshes,
+	std::vector<SMeshInstance>& outInstances)
 {
 	S_TRY
 
@@ -379,8 +380,10 @@ bool LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 			std::string baseTexture, normTexture, rmaTexture, emiTexture;
 			if (material->textures.count > 0)
 			{
-				baseTexture = material->pbr.base_color.texture ? material->pbr.base_color.texture->filename.data : "";
-				normTexture = material->pbr.normal_map.texture ? material->pbr.normal_map.texture->filename.data : "";
+				baseTexture = material->pbr.base_color.texture
+					? material->pbr.base_color.texture->filename.data : "";
+				normTexture = material->pbr.normal_map.texture
+					? material->pbr.normal_map.texture->filename.data : "";
 				if (material->pbr.base_color.texture)
 				{
 					baseTexture = material->pbr.base_color.texture->filename.data;
@@ -439,7 +442,7 @@ bool LoadFbxStaticMeshes(const std::filesystem::path& filePath, SGroupID groupId
 	S_CATCH{ S_THROW_EX("LoadFbxStaticMeshes('", filePath.string().c_str(), "')"); }
 }
 
-bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& outMesh)
+bool LoadFbxSkeletalMesh(const SPath& filePath, SSkeletalMesh& outMesh)
 {
 	S_TRY
 
@@ -604,8 +607,10 @@ bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& o
 			std::string baseTexture, normTexture, rmaTexture, emiTexture;
 			if (material->textures.count > 0)
 			{
-				baseTexture = material->pbr.base_color.texture ? material->pbr.base_color.texture->filename.data : "";
-				normTexture = material->pbr.normal_map.texture ? material->pbr.normal_map.texture->filename.data : "";
+				baseTexture = material->pbr.base_color.texture
+					? material->pbr.base_color.texture->filename.data : "";
+				normTexture = material->pbr.normal_map.texture
+					? material->pbr.normal_map.texture->filename.data : "";
 				if (material->pbr.base_color.texture)
 				{
 					baseTexture = material->pbr.base_color.texture->filename.data;
@@ -678,7 +683,7 @@ std::uint32_t GetNumFrames(ufbx_baked_node& bakedBone, float duration)
 	return frames;
 }
 
-bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMap& bones,
+bool LoadFbxBakedAnimation(const SPath& filePath, const TBonesMap& bones,
 	SBakedSkeletalAnimation& outAnim, std::uint32_t framesPerSecond)
 {
 	S_TRY
@@ -777,12 +782,12 @@ bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMa
 	S_CATCH{ S_THROW_EX("LoadFbxBakedAnimation('", filePath.string().c_str(), "')"); }
 }
 
-std::string MakeAnimationName(const std::filesystem::path& path)
+std::string MakeAnimationName(const SPath& path)
 {
 	return path.filename().replace_extension().string();
 }
 
-SFileRAII::SFileRAII(const std::filesystem::path& filePath, const char* mode) : file(nullptr)
+SFileRAII::SFileRAII(const SPath& filePath, const char* mode) : file(nullptr)
 {
 #ifdef _WINDOWS
 	fopen_s(&file, filePath.string().c_str(), mode);
@@ -803,11 +808,13 @@ SFileRAII::~SFileRAII()
 
 std::string ToUtf8(const std::wstring& str)
 {
-	int requiredSize = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(), NULL, 0, NULL, NULL);
+	int requiredSize = WideCharToMultiByte(CP_UTF8, 0, str.c_str(),
+		(int)str.length(), NULL, 0, NULL, NULL);
 	if (requiredSize <= 0) throw std::exception("ToUtf8(): Convert error");
 
 	std::string mbChars(requiredSize, ' ');
-	int result = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(), &mbChars[0], (int)mbChars.length(), NULL, NULL);
+	int result = WideCharToMultiByte(CP_UTF8, 0, str.c_str(), (int)str.length(),
+		&mbChars[0], (int)mbChars.length(), NULL, NULL);
 	if (result != requiredSize) throw std::exception("ToUtf8(): Cannot convert");
 
 	return mbChars;
@@ -815,11 +822,13 @@ std::string ToUtf8(const std::wstring& str)
 
 std::wstring FromUtf8(const std::string& str)
 {
-	int requiredSize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), NULL, 0);
+	int requiredSize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(),
+		(int)str.length(), NULL, 0);
 	if (requiredSize <= 0) throw std::exception("FromUtf8(): Convert error");
 
 	std::wstring wideChars(requiredSize, ' ');
-	int result = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(), &wideChars[0], (int)wideChars.length());
+	int result = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.length(),
+		&wideChars[0], (int)wideChars.length());
 	if (result != requiredSize) throw std::exception("FromUtf8(): Cannot convert");
 
 	return wideChars;

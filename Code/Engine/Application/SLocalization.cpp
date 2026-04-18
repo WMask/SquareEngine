@@ -21,7 +21,7 @@ namespace SApplication
     }
 }
 
-void SLocalization::Load(const std::filesystem::path& filePath)
+void SLocalization::Load(const SPath& filePath)
 {
     S_TRY
 
@@ -73,7 +73,7 @@ std::pair<std::wstring, bool> SLocalization::Get(const std::string_view& key) co
     return { L"", false };
 }
 
-void SLocalizationManager::AddCulture(const std::filesystem::path& filePath)
+void SLocalizationManager::AddCulture(const SPath& filePath)
 {
     S_TRY
 

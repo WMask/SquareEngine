@@ -132,6 +132,11 @@ void SWindowsApplication::Run()
     context.app = this;
     context.pool = threadPool.get();
     context.render = renderSystem.get();
+    if (context.render)
+    {
+        context.textures = context.render->GetTextureManager();
+        context.meshes = context.render->GetMeshManager();
+    }
 
     // get window size
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);

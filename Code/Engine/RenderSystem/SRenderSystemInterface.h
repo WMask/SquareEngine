@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Core/SUtils.h"
-#include "Core/SMathTypes.h"
+#include "Core/STypes.h"
 #include "RenderSystem/RenderSystemModule.h"
 #include "RenderSystem/SRenderSystemTypes.h"
 #include "Application/SApplicationTypes.h"
@@ -34,23 +34,6 @@ public:
 	* Virtual destructor */
 	virtual ~IRenderSystem() {}
 	/**
-	* Request async texture loading and return id.
-	* Loading may take some time, after that texture will be available at this id.
-	* Render system skip rendering if texture not loaded yet.
-	*/
-	virtual STexID LoadTexture(const std::filesystem::path& texturePath) = 0;
-	/**
-	* Load textures and call delegate */
-	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) = 0;
-	/**
-	* Get texture size in pixels */
-	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const = 0;
-	/**
-	* Load cubemap from dds file */
-	virtual void LoadCubemap(const std::filesystem::path& path, ECubemapType type) = 0;
-	//
-	virtual void RemoveCubemap(ECubemapType type) = 0;
-	/**
 	* Cubemap amount (0 - 1) */
 	virtual void SetCubemapAmount(float amount, ECubemapType type) = 0;
 	/**
@@ -75,22 +58,8 @@ public:
 	* Gamma correction on final pbr color */
 	virtual SColor3F GetGammaCorrection() const noexcept = 0;
 	/**
-	* Load mesh scene instances and call delegate.
-	* Loads meshes with material textures if instance's mesh not loaded yet.
-	*/
-	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) = 0;
-	/**
-	* Load meshes with material textures and call delegate */
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) = 0;
-	/**
-	* Load skeletal mesh and call delegate */
-	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) = 0;
-	/**
-	* Load animations and call delegate */
-	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) = 0;
-	/**
 	* Get mesh materials */
-	virtual std::pair<std::vector<SMeshMaterial>, bool> FindMeshMaterials(entt::entity entity) const = 0;
+	virtual std::pair<SMaterialsList, bool> FindMeshMaterials(entt::entity entity) const = 0;
 	/**
 	* Remove all graphics objects: textures, fonts etc. */
 	virtual void Clear(IWorld* world, bool removeRooted = false) = 0;
@@ -103,6 +72,12 @@ public:
 	/**
 	* Set window mode */
 	virtual void SetMode(SAppMode mode) = 0;
+	/**
+	* Return texture manager */
+	virtual class ITextureManager* GetTextureManager() noexcept = 0;
+	/**
+	* Return mesh manager */
+	virtual class IMeshManager* GetMeshManager() noexcept = 0;
 	/**
 	* Return client viewport client size in pixels */
 	virtual SSize2 GetScreenSize() const noexcept = 0;
@@ -131,7 +106,7 @@ public:
 #endif
 	/**
 	* Load shaders */
-	virtual void LoadShaders(const std::filesystem::path& folderPath) = 0;
+	virtual void LoadShaders(const SPath& folderPath) = 0;
 	/**
 	* Shutdown render system */
 	virtual void Shutdown() = 0;
@@ -152,7 +127,8 @@ public:
 	virtual bool CanRender() const noexcept = 0;
 	/**
 	* Resize render system */
-	virtual void Resize(const SSize2& size, const SAppContext& context, bool bForceResize = false) = 0;
+	virtual void Resize(const SSize2& size, const SAppContext& context,
+		bool bForceResize = false) = 0;
 	/**
 	* Adds draw calls debug info */
 	virtual void AddDrawCalls(std::uint32_t drawCalls) noexcept = 0;

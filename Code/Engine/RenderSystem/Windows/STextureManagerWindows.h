@@ -19,9 +19,10 @@
 /***************************************************************************
 * Texture manager
 */
-class STextureManagerWindows
+class STextureManagerWindows : public ITextureManager
 {
 public:
+	//
 	STextureManagerWindows() : textureLifetime(nullptr) , threadPool(nullptr) {}
 	//
 	~STextureManagerWindows();
@@ -32,19 +33,9 @@ public:
 	//
 	void Update();
 	//
-	STexID LoadTexture(const std::filesystem::path& path);
-	//
-	void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate);
-	//
 	STextureBase* FindTexture(STexID id) const;
 	//
-	bool RemoveTexture(STexID id);
-	//
-	void LoadCubemap(const std::filesystem::path& path, ECubemapType type);
-	//
 	STextureBase* FindCubemap(ECubemapType type) const;
-	//
-	bool RemoveCubemap(ECubemapType type);
 	//
 	void ClearCache(IWorld* world);
 	//
@@ -53,11 +44,28 @@ public:
 	inline std::uint32_t GetNumCubemaps() const noexcept { return cubemapsCache.size(); }
 
 
+public:// ITextureManager interface implementation
+	//
+	virtual STexID LoadTexture(const SPath& path) override;
+	//
+	virtual void PreloadTextures(const SPathList& paths) override;
+	//
+	virtual void PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate) override;
+	//
+	virtual bool RemoveTexture(STexID id) override;
+	//
+	virtual void LoadCubemap(const SPath& path, ECubemapType type) override;
+	//
+	virtual bool RemoveCubemap(ECubemapType type) override;
+	//
+	virtual std::pair<SSize2, bool> GetTextureSize(STexID id) const override;
+
+
 protected:
 	//
-	bool LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize);
+	bool LoadTextureData(const SPath& path, SBytes* outData, SSize2* outTexSize);
 	//
-	bool LoadCubemapData(const std::filesystem::path& path, SBytes* outData);
+	bool LoadCubemapData(const SPath& path, SBytes* outData);
 	//
 	void CheckPreloadFinished(const STextureData& textureData);
 

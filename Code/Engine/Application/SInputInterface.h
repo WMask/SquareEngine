@@ -34,12 +34,12 @@ enum class SInputDeviceType : uint8_t
 
 namespace SConst
 {
-	static const std::uint32_t KeysCount = 150;
-	static const std::uint32_t JoysticksMaxCount = 4;
-	static const std::uint32_t JoystickKeysOffset = 130;
-	static const std::uint32_t MouseKeysCount = 3;
-	static const std::uint32_t JoystickKeysCount = (KeysCount - JoystickKeysOffset);
-	static const std::uint8_t FirstJoystickId = static_cast<uint8_t>(SInputDeviceType::Joystick1);
+	constexpr std::uint32_t KeysCount = 150;
+	constexpr std::uint32_t JoysticksMaxCount = 4;
+	constexpr std::uint32_t JoystickKeysOffset = 130;
+	constexpr std::uint32_t MouseKeysCount = 3;
+	constexpr std::uint32_t JoystickKeysCount = (KeysCount - JoystickKeysOffset);
+	constexpr std::uint8_t FirstJoystickId = static_cast<uint8_t>(SInputDeviceType::Joystick1);
 }
 
 /** Keys struct */

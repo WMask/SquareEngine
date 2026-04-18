@@ -52,12 +52,12 @@ struct STransform
 
 namespace SConst
 {
-	static const SVector2 ZeroSVector2 = SVector2{};
-	static const SVector3 ZeroSVector3 = SVector3{};
-	static const SVector4 ZeroSVector4 = SVector4{};
-	static const SVector4 OneSVector4 = SVector4{ 1.0f, 1.0f, 1.0f, 1.0f };
-	static const SVector3 OneSVector3 = SVector3{ 1.0f, 1.0f, 1.0f };
-	static const SVector2 OneSVector2 = SVector2{ 1.0f, 1.0f };
+	constexpr SVector2 ZeroSVector2 = SVector2{};
+	constexpr SVector3 ZeroSVector3 = SVector3{};
+	constexpr SVector4 ZeroSVector4 = SVector4{};
+	constexpr SVector4 OneSVector4 = SVector4{ 1.0f, 1.0f, 1.0f, 1.0f };
+	constexpr SVector3 OneSVector3 = SVector3{ 1.0f, 1.0f, 1.0f };
+	constexpr SVector2 OneSVector2 = SVector2{ 1.0f, 1.0f };
 }
 
 namespace SConvert
@@ -246,10 +246,10 @@ struct SRect
 
 namespace SConst
 {
-	static const SPoint2 ZeroSPoint2 = SPoint2{};
-	static const SPoint3 ZeroSPoint3 = SPoint3{};
-	static const SSize2 ZeroSSize2 = SSize2{};
-	static const SSize3 ZeroSSize3 = SSize3{};
+	constexpr SPoint2 ZeroSPoint2 = SPoint2{};
+	constexpr SPoint3 ZeroSPoint3 = SPoint3{};
+	constexpr SSize2 ZeroSSize2 = SSize2{};
+	constexpr SSize3 ZeroSSize3 = SSize3{};
 }
 
 namespace SConvert
@@ -335,14 +335,14 @@ struct SMatrix4
 
 namespace SConst
 {
-	static const SMatrix3 ZeroSMatrix3 = SMatrix3 { 0.0f };
-	static const SMatrix4 ZeroSMatrix4 = SMatrix4 { 0.0f };
-	static const SMatrix3 IdentitySMatrix3 = SMatrix3 {
+	constexpr SMatrix3 ZeroSMatrix3 = SMatrix3 { 0.0f };
+	constexpr SMatrix4 ZeroSMatrix4 = SMatrix4 { 0.0f };
+	constexpr SMatrix3 IdentitySMatrix3 = SMatrix3 {
 		1.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 1.0f
 	};
-	static const SMatrix4 IdentitySMatrix4 = SMatrix4 {
+	constexpr SMatrix4 IdentitySMatrix4 = SMatrix4 {
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,

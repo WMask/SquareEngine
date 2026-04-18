@@ -173,7 +173,8 @@ void SRenderSystemDX11::Create(HWND inHWnd, SAppMode mode, const SAppContext& co
 
 	std::string swapEffectName;
 	D3D11_FEATURE_DATA_D3D11_OPTIONS3 options3{};
-	HRESULT hFeatureGetResult = d3dDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS3, &options3, sizeof(options3));
+	HRESULT hFeatureGetResult = d3dDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS3,
+		&options3, sizeof(options3));
 	if (SUCCEEDED(hFeatureGetResult) && options3.VPAndRTArrayIndexFromAnyShaderFeedingRasterizer)
 	{
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -557,7 +558,7 @@ void SRenderSystemDX11::Shutdown()
 	dxGIFactory.Reset();
 }
 
-void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
+void SRenderSystemDX11::LoadShaders(const SPath& folderPath)
 {
 	S_TRY
 
@@ -567,7 +568,7 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 	}
 
 	// collect shader paths
-	std::vector<std::filesystem::path> paths;
+	SPathList paths;
 	for (auto& entry : std::filesystem::directory_iterator(folderPath))
 	{
 		if (entry.is_regular_file())
@@ -632,33 +633,6 @@ void SRenderSystemDX11::LoadShaders(const std::filesystem::path& folderPath)
 	S_CATCH{ S_THROW("SRenderSystemDX11::LoadShaders()") }
 }
 
-STexID SRenderSystemDX11::LoadTexture(const std::filesystem::path& texturePath)
-{
-	return textureManager.LoadTexture(texturePath);
-}
-
-void SRenderSystemDX11::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
-{
-	textureManager.PreloadTextures(paths, delegate);
-}
-
-std::pair<SSize2, bool> SRenderSystemDX11::GetTextureSize(STexID id) const
-{
-	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
-	if (texture)
-	{
-		return { texture->texSize, true };
-	}
-
-	return { SConst::ZeroSSize2, false };
-}
-
-void SRenderSystemDX11::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
-{
-	textureManager.LoadCubemap(path, type);
-	constantBuffers.UpdateCubemapSettings(*this);
-}
-
 void SRenderSystemDX11::SetCubemapAmount(float amount, ECubemapType type)
 {
 	switch (type)
@@ -677,12 +651,6 @@ void SRenderSystemDX11::SetCubemapAmount(float amount, ECubemapType type)
 float SRenderSystemDX11::GetCubemapAmount(ECubemapType type) const noexcept
 {
 	return (type == ECubemapType::Diffuse) ? diffuseCubemapAmount : specularCubemapAmount;
-}
-
-void SRenderSystemDX11::RemoveCubemap(ECubemapType type)
-{
-	textureManager.RemoveCubemap(type);
-	constantBuffers.UpdateCubemapSettings(*this);
 }
 
 void SRenderSystemDX11::SetGlobalTint(const SColor3F& color)
@@ -706,29 +674,9 @@ void SRenderSystemDX11::SetGammaCorrection(const SColor3F& color)
 		globalTint, backLight, pbrGammaCorrection);
 }
 
-void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
+std::pair<SMaterialsList, bool> SRenderSystemDX11::FindMeshMaterials(entt::entity entity) const
 {
-	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
-}
-
-void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate)
-{
-	meshManager.PreloadStaticMeshes(path, delegate);
-}
-
-void SRenderSystemDX11::LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate)
-{
-	meshManager.LoadSkeletalMesh(path, delegate);
-}
-
-void SRenderSystemDX11::PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate)
-{
-	meshManager.PreloadAnimations(paths, id, delegate);
-}
-
-std::pair<std::vector<SMeshMaterial>, bool> SRenderSystemDX11::FindMeshMaterials(entt::entity entity) const
-{
-	std::vector<SMeshMaterial> materials;
+	SMaterialsList materials;
 
 	if (world)
 	{
@@ -785,7 +733,7 @@ std::uint32_t SRenderSystemDX11::GetCubemapMaxMipLevel(ECubemapType type) const 
 	return 1u;
 }
 
-bool SRenderSystemDX11::FindMesh(SMeshID id, std::vector<SMeshMaterial>* outMaterials,
+bool SRenderSystemDX11::FindMesh(SMeshID id, SMaterialsList* outMaterials,
 	ID3D11Buffer** outVB, ID3D11Buffer** outIB, DXGI_FORMAT* outIbFormat) const
 {
 	auto mesh = static_cast<SMeshDataDX11*>(meshManager.FindMesh(id));
@@ -834,7 +782,8 @@ void SRenderSystemDX11::Render(const SAppContext& context)
 	if (bAllowFXAA) customRenderTarget = sdrScene.GetRenderTargetView();
 
 	deviceContext->OMSetRenderTargets(1, &customRenderTarget, depthStencilView.Get());
-	deviceContext->ClearRenderTargetView(customRenderTarget, bHasClearColor ? SConvert::FromSColor3(clearColor) : SConst::White4F);
+	deviceContext->ClearRenderTargetView(customRenderTarget, bHasClearColor
+		? SConvert::FromSColor3(clearColor) : SConst::White4F);
 	deviceContext->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	drawCalls = 0;
 
@@ -1085,7 +1034,8 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateTexture(const STextureDat
 		SRVDesc.Texture2D.MipLevels = 1;
 
 		ComPtr<ID3D11ShaderResourceView> newView;
-		if (SUCCEEDED(d3dDevice->CreateShaderResourceView(newTexture.Get(), &SRVDesc, newView.GetAddressOf())))
+		if (SUCCEEDED(d3dDevice->CreateShaderResourceView(newTexture.Get(),
+			&SRVDesc, newView.GetAddressOf())))
 		{
 			auto outTexture = std::make_shared<STextureDataDX11>();
 			outTexture->texture = std::move(newTexture);
@@ -1139,6 +1089,17 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapDat
 		SConst::GetNameByType(cubemapData.type).data());
 
 	return outCubemap;
+}
+
+std::pair<SSize2, bool> SRenderSystemDX11::GetTextureSize(STexID id) const
+{
+	auto texture = static_cast<STextureDataDX11*>(textureManager.FindTexture(id));
+	if (texture)
+	{
+		return { texture->texSize, true };
+	}
+
+	return { SConst::ZeroSSize2, false };
 }
 
 std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateAnyMesh(const SMesh& data, const SSkeletalMesh& skData)
@@ -1217,8 +1178,7 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateAnyMesh(const SMesh& data, c
 			};
 			outMesh->materials.push_back(meshMaterial);
 
-			static auto onLoaded = [](bool, std::vector<STexID>&) {};
-			textureManager.PreloadTextures(paths, onLoaded);
+			textureManager.PreloadTextures(paths);
 		}
 	}
 

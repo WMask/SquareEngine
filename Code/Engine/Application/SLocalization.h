@@ -9,11 +9,6 @@
 
 #include <map>
 
-#if defined(_MSC_VER)
-# pragma warning(disable : 4251)
-# pragma warning(disable : 4275)
-#endif
-
 
 /** Localization file */
 class SLocalization : public SUncopyable
@@ -24,7 +19,7 @@ public:
 	//
 	~SLocalization() {}
 	//
-	void Load(const std::filesystem::path& filePath);
+	void Load(const SPath& filePath);
 	//
 	void Set(const std::string_view& key, const std::wstring& value);
 	//
@@ -57,7 +52,7 @@ public:
 	//
 	virtual void Init(const SAppContext* inContext) override { context = inContext; }
 	//
-	virtual void AddCulture(const std::filesystem::path& filePath) override;
+	virtual void AddCulture(const SPath& filePath) override;
 	//
 	virtual bool SetCulture(const std::string& culture) override;
 	//

@@ -39,13 +39,13 @@ inline T ResourceID(const std::string_view& name)
 
 /**
 * Read text file */
-S_CORE_API std::string ReadTextFile(const std::filesystem::path& filePath);
+S_CORE_API std::string ReadTextFile(const SPath& filePath);
 /**
 * Read binary file */
-S_CORE_API SBytes ReadBinaryFile(const std::filesystem::path& filePath);
+S_CORE_API SBytes ReadBinaryFile(const SPath& filePath);
 /**
 * Write text file */
-S_CORE_API void WriteTextFile(const std::filesystem::path& filePath, const std::string& text);
+S_CORE_API void WriteTextFile(const SPath& filePath, const std::string& text);
 
 
 /**
@@ -53,24 +53,24 @@ S_CORE_API void WriteTextFile(const std::filesystem::path& filePath, const std::
 * BPP - bytes per pixel (always 4)
 * RowBytes - bytes per row
 */
-S_CORE_API void ReadPngFile(const std::filesystem::path& filePath,
+S_CORE_API void ReadPngFile(const SPath& filePath,
 	std::uint32_t* outWidth, std::uint32_t* outHeight,
 	std::uint32_t* outBPP, std::uint32_t* outRowBytes, void* outData = nullptr);
 /**
 * Load static meshes from fbx file */
-S_CORE_API bool LoadFbxStaticMeshes(const std::filesystem::path& filePath,
+S_CORE_API bool LoadFbxStaticMeshes(const SPath& filePath,
 	SGroupID groupId, std::forward_list<SMeshID>& cachedMeshesIds,
 	std::vector<SMesh>& outMeshes, std::vector<SMeshInstance>& outInstances);
 /**
 * Load skeletal meshes from fbx file */
-S_CORE_API bool LoadFbxSkeletalMesh(const std::filesystem::path& filePath, SSkeletalMesh& outMesh);
+S_CORE_API bool LoadFbxSkeletalMesh(const SPath& filePath, SSkeletalMesh& outMesh);
 /**
 * Load skeletal animation from fbx file */
-S_CORE_API bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMap& bones,
+S_CORE_API bool LoadFbxBakedAnimation(const SPath& filePath, const TBonesMap& bones,
 	SBakedSkeletalAnimation& outAnim, std::uint32_t framesPerSecond = SConst::AnimationFramesPerSecond);
 /**
 * Clear mesh */
-S_CORE_API std::string MakeAnimationName(const std::filesystem::path& path);
+S_CORE_API std::string MakeAnimationName(const SPath& path);
 /**
 * Clear mesh */
 template<typename T>
@@ -126,11 +126,9 @@ S_CORE_API void DebugMsgW(const wchar_t* fmt, ...);
 * RAII file object */
 struct S_CORE_API SFileRAII : public SUncopyable
 {
-	SFileRAII(const std::filesystem::path& filePath, const char* mode = "rb");
+	SFileRAII(const SPath& filePath, const char* mode = "rb");
 	~SFileRAII();
 	operator bool() const { return file != nullptr; }
 	operator FILE* () const { return file; }
 	FILE* file;
 };
-
-using SPathList = std::vector<std::filesystem::path>;

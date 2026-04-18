@@ -16,9 +16,9 @@
 
 namespace SConst
 {
-	static const std::uint32_t MaxWeightsPerVertex = 4u;
-	static const std::uint32_t AnimationFramesPerSecond = 30u;
-	static const float AnimationFrameDelta = 1.0f / AnimationFramesPerSecond;
+	constexpr std::uint32_t MaxWeightsPerVertex = 4u;
+	constexpr std::uint32_t AnimationFramesPerSecond = 30u;
+	constexpr float AnimationFrameDelta = 1.0f / AnimationFramesPerSecond;
 }
 
 /** Render system type */
@@ -32,6 +32,13 @@ enum class SRSType
 
 /** Bytes array */
 using SBytes = std::vector<std::uint8_t>;
+
+/** File path */
+using SPath = std::filesystem::path;
+
+/** File path list */
+using SPathList = std::vector<std::filesystem::path>;
+
 
 
 /***************************************************************************
@@ -122,13 +129,13 @@ struct SMaterialBase
 struct SMaterial : public SMaterialBase
 {
 	// rgba
-	std::filesystem::path baseTexture;
+	SPath baseTexture;
 	// tangent space
-	std::filesystem::path normTexture;
+	SPath normTexture;
 	// r - roughness, g - metallic, b - AO
-	std::filesystem::path rmaTexture;
+	SPath rmaTexture;
 	// rgb - emissive
-	std::filesystem::path emiTexture;
+	SPath emiTexture;
 };
 
 /** Mesh material */
@@ -142,6 +149,8 @@ struct SMeshMaterial : public SMaterialBase
 	//
 	STexID emiTexId;
 };
+
+using SMaterialsList = std::vector<SMeshMaterial>;
 
 /** Id in mesh manager */
 using SMeshID = std::uint32_t;
@@ -270,10 +279,10 @@ struct SColor4F : public SColor3F
 
 namespace SConst
 {
-	static const SColor3 White3 = SColor3{ 255, 255, 255 };
-	static const SColor3F White3F = SColor3F{ 1.0f, 1.0f, 1.0f };
-	static const SColor4F White4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
-	static const SColor4F Black4F = SColor4F{ 0.0f, 0.0f, 0.0f, 1.0f };
+	constexpr SColor3 White3 = SColor3{ 255, 255, 255 };
+	constexpr SColor3F White3F = SColor3F{ 1.0f, 1.0f, 1.0f };
+	constexpr SColor4F White4F = SColor4F{ 1.0f, 1.0f, 1.0f, 1.0f };
+	constexpr SColor4F Black4F = SColor4F{ 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 namespace SConvert

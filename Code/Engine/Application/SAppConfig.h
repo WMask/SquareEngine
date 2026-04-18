@@ -50,8 +50,9 @@ struct SAppConfig
 
 /**
 * Loads Application config from file */
-S_APPLICATION_API std::pair<SAppConfig, bool> LoadConfig(const std::filesystem::path& fileName = "config.txt", char delim = '\n');
+S_APPLICATION_API std::pair<SAppConfig, bool> LoadConfig(const SPath& fileName = "config.txt",
+    char delim = '\n');
 
 /**
 * Saves Application config to file */
-S_APPLICATION_API void SaveConfig(const SAppConfig& config, const std::filesystem::path& fileName = "config.txt");
+S_APPLICATION_API void SaveConfig(const SAppConfig& config, const SPath& fileName = "config.txt");

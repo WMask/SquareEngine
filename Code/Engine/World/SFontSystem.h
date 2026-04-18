@@ -24,7 +24,7 @@ public:
 	//
 	SFont() : fontSize(0), texId(0) {}
 	//
-	void Load(const std::filesystem::path& jsonPath, STexID textureId);
+	void Load(const SPath& jsonPath, STexID textureId);
 	//
 	std::pair<SGlyph, bool> FindGlyph(wchar_t glyphCode) const;
 	//
@@ -70,15 +70,18 @@ public:
 	//
 	virtual ~SFontSystem() {}
 	//
-	virtual SFontID AddFont(const std::filesystem::path& jsonPath, STexID textureId) override;
+	virtual SFontID AddFont(const SPath& jsonPath, STexID textureId) override;
 	//
-	virtual std::pair<STexID, bool> GetTextureId(SFontID fontId, const std::string& culture) const override;
+	virtual std::pair<STexID, bool> GetTextureId(SFontID fontId,
+		const std::string& culture) const override;
 	//
-	virtual std::pair<SGlyph, bool> FindGlyph(SFontID fontId, wchar_t glyphCode, float* outLineHeight) const override;
+	virtual std::pair<SGlyph, bool> FindGlyph(SFontID fontId,
+		wchar_t glyphCode, float* outLineHeight) const override;
 	// outTextSize - full string size in pixels
-	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text, std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const override;
+	virtual bool FindGlyphs(SFontID fontId, const std::wstring& text,
+		std::vector<SGlyph>* outGlyphs, SSize2F* outTextSize) const override;
 	//
-	virtual class ILocalization* GetLocale() const override { return context ? context->text : nullptr; }
+	virtual class ILocalization* GetLocale() const override;
 
 
 protected:

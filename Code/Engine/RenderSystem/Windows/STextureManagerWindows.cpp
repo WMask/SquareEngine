@@ -126,7 +126,7 @@ void STextureManagerWindows::Update()
     S_CATCH{ S_THROW("STextureManagerWindows::Update()"); }
 }
 
-STexID STextureManagerWindows::LoadTexture(const std::filesystem::path& path)
+STexID STextureManagerWindows::LoadTexture(const SPath& path)
 {
     STexID id = ResourceID<STexID>(path.string());
     DebugMsg("[%s] STextureManagerWindows::LoadTexture(): begin loading '%s', id=%u\n",
@@ -153,6 +153,12 @@ STexID STextureManagerWindows::LoadTexture(const std::filesystem::path& path)
     // send task to thread pool
     threadPool->AddTask(LoadTextureTask, "Load texture");
     return id;
+}
+
+void STextureManagerWindows::PreloadTextures(const SPathList& paths)
+{
+    static OnTexturesLoadedDelegate delegate;
+    PreloadTextures(paths, delegate);
 }
 
 void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesLoadedDelegate delegate)
@@ -206,6 +212,12 @@ void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesL
     threadPool->AddTask(PreloadTexturesTask, "Preload textures");
 }
 
+std::pair<SSize2, bool> STextureManagerWindows::GetTextureSize(STexID id) const
+{
+    std::pair<SSize2, bool> zero{ SConst::ZeroSSize2, false };
+    return textureLifetime ? textureLifetime->GetTextureSize(id) : zero;
+}
+
 STextureBase* STextureManagerWindows::FindTexture(STexID id) const
 {
     const auto it = texturesCache.find(id);
@@ -229,7 +241,7 @@ bool STextureManagerWindows::RemoveTexture(STexID id)
     return false;
 }
 
-void STextureManagerWindows::LoadCubemap(const std::filesystem::path& path, ECubemapType type)
+void STextureManagerWindows::LoadCubemap(const SPath& path, ECubemapType type)
 {
     DebugMsg("[%s] STextureManagerWindows::LoadCubemap(): begin loading '%s', type=%s\n",
         GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(),
@@ -278,7 +290,7 @@ bool STextureManagerWindows::RemoveCubemap(ECubemapType type)
     return false;
 }
 
-bool STextureManagerWindows::LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize)
+bool STextureManagerWindows::LoadTextureData(const SPath& path, SBytes* outData, SSize2* outTexSize)
 {
     try
     {
@@ -301,7 +313,7 @@ bool STextureManagerWindows::LoadTextureData(const std::filesystem::path& path, 
     return true;
 }
 
-bool STextureManagerWindows::LoadCubemapData(const std::filesystem::path& path, SBytes* outData)
+bool STextureManagerWindows::LoadCubemapData(const SPath& path, SBytes* outData)
 {
     try
     {

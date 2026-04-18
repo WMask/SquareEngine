@@ -48,23 +48,32 @@ public:
 
 public:// IMeshManager interface implementation
 	//
-	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId,
+	virtual void LoadStaticMeshInstances(const SPath& path, SGroupID groupId) override;
+	//
+	virtual void LoadStaticMeshInstances(const SPath& path, SGroupID groupId,
 		OnMeshInstancesLoadedDelegate delegate) override;
 	//
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) override;
+	virtual void PreloadStaticMeshes(const SPath& path) override;
 	//
-	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) override;
+	virtual void PreloadStaticMeshes(const SPath& path, OnMeshFinishedDelegate delegate) override;
 	//
-	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) override;
+	virtual void LoadSkeletalMesh(const SPath& path) override;
+	//
+	virtual void LoadSkeletalMesh(const SPath& path, OnSkeletalMeshLoadedDelegate delegate) override;
+	//
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id) override;
+	//
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id,
+		OnAnimationsLoadedDelegate delegate) override;
 
 
 protected:
 	//
-	bool LoadMeshData(const std::filesystem::path& path, SGroupID groupId, SMeshData& meshesData);
+	bool LoadMeshData(const SPath& path, SGroupID groupId, SMeshData& meshesData);
 	//
-	bool LoadSkeletalMeshData(const std::filesystem::path& path, SSkeletalMeshData& meshData);
+	bool LoadSkeletalMeshData(const SPath& path, SSkeletalMeshData& meshData);
 	//
-	bool LoadAnimationData(const std::filesystem::path& path, SMeshID id, SSkeletalAnimData& animData);
+	bool LoadAnimationData(const SPath& path, SMeshID id, SSkeletalAnimData& animData);
 	//
 	void CheckLoadFinished(const SMeshData& meshData, const SSkeletalMeshData& skMeshData,
 		const SSkeletalAnimData& animData);

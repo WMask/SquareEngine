@@ -13,7 +13,7 @@
 
 namespace SConst
 {
-	static const std::uint32_t MinThreads = 1u;
+	constexpr std::uint32_t MinThreads = 1u;
 }
 
 

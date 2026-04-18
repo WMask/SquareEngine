@@ -11,13 +11,9 @@
 
 namespace SConst
 {
-	static const std::string_view ToggleButtonWidget = "ToggleButton";
-	static const std::string_view ApplyButtonWidget = "ApplyButton";
-	static const std::string_view FpsTextWidget = "FpsText";
-	static const std::string_view ToggleTextKey = "demo_text";
-	static const std::string_view ApplyTextKey = "apply_text";
-	static const std::string_view FpsTextKey = "fps_text";
-	static const std::string_view FpsFmtKey = "fps_fmt";
+	constexpr std::string_view ToggleButtonWidget = "ToggleButton";
+	constexpr std::string_view ApplyButtonWidget = "ApplyButton";
+	constexpr std::string_view FpsTextWidget = "FpsText";
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
@@ -97,10 +93,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			listener.locale = context.text;
 
 			// load resources
-			auto treeTex = context.render->LoadTexture("../../Assets/Tree1.png");
-			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
-			auto fontTex1 = context.render->LoadTexture("../../Assets/Calibri_32.png");
-			auto fontTex2 = context.render->LoadTexture("../../Assets/Calibri_32_ru.png");
+			auto treeTex = context.textures->LoadTexture("../../Assets/Tree1.png");
+			auto buttonsTex = context.textures->LoadTexture("../../Assets/Buttons1.png");
+			auto fontTex1 = context.textures->LoadTexture("../../Assets/Calibri_32.png");
+			auto fontTex2 = context.textures->LoadTexture("../../Assets/Calibri_32_ru.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex1);
 			context.world->GetFonts().AddFont("../../Assets/Calibri_32_ru.json", fontTex2);
 			context.text->AddCulture("../../Assets/Loc.json");

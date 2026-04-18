@@ -8,8 +8,8 @@
 
 namespace SConst
 {
-	static const float DirectionLightType = 0.1f;
-	static const float PointLightType = 0.9f;
+	constexpr float DirectionLightType = 0.1f;
+	constexpr float PointLightType = 0.9f;
 }
 
 TWorldPtr CreateWorld(const SAppContext& context)

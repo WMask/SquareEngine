@@ -21,7 +21,7 @@ SAppConfig::SAppConfig()
 	bEnableHDR = false;
 }
 
-std::pair<SAppConfig, bool> LoadConfig(const std::filesystem::path& fileName, char delim)
+std::pair<SAppConfig, bool> LoadConfig(const SPath& fileName, char delim)
 {
 	auto fullConfigText = ReadTextFile(fileName);
 	if (fullConfigText.length() < 7) return { SAppConfig(), false};
@@ -52,7 +52,7 @@ std::pair<SAppConfig, bool> LoadConfig(const std::filesystem::path& fileName, ch
 	return { result, true };
 }
 
-void SaveConfig(const SAppConfig& config, const std::filesystem::path& fileName)
+void SaveConfig(const SAppConfig& config, const SPath& fileName)
 {
 	json cfg = {
 		{"Application", {

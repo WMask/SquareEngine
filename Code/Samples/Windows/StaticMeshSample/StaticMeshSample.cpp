@@ -5,30 +5,19 @@
 #include <windows.h>
 #include "Core/SCoreModule.h"
 #include "RenderSystem/SRenderSystemModule.h"
+#include "Application/SLocalizationInterface.h"
 #include "Application/SInputInterface.h"
 #include "World/SGuiInterface.h"
 
 
 namespace SConst
 {
-	static const std::string_view NormalMeshWidget = "NormalMeshWidget";
-	static const std::string_view PBRMeshWidget = "PBRMeshWidget";
-	static const std::string_view NormalsWidget = "NormalsWidget";
-	static const std::string_view CheckboxWidget = "CheckboxWidget";
-	static const std::string_view BackLightWidget = "BackLightWidget";
-	static const std::string_view ReflectionWidget = "ReflectionWidget";
-	static const std::string_view ControlsTextKey = "controls_text";
-	static const std::string_view DefaultTextKey = "default_text";
-	static const std::string_view PBRTextKey = "pbr_text";
-	static const std::string_view ToggleTextKey = "toggle_text";
-	static const std::string_view FpsTextKey = "fps_text";
-	static const std::string_view FpsFmtKey = "fps_fmt";
-	static const std::string_view PolyTextKey = "poly_text";
-	static const std::string_view PolyFmtKey = "poly_fmt";
-	static const std::string_view BackLightTextKey = "back_light_text";
-	static const std::string_view BackLightFmtKey = "back_light_fmt";
-	static const std::string_view ReflectionTextKey = "reflection_text";
-	static const std::string_view ReflectionFmtKey = "reflection_fmt";
+	constexpr std::string_view NormalMeshWidget = "NormalMeshWidget";
+	constexpr std::string_view PBRMeshWidget = "PBRMeshWidget";
+	constexpr std::string_view NormalsWidget = "NormalsWidget";
+	constexpr std::string_view CheckboxWidget = "CheckboxWidget";
+	constexpr std::string_view BackLightWidget = "BackLightWidget";
+	constexpr std::string_view ReflectionWidget = "ReflectionWidget";
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
@@ -121,20 +110,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// load resources
 			context.text->AddCulture("../../Assets/Loc.json");
-			context.render->LoadCubemap("../../Assets/EnvironmentSpecular.dds", ECubemapType::Specular);
-			auto buttonsTex = context.render->LoadTexture("../../Assets/Buttons1.png");
-			auto checkboxTex = context.render->LoadTexture("../../Assets/Checkbox1.png");
-			auto fontTex = context.render->LoadTexture("../../Assets/Calibri_32.png");
+			context.textures->LoadCubemap("../../Assets/EnvironmentSpecular.dds", ECubemapType::Specular);
+			auto buttonsTex = context.textures->LoadTexture("../../Assets/Buttons1.png");
+			auto checkboxTex = context.textures->LoadTexture("../../Assets/Checkbox1.png");
+			auto fontTex = context.textures->LoadTexture("../../Assets/Calibri_32.png");
 			auto fontId = context.world->GetFonts().AddFont("../../Assets/Calibri_32.json", fontTex);
 
 			// preload texture to get size
-			context.render->PreloadTextures({ "../../Assets/Slider1.png" },
-				[context](bool bLoaded, const std::vector<STexID>& textures)
+			context.textures->PreloadTextures({ "../../Assets/Slider1.png" },
+				[context](bool bLoaded, const std::vector<STexID>& texIds)
 			{
 				if (bLoaded)
 				{
-					STexID texId = textures.at(0);
-					auto [texSize, bSizeFound] = context.render->GetTextureSize(texId);
+					STexID texId = texIds.at(0);
+					auto [texSize, bSizeFound] = context.textures->GetTextureSize(texId);
 					if (bSizeFound)
 					{
 						auto& registry = context.world->GetEntities();
@@ -210,7 +199,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// load meshes
 			const std::string_view group("Room1");
-			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
+			context.meshes->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
 				[&](bool bLoaded, const std::vector<SMeshInstance>& instances, IMeshManager&)
 			{
 				if (bLoaded && !instances.empty())
@@ -226,7 +215,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
 				}
 			});
-			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
+			context.meshes->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
 				[&](bool bLoaded, const std::vector<SMeshInstance>& instances, IMeshManager&)
 			{
 				if (bLoaded && !instances.empty())

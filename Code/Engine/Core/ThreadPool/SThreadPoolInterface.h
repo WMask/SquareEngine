@@ -11,11 +11,11 @@
 
 namespace SConst
 {
-	static const std::string_view DefaultTaskName = "DefaultTaskName";
-	static const std::uint32_t MaxTasksPerThread = 512u;
-	static const std::uint32_t MaxThreadsInPool = 32u;
-	static const std::uint32_t DefaultTasksPerThread = 64u;
-	static const std::uint32_t DefaultThreadsInPool = 4u;
+	constexpr std::string_view DefaultTaskName = "DefaultTaskName";
+	constexpr std::uint32_t MaxTasksPerThread = 512u;
+	constexpr std::uint32_t MaxThreadsInPool = 32u;
+	constexpr std::uint32_t DefaultTasksPerThread = 64u;
+	constexpr std::uint32_t DefaultThreadsInPool = 4u;
 }
 
 

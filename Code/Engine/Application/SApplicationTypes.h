@@ -112,6 +112,10 @@ struct SAppContext
 	//
 	class IRenderSystem* render{};
 	//
+	class ITextureManager* textures{};
+	//
+	class IMeshManager* meshes{};
+	//
 	class IThreadPool* pool{};
 	//
 	float deltaSeconds{};

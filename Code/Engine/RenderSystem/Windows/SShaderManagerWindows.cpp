@@ -11,17 +11,19 @@
 
 namespace SConst
 {
-	static const std::uint32_t MaxShaders = 64u;
-	static const char* ShaderIncludesExt = ".hlsli";
+	constexpr std::uint32_t MaxShaders = 64u;
+	constexpr std::string_view ShaderIncludesExt = ".hlsli";
 }
 
 
 class SShaderIncludeHandler : public ID3DInclude
 {
 public:
-	SShaderIncludeHandler(const std::unordered_map<std::string, SBytes>& inIncludeShaders) : includeShaders(inIncludeShaders) {}
+	SShaderIncludeHandler(const std::unordered_map<std::string, SBytes>& inIncludeShaders)
+		: includeShaders(inIncludeShaders) {}
 	//
-	STDMETHOD(Open)(D3D_INCLUDE_TYPE Type, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
+	STDMETHOD(Open)(D3D_INCLUDE_TYPE Type, LPCSTR pFileName, LPCVOID pParentData,
+		LPCVOID* ppData, UINT* pBytes) override
 	{
 		for (auto& entry : includeShaders)
 		{
@@ -80,13 +82,13 @@ void SShaderManagerWindows::Update()
 	}
 }
 
-void SShaderManagerWindows::LoadShader(const std::filesystem::path& path, TOnLoadedDelegate delegate)
+void SShaderManagerWindows::LoadShader(const SPath& path, TOnLoadedDelegate delegate)
 {
-	std::vector<std::filesystem::path> paths{ path };
+	SPathList paths{ path };
 	LoadShaders(paths, delegate);
 }
 
-void SShaderManagerWindows::LoadShaders(const std::vector<std::filesystem::path>& paths, TOnLoadedDelegate delegate)
+void SShaderManagerWindows::LoadShaders(const SPathList& paths, TOnLoadedDelegate delegate)
 {
 	if (!threadPool || !compiledShaders)
 	{

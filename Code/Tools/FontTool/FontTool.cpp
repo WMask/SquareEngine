@@ -14,8 +14,9 @@
 #include "stb_truetype.h"
 
 
-std::string MakeFontName(const std::filesystem::path& path);
-int FindMaxVertOffset(const stbtt_fontinfo& info, std::uint32_t bitmapSize, std::uint32_t lineHeight, const std::vector<std::uint32_t>& codes);
+std::string MakeFontName(const SPath& path);
+int FindMaxVertOffset(const stbtt_fontinfo& info, std::uint32_t bitmapSize,
+    std::uint32_t lineHeight, const std::vector<std::uint32_t>& codes);
 
 int main(int argc, const char* argv[])
 {
@@ -68,7 +69,7 @@ int main(int argc, const char* argv[])
     }
 
     // read image
-    std::filesystem::path fontPath(argv[1]);
+    SPath fontPath(argv[1]);
     auto fontBuffer = ReadBinaryFile(fontPath);
 
     stbtt_fontinfo info{};
@@ -208,7 +209,7 @@ int main(int argc, const char* argv[])
     return 0;
 }
 
-std::string MakeFontName(const std::filesystem::path& fontPath)
+std::string MakeFontName(const SPath& fontPath)
 {
     std::string fontName(fontPath.stem().string());
 
@@ -220,7 +221,8 @@ std::string MakeFontName(const std::filesystem::path& fontPath)
     return fontName;
 }
 
-int FindMaxVertOffset(const stbtt_fontinfo& info, std::uint32_t bitmapSize, std::uint32_t lineHeight, const std::vector<std::uint32_t>& codes)
+int FindMaxVertOffset(const stbtt_fontinfo& info, std::uint32_t bitmapSize,
+    std::uint32_t lineHeight, const std::vector<std::uint32_t>& codes)
 {
     float scale = stbtt_ScaleForPixelHeight(&info, static_cast<float>(lineHeight));
     int x = 0, y = lineHeight / 2;

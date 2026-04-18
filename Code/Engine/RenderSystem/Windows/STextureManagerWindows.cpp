@@ -19,7 +19,7 @@
 
 namespace SConst
 {
-    static const std::uint32_t MaxTexturesPerFrame = 8u;
+    constexpr std::uint32_t MaxTexturesPerFrame = 4u;
 }
 
 
@@ -60,73 +60,67 @@ void STextureManagerWindows::Update()
 
     for (std::uint32_t i = 0; i < SConst::MaxTexturesPerFrame; i++)
     {
+        STextureData textureData{};
         SCubemapData cubemapData{};
-
-        if (!loadedTextures.empty())
+        if (!loadedTextures.empty() ||
+            !loadedCubemaps.empty())
         {
-            STextureData textureData;
+            TLockGuard guard(sync);
+            // read in game thread space
+            if (!loadedTextures.empty())
             {
-                TLockGuard guard(sync);
-                if (!loadedTextures.empty())
-                {
-                    // read in game thread space
-                    textureData = loadedTextures.front();
-                    loadedTextures.pop();
-                }
+                textureData = loadedTextures.front();
+                loadedTextures.pop();
             }
 
-            if (!textureData.data.empty())
+            if (!loadedCubemaps.empty())
             {
-                auto texture = textureLifetime->CreateTexture(textureData);
-                if (!texture)
-                {
-                    throw std::exception("Cannot create texture");
-                }
-
-                texturesCache.emplace(textureData.id, texture);
-
-                DebugMsg("[%s] STextureManagerWindows::Update(): texture id=%u created and added to cache\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), textureData.id);
+                cubemapData = loadedCubemaps.front();
+                loadedCubemaps.pop();
             }
         }
-        else if (!loadedCubemaps.empty())
+
+        if (!textureData.data.empty() && !textureData.bLoadFailed)
         {
-            SCubemapData cubemapData;
+            auto texture = textureLifetime->CreateTexture(textureData);
+            if (!texture)
             {
-                TLockGuard guard(sync);
-                if (!loadedCubemaps.empty())
-                {
-                    // read in game thread space
-                    cubemapData = loadedCubemaps.front();
-                    loadedCubemaps.pop();
-                }
+                throw std::exception("Cannot create texture");
             }
 
-            if (!cubemapData.data.empty())
-            {
-                auto cubemap = textureLifetime->CreateCubemap(cubemapData);
-                if (!cubemap)
-                {
-                    throw std::exception("Cannot create cubemap");
-                }
+            texturesCache.emplace(textureData.id, texture);
 
-                RemoveCubemap(cubemapData.type);
-                cubemapsCache.emplace(cubemapData.type, cubemap);
-
-                DebugMsg("[%s] STextureManagerWindows::Update(): cubemap type=%s created and added to cache\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(),
-                    SConst::GetNameByType(cubemapData.type).data());
-            }
+            DebugMsg("[%s] STextureManagerWindows::Update(): texture '%s', id=%u created and added to cache\n",
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(),
+                textureData.path.string().c_str(), textureData.id);
         }
-        else
+
+        if (!cubemapData.data.empty() && !cubemapData.bLoadFailed)
+        {
+            auto cubemap = textureLifetime->CreateCubemap(cubemapData);
+            if (!cubemap)
+            {
+                throw std::exception("Cannot create cubemap");
+            }
+
+            RemoveCubemap(cubemapData.type);
+            cubemapsCache.emplace(cubemapData.type, cubemap);
+
+            DebugMsg("[%s] STextureManagerWindows::Update(): cubemap '%s', type=%s created and added to cache\n",
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(), cubemapData.path.string().c_str(),
+                SConst::GetNameByType(cubemapData.type).data());
+        }
+
+        if (!preloadDelegatesCache.empty())
+        {
+            CheckPreloadFinished(textureData);
+        }
+
+        if (textureData.data.empty() &&
+            cubemapData.data.empty())
         {
             break;
         }
-    }
-
-    if (!preloadDelegatesCache.empty())
-    {
-        CheckPreloadFinished();
     }
 
     S_CATCH{ S_THROW("STextureManagerWindows::Update()"); }
@@ -141,19 +135,19 @@ STexID STextureManagerWindows::LoadTexture(const std::filesystem::path& path)
     auto LoadTextureTask = [this, path, id]()
     {
         STextureData texture{};
-        if (LoadTextureData(path, &texture.data, &texture.texSize))
+        texture.id = id;
+        texture.path = path;
+        if (!LoadTextureData(path, &texture.data, &texture.texSize))
         {
-            texture.id = id;
-
-            // write in thread pool space
-            TLockGuard guard(sync);
-            loadedTextures.push(texture);
-        }
-        else
-        {
+            texture.bLoadFailed = true;
+            texture.data.clear();
             DebugMsg("[%s] STextureManagerWindows::LoadTexture(): cannot load '%s', id=%u\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
         }
+
+        // write in thread pool space
+        TLockGuard guard(sync);
+        loadedTextures.push(std::move(texture));
     };
 
     // send task to thread pool
@@ -186,23 +180,25 @@ void STextureManagerWindows::PreloadTextures(const SPathList& paths, OnTexturesL
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(), id);
 
             STextureData texture{};
-            if (LoadTextureData(path, &texture.data, &texture.texSize))
+            // save id even with failed data to call delegate
+            texture.id = id;
+            texture.path = path;
+            if (!LoadTextureData(path, &texture.data, &texture.texSize))
             {
-                texture.id = id;
-                textures.push_back(texture);
-            }
-            else
-            {
+                texture.bLoadFailed = true;
+                texture.data.clear();
                 DebugMsg("[%s] STextureManagerWindows::PreloadTextures(): cannot load '%s'\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
             }
+
+            textures.push_back(texture);
         }
 
         // write in thread pool space
         TLockGuard guard(sync);
         for (auto& texture : textures)
         {
-            loadedTextures.push(texture);
+            loadedTextures.push(std::move(texture));
         }
     };
 
@@ -223,9 +219,10 @@ STextureBase* STextureManagerWindows::FindTexture(STexID id) const
 
 bool STextureManagerWindows::RemoveTexture(STexID id)
 {
-    if (texturesCache.contains(id))
+    const auto it = texturesCache.find(id);
+    if (it != texturesCache.end())
     {
-        texturesCache.erase(id);
+        texturesCache.erase(it);
         return true;
     }
 
@@ -240,35 +237,18 @@ void STextureManagerWindows::LoadCubemap(const std::filesystem::path& path, ECub
 
     auto LoadCubemapTask = [this, path, type]()
     {
-        bool bLoadFailed = false;
-        try
+        SCubemapData cubemap{};
+        cubemap.type = type;
+        cubemap.path = path;
+        if (!LoadCubemapData(path, &cubemap.data))
         {
-            SCubemapData cubemap;
-            cubemap.data = ReadBinaryFile(path);
-            if (!cubemap.data.empty())
-            {
-                cubemap.type = type;
-
-                // write in thread pool space
-                TLockGuard guard(sync);
-                loadedCubemaps.push(cubemap);
-            }
-            else
-            {
-                bLoadFailed = true;
-            }
-        }
-        catch (const std::exception&)
-        {
-            bLoadFailed = true;
+            cubemap.bLoadFailed = true;
+            cubemap.data.clear();
         }
 
-        if (bLoadFailed)
-        {
-            DebugMsg("[%s] STextureManagerWindows::LoadCubemap(): cannot load '%s', type=%s\n",
-                GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str(),
-                SConst::GetNameByType(type).data());
-        }
+        // write in thread pool space
+        TLockGuard guard(sync);
+        loadedCubemaps.push(std::move(cubemap));
     };
 
     // send task to thread pool
@@ -277,7 +257,7 @@ void STextureManagerWindows::LoadCubemap(const std::filesystem::path& path, ECub
 
 STextureBase* STextureManagerWindows::FindCubemap(ECubemapType type) const
 {
-    auto it = cubemapsCache.find(type);
+    const auto it = cubemapsCache.find(type);
     if (it != cubemapsCache.end())
     {
         return it->second.get();
@@ -288,9 +268,10 @@ STextureBase* STextureManagerWindows::FindCubemap(ECubemapType type) const
 
 bool STextureManagerWindows::RemoveCubemap(ECubemapType type)
 {
-    if (cubemapsCache.contains(type))
+    const auto it = cubemapsCache.find(type);
+    if (it != cubemapsCache.end())
     {
-        cubemapsCache.erase(type);
+        cubemapsCache.erase(it);
         return true;
     }
 
@@ -320,16 +301,41 @@ bool STextureManagerWindows::LoadTextureData(const std::filesystem::path& path, 
     return true;
 }
 
-void STextureManagerWindows::CheckPreloadFinished()
+bool STextureManagerWindows::LoadCubemapData(const std::filesystem::path& path, SBytes* outData)
+{
+    try
+    {
+        SBytes data = ReadBinaryFile(path);
+        if (outData) *outData = std::move(data);
+    }
+    catch (const std::exception& ex)
+    {
+        DebugMsg("[%s] STextureManagerWindows::LoadCubemapData(): %s\n",
+            GetTimeStamp(std::chrono::system_clock::now()).c_str(), ex.what());
+        return false;
+    }
+
+    return true;
+}
+
+void STextureManagerWindows::CheckPreloadFinished(const STextureData& textureData)
 {
     std::forward_list<TPreLoadDelegatesCache::const_iterator> eraseList;
 
     for (auto it = preloadDelegatesCache.begin(); it != preloadDelegatesCache.end(); ++it)
     {
         bool bAllLoaded = true;
+        bool bLoadFailed = false;
 
         for (auto id : it->first)
         {
+            if (textureData.id == id &&
+                textureData.bLoadFailed)
+            {
+                bLoadFailed = true;
+                break;
+            }
+
             if (!texturesCache.contains(id))
             {
                 bAllLoaded = false;
@@ -337,13 +343,23 @@ void STextureManagerWindows::CheckPreloadFinished()
             }
         }
 
-        if (bAllLoaded)
+        if (bLoadFailed)
         {
             eraseList.push_front(it);
 
             if (it->second)
             {
-                it->second(it->first);
+                // fail all if one of the textures failed
+                it->second(false, it->first);
+            }
+        }
+        else if (bAllLoaded)
+        {
+            eraseList.push_front(it);
+
+            if (it->second)
+            {
+                it->second(true, it->first);
             }
         }
     }

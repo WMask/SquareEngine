@@ -711,7 +711,7 @@ void SRenderSystemDX11::LoadStaticMeshInstances(const std::filesystem::path& pat
 	meshManager.LoadStaticMeshInstances(path, groupId, delegate);
 }
 
-void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate)
+void SRenderSystemDX11::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate)
 {
 	meshManager.PreloadStaticMeshes(path, delegate);
 }
@@ -1095,6 +1095,10 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateTexture(const STextureDat
 		}
 	}
 
+	DebugMsg("[%s] SRenderSystemDX11::CreateCubemap(): texture '%s', id=%u created\n",
+		GetTimeStamp(std::chrono::system_clock::now()).c_str(),
+		textureData.path.string().c_str(), textureData.id);
+
 	return nullptr;
 }
 
@@ -1129,6 +1133,10 @@ std::shared_ptr<STextureBase> SRenderSystemDX11::CreateCubemap(const SCubemapDat
 			constantBuffers.UpdateCubemapSettings(*this);
 		}
 	}
+
+	DebugMsg("[%s] SRenderSystemDX11::CreateCubemap(): cubemap '%s', type=%s created\n",
+		GetTimeStamp(std::chrono::system_clock::now()).c_str(), cubemapData.path.string().c_str(),
+		SConst::GetNameByType(cubemapData.type).data());
 
 	return outCubemap;
 }
@@ -1209,12 +1217,12 @@ std::shared_ptr<SMeshBase> SRenderSystemDX11::CreateAnyMesh(const SMesh& data, c
 			};
 			outMesh->materials.push_back(meshMaterial);
 
-			static auto onLoaded = [](std::vector<STexID>&) {};
+			static auto onLoaded = [](bool, std::vector<STexID>&) {};
 			textureManager.PreloadTextures(paths, onLoaded);
 		}
 	}
 
-	DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): mesh '%s' created and added to cache\n",
+	DebugMsg("[%s] SRenderSystemDX11::CreateMesh(): mesh '%s' created\n",
 		GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshName.c_str());
 
 	return outMesh;

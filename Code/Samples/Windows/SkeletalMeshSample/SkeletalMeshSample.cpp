@@ -38,7 +38,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 	try
 	{
 		static entt::entity pbrMeshEntity;
-		static entt::entity normalMeshEntity;
 		static entt::entity backLightEntity;
 		static entt::entity reflectionEntity;
 		static const SWidgetID normalMeshButtonId = ResourceID<SWidgetID>(SConst::NormalMeshWidget);
@@ -68,24 +67,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					auto& button = buttonsView.get<SWidgetComponent>(event.entity);
 					if (button.bPressed)
 					{
-						auto meshView = registry->view<SStaticMeshComponent>();
-						auto& pbrMesh = meshView.get<SStaticMeshComponent>(pbrMeshEntity);
-						auto& normalMesh = meshView.get<SStaticMeshComponent>(normalMeshEntity);
+						auto meshView = registry->view<SSkeletalMeshComponent>();
+						auto& pbrMesh = meshView.get<SSkeletalMeshComponent>(pbrMeshEntity);
 
-						// show normal mesh
-						if (button.id == normalMeshButtonId)
-						{
-							pbrMesh.bVisible = false;
-							normalMesh.bVisible = true;
-							elevation = 150.0f;
-							rotation = 1.5f;
-						}
 						// show pbr mesh
-						else if (button.id == pbrMeshButtonId)
+						if (button.id == pbrMeshButtonId)
 						{
 							pbrMesh.bVisible = true;
-							normalMesh.bVisible = false;
-							rotation = 2.0f;
+							rotation = -2.7f;
 						}
 						// toggle pbr mesh normals
 						else if (button.id == normalsCheckboxId)
@@ -129,7 +118,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// preload texture to get size
 			context.render->PreloadTextures({ "../../Assets/Slider1.png" },
-				[context](const std::vector<STexID>& textures)
+				[context](bool bLoaded, const std::vector<STexID>& textures)
 			{
 				STexID texId = textures.at(0);
 				auto [texSize, bSizeFound] = context.render->GetTextureSize(texId);
@@ -207,24 +196,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// load skeletal mesh
 			context.render->LoadSkeletalMesh("../../Assets/Villager.fbx",
-				[context](SMeshID id, const STransform& meshTransform)
+				[&](bool bLoaded, SMeshID meshId, const STransform& meshTransform, IMeshManager& manager)
 			{
-				auto& registry = context.world->GetEntities();
-				STransform transform = meshTransform;
-				transform.position = SVector3{ 0.0f, -80.0f, 0.0f };
+				if (bLoaded)
+				{
+					STransform transform = meshTransform;
+					transform.position = SVector3{ 0.0f, -80.0f, 0.0f };
 
-				pbrMeshEntity = registry.create();
-				registry.emplace<SSkeletalMeshComponent>(pbrMeshEntity, id);
-				registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
+					pbrMeshEntity = registry.create();
+					registry.emplace<SSkeletalMeshComponent>(pbrMeshEntity, meshId);
+					registry.emplace<STransform3DComponent>(pbrMeshEntity, transform);
 
-				context.render->PreloadAnimations({ "../../Assets/Villager_Idle.fbx" }, id,
-					[context](const std::vector<SAnimID>& anims)
-					{
-						if (!anims.empty())
+					manager.PreloadAnimations({ "../../Assets/Villager_Idle.fbx" }, meshId,
+						[&](bool bLoaded, const std::vector<SAnimID>& anims, IMeshManager& manager)
 						{
+							if (!anims.empty())
+							{
+							}
 						}
-					}
-				);
+					);
+				}
 			});
 
 			// add light

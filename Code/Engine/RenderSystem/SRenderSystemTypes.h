@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Core/SMath.h"
+#include "Core/SUtils.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -21,16 +22,20 @@ namespace SConst
 	static const std::uint32_t MaxLightsCount = 64u;
 }
 
+class IMeshManager;
+
 /** Basic delegate */
-using OnFinishedDelegate = std::function<void()>;
+using OnFinishedDelegate = std::function<void(bool)>;
 /** Textures delegate */
-using OnTexturesLoadedDelegate = std::function<void(std::vector<STexID>&)>;
+using OnTexturesLoadedDelegate = std::function<void(bool, std::vector<STexID>&)>;
 /** Textures delegate */
-using OnAnimationsLoadedDelegate = std::function<void(std::vector<SAnimID>&)>;
+using OnAnimationsLoadedDelegate = std::function<void(bool, std::vector<SAnimID>&, IMeshManager&)>;
 /** Mesh instances delegate */
-using OnMeshInstancesLoadedDelegate = std::function<void(const std::vector<SMeshInstance>&)>;
+using OnMeshInstancesLoadedDelegate = std::function<void(bool, const std::vector<SMeshInstance>&, IMeshManager&)>;
 /** Skeletal mesh delegate */
-using OnSkeletalMeshLoadedDelegate = std::function<void(SMeshID, const STransform&)>;
+using OnSkeletalMeshLoadedDelegate = std::function<void(bool, SMeshID, const STransform&, IMeshManager&)>;
+/** Mesh delegate */
+using OnMeshFinishedDelegate = std::function<void(bool, IMeshManager&)>;
 
 /** Render system stats */
 struct SRSStats
@@ -150,12 +155,16 @@ struct STextureData
 	SBytes data;
 	SSize2 texSize;
 	STexID id;
+	std::filesystem::path path;
+	bool bLoadFailed;
 };
 
 struct SCubemapData
 {
 	SBytes data;
 	ECubemapType type;
+	std::filesystem::path path;
+	bool bLoadFailed;
 };
 
 /** Texture lifetime policy */
@@ -186,9 +195,13 @@ struct SMeshData
 	// generated from file path
 	SMeshID id{};
 	//
+	std::filesystem::path path;
+	//
 	std::vector<SMesh> meshes;
 	//
 	std::vector<SMeshInstance> instances;
+	//
+	bool bLoadFailed;
 };
 
 struct SSkeletalMeshData
@@ -197,6 +210,8 @@ struct SSkeletalMeshData
 	SMeshID id{};
 	//
 	SSkeletalMesh mesh;
+	//
+	bool bLoadFailed;
 };
 
 struct SSkeletalAnimData
@@ -205,6 +220,26 @@ struct SSkeletalAnimData
 	SAnimID id{};
 	//
 	SBakedSkeletalAnimation anim;
+	//
+	bool bLoadFailed;
+};
+
+
+/***************************************************************************
+* Mesh manager interface
+*/
+class IMeshManager
+{
+public:
+	//
+	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId,
+		OnMeshInstancesLoadedDelegate delegate) = 0;
+	//
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) = 0;
+	//
+	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) = 0;
+	//
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) = 0;
 };
 
 /** Mesh lifetime policy */

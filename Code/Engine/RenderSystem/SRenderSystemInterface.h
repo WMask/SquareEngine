@@ -81,7 +81,7 @@ public:
 	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) = 0;
 	/**
 	* Load meshes with material textures and call delegate */
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate) = 0;
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) = 0;
 	/**
 	* Load skeletal mesh and call delegate */
 	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) = 0;

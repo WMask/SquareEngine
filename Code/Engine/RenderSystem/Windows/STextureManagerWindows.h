@@ -57,7 +57,9 @@ protected:
 	//
 	bool LoadTextureData(const std::filesystem::path& path, SBytes* outData, SSize2* outTexSize);
 	//
-	void CheckPreloadFinished();
+	bool LoadCubemapData(const std::filesystem::path& path, SBytes* outData);
+	//
+	void CheckPreloadFinished(const STextureData& textureData);
 
 
 protected:

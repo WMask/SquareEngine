@@ -129,23 +129,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 			// preload texture to get size
 			context.render->PreloadTextures({ "../../Assets/Slider1.png" },
-				[context](const std::vector<STexID>& textures)
+				[context](bool bLoaded, const std::vector<STexID>& textures)
 			{
-				STexID texId = textures.at(0);
-				auto [texSize, bSizeFound] = context.render->GetTextureSize(texId);
-				if (bSizeFound)
+				if (bLoaded)
 				{
-					auto& registry = context.world->GetEntities();
+					STexID texId = textures.at(0);
+					auto [texSize, bSizeFound] = context.render->GetTextureSize(texId);
+					if (bSizeFound)
+					{
+						auto& registry = context.world->GetEntities();
 
-					auto [backLight, bg1] = context.gui->MakeSlider(registry, texId, backLightId, backLightValue, 0.0f, 1.0f,
-						SVector3{ 1720.0f, 430.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, SConvert::ToSize2F(texSize)
-					);
-					backLightEntity = backLight;
+						auto [backLight, bg1] = context.gui->MakeSlider(registry, texId, backLightId, backLightValue, 0.0f, 1.0f,
+							SVector3{ 1720.0f, 430.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, SConvert::ToSize2F(texSize)
+						);
+						backLightEntity = backLight;
 
-					auto [reflection, bg2] = context.gui->MakeSlider(registry, texId, reflectionId, reflectionValue, 0.0f, 1.0f,
-						SVector3{ 1720.0f, 530.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, SConvert::ToSize2F(texSize)
-					);
-					reflectionEntity = reflection;
+						auto [reflection, bg2] = context.gui->MakeSlider(registry, texId, reflectionId, reflectionValue, 0.0f, 1.0f,
+							SVector3{ 1720.0f, 530.0f, 0.0f }, SSize2F{ 300.0f, 40.0f }, SConvert::ToSize2F(texSize)
+						);
+						reflectionEntity = reflection;
+					}
 				}
 			});
 
@@ -208,9 +211,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			// load meshes
 			const std::string_view group("Room1");
 			context.render->LoadStaticMeshInstances("../../Assets/Axe1.fbx", ResourceID<SGroupID>(group),
-				[&](const std::vector<SMeshInstance>& instances)
+				[&](bool bLoaded, const std::vector<SMeshInstance>& instances, IMeshManager&)
 			{
-				if (!instances.empty())
+				if (bLoaded && !instances.empty())
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;
@@ -224,9 +227,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 				}
 			});
 			context.render->LoadStaticMeshInstances("../../Assets/Barrel1.fbx", ResourceID<SGroupID>(group),
-				[&](const std::vector<SMeshInstance>& instances)
+				[&](bool bLoaded, const std::vector<SMeshInstance>& instances, IMeshManager&)
 			{
-				if (!instances.empty())
+				if (bLoaded && !instances.empty())
 				{
 					auto& meshInstance = instances[0];
 					auto transform = meshInstance.transform;

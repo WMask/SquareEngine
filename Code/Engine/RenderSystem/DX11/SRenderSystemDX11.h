@@ -97,7 +97,7 @@ public:// IRenderSystem interface implementation
 	//
 	virtual void LoadStaticMeshInstances(const std::filesystem::path & path, SGroupID groupId, OnMeshInstancesLoadedDelegate delegate) override;
 	//
-	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate) override;
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) override;
 	//
 	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) override;
 	//

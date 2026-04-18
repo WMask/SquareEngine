@@ -18,7 +18,7 @@
 
 namespace SConst
 {
-    static const std::uint32_t MaxMeshesPerFrame = 4u;
+    constexpr std::uint32_t MaxMeshesPerFrame = 4u;
 }
 
 SMeshManagerWindows::~SMeshManagerWindows()
@@ -104,15 +104,15 @@ void SMeshManagerWindows::Update()
 
     for (std::uint32_t i = 0; i < SConst::MaxMeshesPerFrame; i++)
     {
-        bool bBreak = false;
-
-        SMeshData meshData;
-        SSkeletalAnimData animData;
-        SSkeletalMeshData skMeshData;
+        SMeshData meshData{};
+        SSkeletalAnimData animData{};
+        SSkeletalMeshData skMeshData{};
+        if (!loadedMeshes.empty() ||
+            !loadedSkeletalMeshes.empty() ||
+            !loadedAnimations.empty())
         {
-            // read in game thread space
             TLockGuard guard(sync);
-
+            // read in game thread space
             if (!loadedMeshes.empty())
             {
                 meshData = loadedMeshes.front();
@@ -132,7 +132,7 @@ void SMeshManagerWindows::Update()
             }
         }
 
-        if (!meshData.meshes.empty())
+        if (!meshData.meshes.empty() && !meshData.bLoadFailed)
         {
             for (auto& data : meshData.meshes)
             {
@@ -145,7 +145,8 @@ void SMeshManagerWindows::Update()
                 meshesCache.emplace(data.id, mesh);
             }
         }
-        else if (!skMeshData.mesh.vertices.empty())
+
+        if (!skMeshData.mesh.vertices.empty() && !skMeshData.bLoadFailed)
         {
             auto mesh = meshLifetime->CreateSkeletalMesh(skMeshData.mesh);
             if (!mesh)
@@ -155,13 +156,10 @@ void SMeshManagerWindows::Update()
 
             meshesCache.emplace(skMeshData.mesh.id, mesh);
         }
-        else if (!animData.anim.frames.empty())
+
+        if (!animData.anim.frames.empty() && !animData.bLoadFailed)
         {
             animsCache.emplace(animData.anim.id, animData.anim);
-        }
-        else
-        {
-            bBreak = true;
         }
 
         if (!preloadDelegatesCache.empty() ||
@@ -172,7 +170,13 @@ void SMeshManagerWindows::Update()
             CheckLoadFinished(meshData, skMeshData, animData);
         }
 
-        if (bBreak) break;
+        if (meshData.meshes.empty() &&
+            meshData.instances.empty() &&
+            skMeshData.mesh.vertices.empty() &&
+            animData.anim.frames.empty())
+        {
+            break;
+        }
     }
 
     S_CATCH{ S_THROW("SMeshManagerWindows::Update()"); }
@@ -181,52 +185,61 @@ void SMeshManagerWindows::Update()
 void SMeshManagerWindows::LoadStaticMeshInstances(const std::filesystem::path& path,
     SGroupID groupId, OnMeshInstancesLoadedDelegate delegate)
 {
+    DebugMsg("[%s] SMeshManagerWindows::LoadStaticMeshInstances(): begin loading instances from '%s'\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
+
     SMeshID meshId = ResourceID<SMeshID>(path.string());
     instancesDelegatesCache.emplace_back(meshId, delegate);
 
     auto LoadInstancesTask = [this, path, meshId, groupId]()
     {
         SMeshData meshesData{};
-        if (LoadMeshData(path, groupId, meshesData))
+        meshesData.id = meshId;
+        meshesData.path = path;
+        if (!LoadMeshData(path, groupId, meshesData))
         {
-            meshesData.id = meshId;
-
-            // write in thread pool space
-            TLockGuard guard(sync);
-            loadedMeshes.push(meshesData);
-        }
-        else
-        {
+            meshesData.meshes.clear();
+            meshesData.instances.clear();
+            meshesData.bLoadFailed = true;
             DebugMsg("[%s] SMeshManagerWindows::LoadStaticMeshInstances(): cannot load '%s'\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
         }
+
+        // write in thread pool space
+        TLockGuard guard(sync);
+        loadedMeshes.push(meshesData);
     };
 
     // send task to thread pool
     threadPool->AddTask(LoadInstancesTask, "Load mesh instances");
 }
 
-void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate)
+void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate)
 {
+    DebugMsg("[%s] SMeshManagerWindows::PreloadStaticMeshes(): begin loading meshes from '%s'\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
+
     SMeshID meshId = ResourceID<SMeshID>(path.string());
     preloadDelegatesCache.emplace_back(meshId, delegate);
 
     auto PreloadMeshesTask = [this, path, meshId]()
     {
         SMeshData meshesData{};
-        if (LoadMeshData(path, 0u, meshesData))
+        // save id even with failed data to call delegate
+        meshesData.id = meshId;
+        meshesData.path = path;
+        if (!LoadMeshData(path, 0u, meshesData))
         {
-            meshesData.id = meshId;
-
-            // write in thread pool space
-            TLockGuard guard(sync);
-            loadedMeshes.push(meshesData);
-        }
-        else
-        {
+            meshesData.meshes.clear();
+            meshesData.instances.clear();
+            meshesData.bLoadFailed = true;
             DebugMsg("[%s] SMeshManagerWindows::PreloadStaticMeshes(): cannot load '%s'\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
         }
+
+        // write in thread pool space
+        TLockGuard guard(sync);
+        loadedMeshes.push(std::move(meshesData));
     };
 
     // send task to thread pool
@@ -236,25 +249,28 @@ void SMeshManagerWindows::PreloadStaticMeshes(const std::filesystem::path& path,
 void SMeshManagerWindows::LoadSkeletalMesh(const std::filesystem::path& path,
     OnSkeletalMeshLoadedDelegate delegate)
 {
+    DebugMsg("[%s] SMeshManagerWindows::LoadSkeletalMesh(): begin loading mesh from '%s'\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
+
     SMeshID meshId = ResourceID<SMeshID>(path.string());
     skeletalDelegatesCache.emplace_back(meshId, delegate);
 
     auto LoadSkeletalMeshTask = [this, path, meshId]()
     {
         SSkeletalMeshData meshData{};
-        if (LoadSkeletalMeshData(path, meshData))
+        // save id even with failed data to call delegate
+        meshData.id = meshId;
+        if (!LoadSkeletalMeshData(path, meshData))
         {
-            meshData.id = meshId;
-
-            // write in thread pool space
-            TLockGuard guard(sync);
-            loadedSkeletalMeshes.push(meshData);
-        }
-        else
-        {
+            ClearMesh(meshData.mesh);
+            meshData.bLoadFailed = true;
             DebugMsg("[%s] SMeshManagerWindows::LoadSkeletalMesh(): cannot load '%s'\n",
                 GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
         }
+
+        // write in thread pool space
+        TLockGuard guard(sync);
+        loadedSkeletalMeshes.push(std::move(meshData));
     };
 
     // send task to thread pool
@@ -264,10 +280,12 @@ void SMeshManagerWindows::LoadSkeletalMesh(const std::filesystem::path& path,
 void SMeshManagerWindows::PreloadAnimations(const SPathList& paths, SMeshID meshId,
     OnAnimationsLoadedDelegate delegate)
 {
+    DebugMsg("[%s] SMeshManagerWindows::PreloadAnimations(): begin loading %u animations\n",
+        GetTimeStamp(std::chrono::system_clock::now()).c_str(), paths.size());
+
     // transform paths to ids
     auto viewIds = paths | std::views::transform([](const auto& path) {
-        std::string animName(path.filename().replace_extension().string());
-        return ResourceID<SAnimID>(animName);
+        return ResourceID<SAnimID>(MakeAnimationName(path));
     });
     TAnimIDList ids(viewIds.begin(), viewIds.end());
 
@@ -285,24 +303,28 @@ void SMeshManagerWindows::PreloadAnimations(const SPathList& paths, SMeshID mesh
             auto animId = ids[i];
 
             SSkeletalAnimData animData{};
+            // save id even with failed data to call delegate
+            animData.id = animId;
             if (LoadAnimationData(path, meshId, animData))
             {
-                animData.id = animId;
                 animData.anim.meshId = meshId;
-                anims.push_back(animData);
             }
             else
             {
+                animData.bLoadFailed = true;
+                animData.anim.frames.clear();
                 DebugMsg("[%s] SMeshManagerWindows::PreloadAnimations(): cannot load '%s'\n",
                     GetTimeStamp(std::chrono::system_clock::now()).c_str(), path.string().c_str());
             }
+
+            anims.push_back(animData);
         }
 
         // write in thread pool space
         TLockGuard guard(sync);
         for (auto& anim : anims)
         {
-            loadedAnimations.push(anim);
+            loadedAnimations.push(std::move(anim));
         }
     };
 
@@ -387,19 +409,7 @@ void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSk
                 if (it->second)
                 {
                     // call delegate
-                    it->second(meshData.instances);
-                }
-
-                if (!meshData.meshes.empty())
-                {
-                    DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): static meshes from %u created and added to cache\n",
-                        GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.id);
-                }
-
-                if (!meshData.instances.empty())
-                {
-                    DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): mesh instances from %u loaded\n",
-                        GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.id);
+                    it->second(!meshData.bLoadFailed, meshData.instances, *this);
                 }
             }
         }
@@ -413,11 +423,8 @@ void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSk
                 if (it->second)
                 {
                     // call delegate
-                    it->second();
+                    it->second(!meshData.bLoadFailed, *this);
                 }
-
-                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): static meshes from %u created and added to cache\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.id);
             }
         }
 
@@ -429,6 +436,21 @@ void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSk
         for (auto eraseIt : eraseList2)
         {
             preloadDelegatesCache.erase(eraseIt);
+        }
+
+        if (!meshData.bLoadFailed)
+        {
+            if (!meshData.meshes.empty())
+            {
+                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): static meshes from '%s', id=%u created and added to cache\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.path.string().c_str(), meshData.id);
+            }
+
+            if (!meshData.instances.empty())
+            {
+                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): mesh instances from '%s', id=%u loaded\n",
+                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), meshData.path.string().c_str(), meshData.id);
+            }
         }
     }
 
@@ -446,17 +468,20 @@ void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSk
                 if (it->second)
                 {
                     // call delegate
-                    it->second(skMeshData.mesh.id, skMeshData.mesh.transform);
+                    it->second(!skMeshData.bLoadFailed, skMeshData.mesh.id, skMeshData.mesh.transform, *this);
                 }
-
-                DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): skeletal mesh '%s', id=%u created and added to cache\n",
-                    GetTimeStamp(std::chrono::system_clock::now()).c_str(), skMeshData.mesh.name.c_str(), skMeshData.mesh.id);
             }
         }
 
         for (auto eraseIt : eraseList)
         {
             skeletalDelegatesCache.erase(eraseIt);
+        }
+
+        if (!skMeshData.bLoadFailed)
+        {
+            DebugMsg("[%s] SMeshManagerWindows::CheckLoadFinished(): skeletal mesh '%s', id=%u created and added to cache\n",
+                GetTimeStamp(std::chrono::system_clock::now()).c_str(), skMeshData.mesh.name.c_str(), skMeshData.mesh.id);
         }
     }
 
@@ -468,9 +493,17 @@ void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSk
         for (auto it = animationDelegatesCache.begin(); it != animationDelegatesCache.end(); ++it)
         {
             bool bAllLoaded = true;
+            bool bLoadFailed = false;
 
             for (auto id : it->first)
             {
+                if (animData.id == id &&
+                    animData.bLoadFailed)
+                {
+                    bLoadFailed = true;
+                    break;
+                }
+
                 if (!animsCache.contains(id))
                 {
                     bAllLoaded = false;
@@ -478,14 +511,24 @@ void SMeshManagerWindows::CheckLoadFinished(const SMeshData& meshData, const SSk
                 }
             }
 
-            if (bAllLoaded)
+            if (bLoadFailed)
+            {
+                eraseList.push_front(it);
+
+                if (it->second)
+                {
+                    // fail all if one of the textures failed
+                    it->second(false, it->first, *this);
+                }
+            }
+            else if (bAllLoaded)
             {
                 eraseList.push_front(it);
 
                 if (it->second)
                 {
                     // call delegate
-                    it->second(it->first);
+                    it->second(true, it->first, *this);
                 }
             }
         }

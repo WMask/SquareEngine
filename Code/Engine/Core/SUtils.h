@@ -70,6 +70,9 @@ S_CORE_API bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, con
 	SBakedSkeletalAnimation& outAnim, std::uint32_t framesPerSecond = SConst::AnimationFramesPerSecond);
 /**
 * Clear mesh */
+S_CORE_API std::string MakeAnimationName(const std::filesystem::path& path);
+/**
+* Clear mesh */
 template<typename T>
 void ClearMesh(T& mesh)
 {

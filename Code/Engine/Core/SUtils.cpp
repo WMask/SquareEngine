@@ -767,7 +767,7 @@ bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMa
 
 	ufbx_free_scene(scene);
 
-	std::string animName(filePath.filename().replace_extension().string());
+	std::string animName = MakeAnimationName(filePath);
 	outAnim.id = ResourceID<SAnimID>(animName);
 	outAnim.name = animName;
 	outAnim.framesPerSecond = SConst::AnimationFramesPerSecond;
@@ -775,6 +775,11 @@ bool LoadFbxBakedAnimation(const std::filesystem::path& filePath, const TBonesMa
 	return !outAnim.frames.empty();
 
 	S_CATCH{ S_THROW_EX("LoadFbxBakedAnimation('", filePath.string().c_str(), "')"); }
+}
+
+std::string MakeAnimationName(const std::filesystem::path& path)
+{
+	return path.filename().replace_extension().string();
 }
 
 SFileRAII::SFileRAII(const std::filesystem::path& filePath, const char* mode) : file(nullptr)

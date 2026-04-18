@@ -19,7 +19,7 @@
 /***************************************************************************
 * Mesh manager
 */
-class SMeshManagerWindows
+class SMeshManagerWindows : public IMeshManager
 {
 public:
 	SMeshManagerWindows() : threadPool(nullptr), meshLifetime(nullptr) {}
@@ -31,15 +31,6 @@ public:
 	void Shutdown();
 	//
 	void Update();
-	//
-	void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId,
-		OnMeshInstancesLoadedDelegate delegate);
-	//
-	void PreloadStaticMeshes(const std::filesystem::path& path, OnFinishedDelegate delegate);
-	//
-	void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate);
-	//
-	void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate);
 	//
 	const SBakedSkeletalAnimation* FindAnimation(SAnimID id) const;
 	//
@@ -53,6 +44,18 @@ public:
 	void ClearCache(IWorld* world);
 	//
 	inline std::uint32_t GetNumMeshes() const { return meshesCache.size(); }
+
+
+public:// IMeshManager interface implementation
+	//
+	virtual void LoadStaticMeshInstances(const std::filesystem::path& path, SGroupID groupId,
+		OnMeshInstancesLoadedDelegate delegate) override;
+	//
+	virtual void PreloadStaticMeshes(const std::filesystem::path& path, OnMeshFinishedDelegate delegate) override;
+	//
+	virtual void LoadSkeletalMesh(const std::filesystem::path& path, OnSkeletalMeshLoadedDelegate delegate) override;
+	//
+	virtual void PreloadAnimations(const SPathList& paths, SMeshID id, OnAnimationsLoadedDelegate delegate) override;
 
 
 protected:
@@ -75,9 +78,9 @@ protected:
 	//
 	using TInstancesDelegatesCache = std::list<std::pair<SMeshID, OnMeshInstancesLoadedDelegate>>;
 	//
-	using TPreloadAnimsDelegatesCache = std::list<std::pair<TAnimIDList, OnAnimationsLoadedDelegate>>;
+	using TPreloadMeshesDelegatesCache = std::list<std::pair<SMeshID, OnMeshFinishedDelegate>>;
 	//
-	using TPreloadMeshesDelegatesCache = std::list<std::pair<SMeshID, OnFinishedDelegate>>;
+	using TPreloadAnimsDelegatesCache = std::list<std::pair<TAnimIDList, OnAnimationsLoadedDelegate>>;
 	//
 	using TAnimsCache = std::unordered_map<SAnimID, SBakedSkeletalAnimation>;
 	//
